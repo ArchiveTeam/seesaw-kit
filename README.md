@@ -3,7 +3,7 @@ Seesaw toolkit
 
 An attempt to write a toolkit for making seesaw scripts in Python, with support for concurrent downloads, uploads etc.
 
-Needs the event-driven Twisted library.
+Needs the Tornado library for event-driven I/O.
 
 General idea: a set of `Task`s that can be combined into a `Pipeline` that processes `Item`s:
 

@@ -230,39 +230,16 @@ class PrintItem(SimpleTask):
     print item
 
 
-from twisted.internet import utils, reactor, protocol
-from twisted.internet.defer import Deferred
-from twisted.web.client import Agent, ResponseDone
-from twisted.web.http_headers import Headers
-from stringprod import StringProducer
+import fcntl
+import functools
+import subprocess
+import pty
+from tornado.ioloop import IOLoop
+from tornado.web import RequestHandler
+import tornado.web
+import datetime
 import sys
 import json
-
-class ExternalProcessProtocol(protocol.ProcessProtocol):
-  def __init__(self, output_collector, accept_on_exit_code, stdin_data=""):
-    self.deferred = Deferred()
-    self.output_collector = output_collector
-    self.accept_on_exit_code = accept_on_exit_code
-    self.stdin_data = stdin_data
-
-  def connectionMade(self):
-    self.transport.write(self.stdin_data)
-    self.transport.closeStdin()
-
-  def outReceived(self, data):
-    if self.output_collector:
-      self.output_collector.append(data)
-
-  def errReceived(self, data):
-    if self.output_collector:
-      self.output_collector.append(data)
-
-  def processEnded(self, status):
-    rc = status.value.exitCode
-    if rc in self.accept_on_exit_code:
-      self.deferred.callback(status.value.exitCode)
-    else:
-      self.deferred.errback(status)
 
 class ExternalProcess(Task):
   def __init__(self, name, args, max_tries=1, retry_delay=30, accept_on_exit_code=[0], retry_on_exit_code=None, env=None, usePTY=False):
@@ -284,29 +261,65 @@ class ExternalProcess(Task):
     return ""
 
   def process(self, item):
-    pp = ExternalProcessProtocol(item.output_collector, self.accept_on_exit_code, self.stdin_data(item))
-    reactor.spawnProcess(pp,
-        self.args[0],
-        args = realize(self.args, item),
+    i = IOLoop.instance()
+    (master_fd, slave_fd) = pty.openpty()
+    slave = os.fdopen(slave_fd)
+    p = subprocess.Popen(
+        args=realize(self.args, item),
         env=realize(self.env, item),
-        usePTY=self.usePTY)
-    pp.deferred.addCallback(self.handle_process_result, item)
-    pp.deferred.addErrback(self.handle_process_error, item)
+        stdin=subprocess.PIPE,
+        stdout=slave,
+        stderr=slave,
+        close_fds=True
+    )
+    p.stdin.write(self.stdin_data(item))
+    p.stdin.close()
+
+    # make stdout, stderr non-blocking
+    fcntl.fcntl(master_fd, fcntl.F_SETFL, fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+
+    i.add_handler(master_fd,
+        functools.partial(self.on_subprocess_stdout, os.fdopen(master_fd), i, p, item),
+        i.READ)
+
+  def on_subprocess_stdout(self, m, ioloop, pipe, item, fd, events):
+    if not m.closed and (events & tornado.ioloop.IOLoop._EPOLLIN) != 0:
+      data = m.read()
+      if item.output_collector:
+        item.output_collector.append(data)
+
+    if (events & tornado.ioloop.IOLoop._EPOLLHUP) > 0:
+      m.close()
+      ioloop.remove_handler(fd)
+      self.wait_for_end(ioloop, pipe, item)
+
+  def wait_for_end(self, ioloop, pipe, item):
+    pipe.poll()
+    if pipe.returncode != None:
+      if pipe.returncode in self.accept_on_exit_code:
+        self.handle_process_result(pipe.returncode, item)
+      else:
+        self.handle_process_error(pipe.returncode, item)
+    else:
+      # wait for process to exit
+      ioloop.add_timeout(datetime.timedelta(milliseconds=250),
+          functools.partial(self.wait_for_end, ioloop, pipe, item))
 
   def handle_process_result(self, exit_code, item):
     item.output_collector.append("Finished %s for %s\n" % (self, item.description()))
     if self.on_complete:
       self.on_complete(item)
 
-  def handle_process_error(self, status, item):
+  def handle_process_error(self, exit_code, item):
     item["tries"] += 1
-    item.log_error(self, status)
+    item.log_error(self, exit_code)
 
-    item.output_collector.append("Process %s returned exit code %d for %s\n" % (self, status.value.exitCode, item.description()))
+    item.output_collector.append("Process %s returned exit code %d for %s\n" % (self, exit_code, item.description()))
 
-    if (self.max_tries == None or item["tries"] < self.max_tries) and (self.retry_on_exit_code == None or status.value.exitCode in self.retry_on_exit_code):
+    if (self.max_tries == None or item["tries"] < self.max_tries) and (self.retry_on_exit_code == None or exit_code in self.retry_on_exit_code):
       item.output_collector.append("Retrying %s for %s after %d seconds...\n" % (self, item.description(), self.retry_delay))
-      reactor.callLater(self.retry_delay, self.process, item)
+      IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
+          functools.partial(self.process, item))
     elif self.on_error:
       item.failed = True
       item.output_collector.append("Failed %s for %s\n" % (self, item.description()))
@@ -340,28 +353,12 @@ class RsyncUpload(ExternalProcess):
   def stdin_data(self, item):
     return "".join([ "%s\n" % os.path.relpath(realize(f, item), self.target_source_path) for f in self.files ])
 
-class TrackerRequestProtocol(protocol.Protocol):
-  def __init__(self, finished):
-    self.finished = finished
-    self.data = []
-    self.remaining = 1024 * 10
-
-  def dataReceived(self, bytes):
-    if self.remaining:
-      display = bytes[:self.remaining]
-      self.data.append(display)
-      self.remaining -= len(display)
-
-  def connectionLost(self, reason):
-    if isinstance(reason.value, ResponseDone):
-      self.finished.callback("".join(self.data))
-    else:
-      self.finished.errback(reason)
+from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 
 class TrackerRequest(Task):
   def __init__(self, name, tracker_url, tracker_command):
     Task.__init__(self, name)
-    self.agent = Agent(reactor)
+    self.http_client = AsyncHTTPClient()
     self.tracker_url = tracker_url
     self.tracker_command = tracker_command
     self.retry_delay = 30
@@ -371,49 +368,34 @@ class TrackerRequest(Task):
     self.send_request(item)
 
   def send_request(self, item):
-    d = self.agent.request(
-          "POST",
-          "%s/%s" % (self.tracker_url, self.tracker_command),
-          Headers({"Content-Type": ["application/json"]}),
-          StringProducer(json.dumps(self.data(item)))
-        )
-    d.addCallback(self.handle_response, item)
-    d.addErrback(self.handle_error, item)
+    self.http_client.fetch(HTTPRequest(
+        "%s/%s" % (self.tracker_url, self.tracker_command),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+        body=json.dumps(self.data(item))
+      ), functools.partial(self.handle_response, item))
 
   def data(self, item):
     return {}
 
-  def handle_response(self, response, item):
+  def handle_response(self, item, response):
     if response.code == 200:
-      finished = Deferred()
-      response.deliverBody(TrackerRequestProtocol(finished))
-      finished.addBoth(self.handle_body, item)
-    else:
-      if response.code == 420:
-        item.output_collector.append("Tracker rate limiting is in effect. Retrying after %d seconds...\n" % (self.retry_delay))
-      elif response.code == 404:
-        item.output_collector.append("No item received. Retrying after %d seconds...\n" % (self.retry_delay))
-      else:
-        item.output_collector.append("Tracker returned status code %d. Retrying after %d seconds...\n" % (response.code, self.retry_delay))
-      reactor.callLater(self.retry_delay, self.send_request, item)
-
-  def handle_error(self, response, item):
-    item.log_error(self, response)
-
-    item.output_collector.append("Problem contacting tracker: %s\nRetrying after %d seconds...\n" % (response, self.retry_delay))
-    reactor.callLater(self.retry_delay, self.send_request, item)
-
-  def handle_body(self, body, item):
-    if isinstance(body, str):
-      if self.process_body(body, item):
+      if self.process_body(response.body, item):
         if self.on_complete:
           self.on_complete(item)
-        else:
-          item.output_collector.append("Retrying after %d seconds...\n" % (body, self.retry_delay))
-          reactor.callLater(self.retry_delay, self.send_request, item)
+        return
+    else:
+      if response.code == 420:
+        item.output_collector.append("Tracker rate limiting is in effect. ")
+      elif response.code == 404:
+        item.output_collector.append("No item received. ")
+      elif response.code == 599:
+        item.output_collector.append("No HTTP response received from tracker. ")
       else:
-        item.output_collector.append("Problem reading tracker response: %s\nRetrying after %d seconds...\n" % (body, self.retry_delay))
-        reactor.callLater(self.retry_delay, self.send_request, item)
+        item.output_collector.append("Tracker returned status code %d. \n" % (response.code))
+    item.output_collector.append("Retrying after %d seconds...\n" % (self.retry_delay))
+    IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
+        functools.partial(self.send_request, item))
 
 class GetItemFromTracker(TrackerRequest):
   def __init__(self, tracker_url, downloader):
@@ -505,6 +487,7 @@ pipeline = Pipeline(
 # PrintItem(),
   PrepareDirectories(),
 # PrintItem(),
+# ExternalProcess("Echo", [ "echo", "1234" ]),
   LimitConcurrent(4,
     WgetDownload([ "./wget-warc-lua",
       "-U", USER_AGENT,
@@ -540,7 +523,7 @@ pipeline = Pipeline(
         ItemInterpolation("%(item_dir)s/%(warc_file_base)s.warc.gz"),
         ItemInterpolation("%(item_dir)s/%(warc_file_base)s.json")
       ],
-      bwlimit=ConfigValue(name="Rsync bwlimit", default="1000000")
+      bwlimit=ConfigValue(name="Rsync bwlimit", default="0")
     ),
   ),
   SendDoneToTracker(
@@ -554,7 +537,7 @@ def item_complete(item):
   print "Complete:", item.description()
 # print str(item)
   if pipeline.working == 0:
-    reactor.stop()
+    IOLoop.instance().stop()
 # else:
 #   pipeline.enqueue(Item({"n":Item.n}))
 #   Item.n += 1
@@ -569,7 +552,7 @@ def item_error(item):
 # print str(item.output_collector)
 # print pipeline.working
   if pipeline.working == 0:
-    reactor.stop()
+    IOLoop.instance().stop()
 
 pipeline.on_complete = item_complete
 pipeline.on_error = item_error
@@ -584,12 +567,12 @@ item.output_collector = StdoutOutputCollector()
 pipeline.enqueue(item)
 Item.n += 1
 
-item = Item({"n":Item.n, "item_name":None})
-item.output_collector = StdoutOutputCollector()
-# item.output_collector = StringOutputCollector()
-pipeline.enqueue(item)
-Item.n += 1
+# item = Item({"n":Item.n, "item_name":None})
+# item.output_collector = StdoutOutputCollector()
+# # item.output_collector = StringOutputCollector()
+# pipeline.enqueue(item)
+# Item.n += 1
 
-reactor.run()
+IOLoop.instance().start()
 
 
