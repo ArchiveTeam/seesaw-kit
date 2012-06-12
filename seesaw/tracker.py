@@ -4,6 +4,7 @@ import datetime
 import os.path
 
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
+from tornado.ioloop import IOLoop
 
 from .item import realize
 from .task import Task, SimpleTask
@@ -17,7 +18,8 @@ class TrackerRequest(Task):
     self.retry_delay = 30
 
   def enqueue(self, item):
-    item.output_collector.append("Starting %s for %s\n" % (self, item.description()))
+    self.on_start_item.fire(self, item)
+    item.log_output("Starting %s for %s\n" % (self, item.description()))
     self.send_request(item)
 
   def send_request(self, item):
@@ -34,19 +36,18 @@ class TrackerRequest(Task):
   def handle_response(self, item, response):
     if response.code == 200:
       if self.process_body(response.body, item):
-        if self.on_complete:
-          self.on_complete(item)
+        self.complete_item(item)
         return
     else:
-      if response.code == 420:
-        item.output_collector.append("Tracker rate limiting is in effect. ")
+      if response.code == 420 or response.code == 429:
+        item.log_output("Tracker rate limiting is in effect. ")
       elif response.code == 404:
-        item.output_collector.append("No item received. ")
+        item.log_output("No item received. ")
       elif response.code == 599:
-        item.output_collector.append("No HTTP response received from tracker. ")
+        item.log_output("No HTTP response received from tracker. ")
       else:
-        item.output_collector.append("Tracker returned status code %d. \n" % (response.code))
-    item.output_collector.append("Retrying after %d seconds...\n" % (self.retry_delay))
+        item.log_output("Tracker returned status code %d. \n" % (response.code))
+    item.log_output("Retrying after %d seconds...\n" % (self.retry_delay))
     IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
         functools.partial(self.send_request, item))
 
@@ -61,10 +62,10 @@ class GetItemFromTracker(TrackerRequest):
   def process_body(self, body, item):
     if len(body.strip()) > 0:
       item["item_name"] = body.strip()
-      item.output_collector.append("Received item '%s' from tracker\n" % item["item_name"])
+      item.log_output("Received item '%s' from tracker\n" % item["item_name"])
       return True
     else:
-      item.output_collector.append("Tracker responded with empty response.\n")
+      item.log_output("Tracker responded with empty response.\n")
       return False
 
 class SendDoneToTracker(TrackerRequest):
@@ -77,10 +78,10 @@ class SendDoneToTracker(TrackerRequest):
 
   def process_body(self, body, item):
     if body.strip()=="OK":
-      item.output_collector.append("Tracker confirmed item '%s'.\n" % item["item_name"])
+      item.log_output("Tracker confirmed item '%s'.\n" % item["item_name"])
       return True
     else:
-      item.output_collector.append("Tracker responded with unexpected '%s'.\n" % body.strip())
+      item.log_output("Tracker responded with unexpected '%s'.\n" % body.strip())
       return False
 
 class PrepareStatsForTracker(SimpleTask):

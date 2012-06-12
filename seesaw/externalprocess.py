@@ -23,7 +23,8 @@ class ExternalProcess(Task):
     self.env = env
 
   def enqueue(self, item):
-    item.output_collector.append("Starting %s for %s\n" % (self, item.description()))
+    self.on_start_item.fire(self, item)
+    item.log_output("Starting %s for %s\n" % (self, item.description()))
     item["tries"] = 1
     self.process(item)
 
@@ -55,8 +56,7 @@ class ExternalProcess(Task):
   def on_subprocess_stdout(self, m, ioloop, pipe, item, fd, events):
     if not m.closed and (events & tornado.ioloop.IOLoop._EPOLLIN) != 0:
       data = m.read()
-      if item.output_collector:
-        item.output_collector.append(data)
+      item.log_output(data)
 
     if (events & tornado.ioloop.IOLoop._EPOLLHUP) > 0:
       m.close()
@@ -76,24 +76,23 @@ class ExternalProcess(Task):
           functools.partial(self.wait_for_end, ioloop, pipe, item))
 
   def handle_process_result(self, exit_code, item):
-    item.output_collector.append("Finished %s for %s\n" % (self, item.description()))
-    if self.on_complete:
-      self.on_complete(item)
+    item.log_output("Finished %s for %s\n" % (self, item.description()))
+    self.complete_item(item)
 
   def handle_process_error(self, exit_code, item):
     item["tries"] += 1
+
+    item.log_output("Process %s returned exit code %d for %s\n" % (self, exit_code, item.description()))
     item.log_error(self, exit_code)
 
-    item.output_collector.append("Process %s returned exit code %d for %s\n" % (self, exit_code, item.description()))
-
     if (self.max_tries == None or item["tries"] < self.max_tries) and (self.retry_on_exit_code == None or exit_code in self.retry_on_exit_code):
-      item.output_collector.append("Retrying %s for %s after %d seconds...\n" % (self, item.description(), self.retry_delay))
+      item.log_output("Retrying %s for %s after %d seconds...\n" % (self, item.description(), self.retry_delay))
       IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
           functools.partial(self.process, item))
+
     elif self.on_error:
-      item.failed = True
-      item.output_collector.append("Failed %s for %s\n" % (self, item.description()))
-      self.on_error(item)
+      item.log_output("Failed %s for %s\n" % (self, item.description()))
+      self.fail_item(item)
 
 class WgetDownload(ExternalProcess):
   def __init__(self, args, max_tries=1, accept_on_exit_code=[0], retry_on_exit_code=None, env=None):

@@ -1,58 +1,79 @@
+import sys
 import os.path
 
-from tornado.ioloop import IOLoop
+from .event import Event
+from .item import Item, realize
 
-from .item import Item
-from .output import StdoutOutputCollector
+from tornado import ioloop
 
-class SimpleRunner(object):
-  def __init__(self, pipeline, stop_file=None):
-    self.ioloop = IOLoop.instance()
+class Runner(object):
+  def __init__(self, pipeline, stop_file=None, concurrent_items=1):
     self.pipeline = pipeline
-    self.item_count = 0
-    self._should_stop = False
-    self.stop_file = stop_file
-    self.stop_file_mtime = os.path.getmtime(stop_file) if stop_file and os.path.exists(stop_file) else None
+    self.concurrent_items = concurrent_items
 
-    self.pipeline.on_complete = self.item_complete
-    self.pipeline.on_error = self.item_error
+    self.item_count = 0
+    self.active_items = set()
+    self.stop_flag = False
+    self.stop_file = stop_file
+    self.initial_stop_file_mtime = self.stop_file_mtime()
+
+    self.on_create_item = Event()
+    self.on_finish = Event()
+    self.pipeline.on_finish_item.handle(self._item_finished)
 
   def start(self):
-    self.add_item()
-    self.ioloop.start()
-
-  def stop(self):
-    self._should_stop = True
+    self.add_items()
 
   def should_stop(self):
-    if self._should_stop:
-      return True
-    elif self.stop_file and os.path.exists(self.stop_file):
-      if self.stop_file_mtime == None or self.stop_file_mtime < os.path.getmtime(self.stop_file):
-        return True
-    return False
+    return self.stop_flag or self.stop_file_changed()
 
-  def add_item(self):
-    self.item_count += 1
-    item = Item({"n":self.item_count, "item_name":None})
-    item.output_collector = StdoutOutputCollector()
-    self.pipeline.enqueue(item)
-
-  def item_complete(self, item):
-    print "Complete:", item.description()
-    print
-    if not self.should_stop():
-      self.add_item()
+  def stop_file_changed(self):
+    current_stop_file_mtime = self.stop_file_mtime()
+    if current_stop_file_mtime:
+      return self.initial_stop_file_mtime == None or self.initial_stop_file_mtime < current_stop_file_mtime
     else:
-      if self.pipeline.working == 0:
-        self.ioloop.stop()
+      return False
 
-  def item_error(self, item):
-    print "Failed:", item.description()
-    print
-    if not self.should_stop():
-      self.add_item()
+  def stop_file_mtime(self):
+    if self.stop_file and os.path.exists(self.stop_file):
+      return os.path.getmtime(self.stop_file)
     else:
-      if self.pipeline.working == 0:
-        self.ioloop.stop()
+      return None
+
+  def add_items(self):
+    items_required = realize(self.concurrent_items)
+    while len(self.active_items) < items_required:
+      self.item_count += 1
+      item_id = "%d-%d" % (id(self), self.item_count)
+      item = Item(item_id=item_id, item_number=self.item_count)
+      self.on_create_item(self, item)
+      self.active_items.add(item)
+      self.pipeline.enqueue(item)
+
+  def _item_finished(self, pipeline, item):
+    self.active_items.remove(item)
+    if not self.should_stop():
+      self.add_items()
+    elif len(self.active_items) == 0:
+      self.on_finish.fire(self)
+
+class SimpleRunner(Runner):
+  def __init__(self, pipeline, stop_file=None, concurrent_items=1):
+    Runner.__init__(self, pipeline, stop_file=stop_file, concurrent_items=concurrent_items)
+
+    self.on_create_item.handle(self._handle_create_item)
+    self.on_finish.handle(self._stop_ioloop)
+
+  def start(self):
+    Runner.start(self)
+    ioloop.IOLoop.instance().start()
+
+  def _stop_ioloop(self, ignored):
+    ioloop.IOLoop.instance().stop()
+
+  def _handle_create_item(self, ignored, item):
+    item.on_output.handle(self._handle_item_output)
+
+  def _handle_item_output(self, item, data):
+    sys.stdout.write(data)
 
