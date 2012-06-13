@@ -23,7 +23,7 @@ class Item(object):
     self.on_output.fire(self, data)
 
   def log_error(self, task, *args):
-    self.errors.append((task, args))
+    self._errors.append((task, args))
     self.on_error.fire(self, task, *args)
 
   def set_task_status(self, task, status):
