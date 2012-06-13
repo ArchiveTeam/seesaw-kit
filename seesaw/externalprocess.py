@@ -108,6 +108,8 @@ class RsyncUpload(ExternalProcess):
         args=[ "rsync",
                "-avz",
                "--compress-level=9",
+               "--timeout=30",
+               "--contimeout=30",
                "--progress",
                "--bwlimit", bwlimit,
                "--files-from=-",
