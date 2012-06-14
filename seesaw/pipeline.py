@@ -33,11 +33,13 @@ class Pipeline(object):
     self._fail_item(item)
 
   def _complete_item(self, item):
+    item.complete()
     self.items_in_pipeline.remove(item)
     self.on_complete_item.fire(self, item)
     self.on_finish_item.fire(self, item)
 
   def _fail_item(self, item):
+    item.fail()
     self.items_in_pipeline.remove(item)
     self.on_fail_item.fire(self, item)
     self.on_finish_item.fire(self, item)

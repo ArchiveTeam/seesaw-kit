@@ -18,7 +18,7 @@ class TrackerRequest(Task):
     self.retry_delay = 30
 
   def enqueue(self, item):
-    self.on_start_item.fire(self, item)
+    self.start_item(item)
     item.log_output("Starting %s for %s\n" % (self, item.description()))
     self.send_request(item)
 

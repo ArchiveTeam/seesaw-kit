@@ -1,7 +1,7 @@
 import traceback
 
 from .event import Event
-from .item import realize
+from .item import Item, realize
 
 class Task(object):
   def __init__(self, name):
@@ -11,13 +11,17 @@ class Task(object):
     self.on_fail_item = Event()
     self.on_finish_item = Event()
 
+  def start_item(self, item):
+    item.set_task_status(self, Item.TaskStatus.running)
+    self.on_start_item.fire(self, item)
+
   def fail_item(self, item):
-    item.fail()
+    item.set_task_status(self, Item.TaskStatus.failed)
     self.on_fail_item.fire(self, item)
     self.on_finish_item.fire(self, item)
 
   def complete_item(self, item):
-    item.complete()
+    item.set_task_status(self, Item.TaskStatus.completed)
     self.on_complete_item.fire(self, item)
     self.on_finish_item.fire(self, item)
 
@@ -29,7 +33,7 @@ class SimpleTask(Task):
     Task.__init__(self, name)
 
   def enqueue(self, item):
-    self.on_start_item.fire(self, item)
+    self.start_item(item)
     item.log_output("Starting %s for %s\n" % (self, item.description()))
     try:
       self.process(item)

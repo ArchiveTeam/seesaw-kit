@@ -27,8 +27,13 @@ class Item(object):
     self.on_error.fire(self, task, *args)
 
   def set_task_status(self, task, status):
-    self._task_status[task] = status
-    self.on_task_status.fire(self, task, status)
+    if task in self._task_status:
+      old_status = self._task_status[task]
+    else:
+      old_status = None
+    if status != old_status:
+      self._task_status[task] = status
+      self.on_task_status.fire(self, task, status, old_status)
 
   def complete(self):
     self._completed = True
@@ -39,7 +44,7 @@ class Item(object):
   def fail(self):
     self._failed = True
     self._finished = True
-    self.on_failed.fire(self)
+    self.on_fail.fire(self)
     self.on_finish.fire(self)
 
   def description(self):
@@ -65,6 +70,11 @@ class Item(object):
           s += "%s\n" % str(e)
       s += "\n  " + str(err)
     return s
+
+  class TaskStatus(object):
+    running = "running"
+    completed = "completed"
+    failed = "failed"
 
 def realize(v, item=None):
   if isinstance(v, dict):
