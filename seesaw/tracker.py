@@ -85,10 +85,10 @@ class SendDoneToTracker(TrackerRequest):
       return False
 
 class PrepareStatsForTracker(SimpleTask):
-  def __init__(self, defaults={}, file_groups={}, id_function=None):
+  def __init__(self, defaults=None, file_groups=None, id_function=None):
     SimpleTask.__init__(self, "PrepareStatsForTracker")
-    self.defaults = defaults
-    self.file_groups = file_groups
+    self.defaults = defaults or {}
+    self.file_groups = file_groups or {}
     self.id_function = id_function
 
   def process(self, item):

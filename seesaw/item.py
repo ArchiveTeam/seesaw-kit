@@ -1,12 +1,11 @@
 import traceback
 from .event import Event
-from .output import StringOutputCollector
 
 class Item(object):
-  def __init__(self, item_id, item_number, properties={}):
+  def __init__(self, item_id, item_number, properties=None):
     self.item_id = item_id
     self.item_number = item_number
-    self.properties = properties
+    self.properties = properties or {}
     self._completed = False
     self._failed = False
     self._errors = []
