@@ -35,16 +35,17 @@ class ExternalProcess(Task):
     i = IOLoop.instance()
     (master_fd, slave_fd) = pty.openpty()
     slave = os.fdopen(slave_fd)
-    p = subprocess.Popen(
-        args=realize(self.args, item),
-        env=realize(self.env, item),
-        stdin=subprocess.PIPE,
-        stdout=slave,
-        stderr=slave,
-        close_fds=True
-    )
-    p.stdin.write(self.stdin_data(item))
-    p.stdin.close()
+    with self.task_cwd():
+      p = subprocess.Popen(
+          args=realize(self.args, item),
+          env=realize(self.env, item),
+          stdin=subprocess.PIPE,
+          stdout=slave,
+          stderr=slave,
+          close_fds=True
+      )
+      p.stdin.write(self.stdin_data(item))
+      p.stdin.close()
 
     # make stdout, stderr non-blocking
     fcntl.fcntl(master_fd, fcntl.F_SETFL, fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)

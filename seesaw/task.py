@@ -1,3 +1,5 @@
+import contextlib
+import os
 import traceback
 
 from .event import Event
@@ -6,6 +8,7 @@ from .item import Item, realize
 class Task(object):
   def __init__(self, name):
     self.name = name
+    self.cwd = os.getcwd()
     self.on_start_item = Event()
     self.on_complete_item = Event()
     self.on_fail_item = Event()
@@ -25,6 +28,15 @@ class Task(object):
     self.on_complete_item.fire(self, item)
     self.on_finish_item.fire(self, item)
 
+  @contextlib.contextmanager
+  def task_cwd(self):
+    curdir = os.getcwd()
+    try:
+      os.chdir(self.cwd)
+      yield
+    finally:
+      os.chdir(curdir)
+
   def __str__(self):
     return self.name
 
@@ -36,7 +48,8 @@ class SimpleTask(Task):
     self.start_item(item)
     item.log_output("Starting %s for %s\n" % (self, item.description()))
     try:
-      self.process(item)
+      with self.task_cwd():
+        self.process(item)
     except Exception, e:
       item.log_output("Failed %s for %s\n" % (self, item.description()))
       item.log_output("%s\n" % traceback.format_exc())
