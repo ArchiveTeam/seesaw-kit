@@ -4,11 +4,16 @@ import os.path
 import shutil
 import json
 
+from seesaw.project import *
 from seesaw.item import *
 from seesaw.task import *
 from seesaw.pipeline import *
 from seesaw.externalprocess import *
 from seesaw.tracker import *
+
+DATA_DIR = "data"
+USER_AGENT = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27"
+VERSION = "20120603.01"
 
 class PrepareDirectories(SimpleTask):
   def __init__(self):
@@ -42,13 +47,19 @@ def calculate_item_id(item):
   with open("%s/%s.json" % (item["item_dir"], item["warc_file_base"])) as fp:
     return json.load(fp)
 
+project = Project(
+  title = "Picplz",
+  project_html = """
+      <img class="project-logo" alt="Picplz" src="https://s3.amazonaws.com/data.tumblr.com/tumblr_l3vf57DJ1e1qaewyu.png" height="50px" />
+      <h2>Picplz <span class="links"><a href="http://picplz.com/">Picplz website</a> &middot; <a href="http://picplz.heroku.com/">Leaderboard</a></span></h2>
+      <p>picplz is a photo sharing app that makes it easy for you to share your mobile pictures on the Web with just a few clicks.</p>
+  """,
+  utc_deadline = datetime.datetime(2013,1,1, 12,0,0)
+)
+
 pipeline = Pipeline(
   GetItemFromTracker("http://picplz-3.herokuapp.com", downloader),
-# SetItemKey("item_name", "1083030"),
-# PrintItem(),
   PrepareDirectories(),
-# PrintItem(),
-# ExternalProcess("Echo", [ "echo", "1234" ]),
   LimitConcurrent(4,
     WgetDownload([ "./wget-warc-lua",
       "-U", USER_AGENT,
@@ -70,7 +81,6 @@ pipeline = Pipeline(
 #   retry_on_exit_code = [ 1 ],
     env = { "picplz_lua_json": ItemInterpolation("%(item_dir)s/%(warc_file_base)s.json") })
   ),
-# PrintItem(),
   PrepareStatsForTracker(
     defaults = { "downloader": downloader, "version": VERSION },
     file_groups = {
@@ -78,7 +88,6 @@ pipeline = Pipeline(
     },
     id_function = calculate_item_id
   ),
-# PrintItem(),
   MoveFiles(),
   LimitConcurrent(1,
     RsyncUpload(
