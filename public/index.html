@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+
+    <title>ArchiveTeam Warrior</title>
+
+    <link rel="stylesheet" type="text/css" href="reset.css" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script src="jquery-1.7.2.min.js"></script>
+    <script src="socket.io.js"></script>
+    <script src="script.js"></script>
+  </head>
+
+<body class="with-warrior-menu">
+
+  <div id="warrior-menu">
+    <div id="warrior-logo">
+      <h1><span class="i">&#9852;</span>ArchiveTeam Warrior</h1>
+    </div>
+
+    <ul>
+      <li class="active"><a href="#" onclick="return false;">Current project</a></li>
+    </ul>
+
+    <table id="warrior-status" cellspacing="0">
+      <tbody>
+        <tr>
+          <td id="warrior-status-description">The warrior is running.</td>
+        </tr>
+        <tr>
+          <td>
+            <form id="warrior-status-form" method="post" action="/api/stop" class="js-api-form">
+              <input type="submit" value="Stop" />
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="content" id="project-view">
+    <div id="project-header"></div>
+    <div id="items"></div>
+  </div>
+
+</body>
+</html>
+

@@ -6,6 +6,8 @@ class Item(object):
     self.item_id = item_id
     self.item_number = item_number
     self.properties = properties or {}
+    self.may_be_canceled = False
+    self.canceled = False
     self.completed = False
     self.failed = False
     self._errors = []
@@ -15,6 +17,7 @@ class Item(object):
     self.on_error = Event()
     self.on_task_status = Event()
     self.on_property = Event()
+    self.on_cancel = Event()
     self.on_complete = Event()
     self.on_fail = Event()
     self.on_finish = Event()
@@ -35,15 +38,21 @@ class Item(object):
       self.task_status[task] = status
       self.on_task_status(self, task, status, old_status)
 
+  def cancel(self):
+    self.canceled = True
+    self.finished = True
+    self.on_cancel(self)
+    self.on_finish(self)
+
   def complete(self):
     self.completed = True
-    self._finished = True
+    self.finished = True
     self.on_complete(self)
     self.on_finish(self)
 
   def fail(self):
     self.failed = True
-    self._finished = True
+    self.finished = True
     self.on_fail(self)
     self.on_finish(self)
 

@@ -17,12 +17,33 @@ class Runner(object):
     self.stop_file = stop_file
     self.initial_stop_file_mtime = self.stop_file_mtime()
 
+    self.on_status = Event()
     self.on_create_item = Event()
     self.on_finish = Event()
     self.pipeline.on_finish_item += self._item_finished
 
+    if stop_file:
+      ioloop.PeriodicCallback(self.check_stop_file, 5000).start()
+
   def start(self):
     self.add_items()
+
+  def stop_gracefully(self):
+    print "Stopping when current tasks are completed..."
+    self.stop_flag = True
+    self.pipeline.cancel_items()
+    self.initial_stop_file_mtime = self.stop_file_mtime()
+    self.on_status(self, "stopping")
+
+  def keep_running(self):
+    print "Keep running..."
+    self.stop_flag = False
+    self.initial_stop_file_mtime = self.stop_file_mtime()
+    self.on_status(self, "running")
+
+  def check_stop_file(self):
+    if self.stop_file_changed():
+      self.stop_gracefully()
 
   def should_stop(self):
     return self.stop_flag or self.stop_file_changed()

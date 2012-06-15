@@ -5,6 +5,7 @@ class Pipeline(object):
     self.on_start_item = Event()
     self.on_complete_item = Event()
     self.on_fail_item = Event()
+    self.on_cancel_item = Event()
     self.on_finish_item = Event()
 
     self.items_in_pipeline = set()
@@ -32,6 +33,12 @@ class Pipeline(object):
   def _task_fail_item(self, task, item):
     self._fail_item(item)
 
+  def _cancel_item(self, item):
+    item.cancel()
+    self.items_in_pipeline.remove(item)
+    self.on_cancel_item(self, item)
+    self.on_finish_item(self, item)
+
   def _complete_item(self, item):
     item.complete()
     self.items_in_pipeline.remove(item)
@@ -43,6 +50,12 @@ class Pipeline(object):
     self.items_in_pipeline.remove(item)
     self.on_fail_item(self, item)
     self.on_finish_item(self, item)
+
+  def cancel_items(self):
+    cancel_items = [ item for item in self.items_in_pipeline if item.may_be_canceled ]
+
+    for item in cancel_items:
+      self._cancel_item(item)
 
   def ui_task_list(self):
     task_list = []

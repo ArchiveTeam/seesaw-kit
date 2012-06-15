@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+
+    <title>ArchiveTeam Warrior</title>
+
+    <link rel="stylesheet" type="text/css" href="reset.css" />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script src="jquery-1.7.2.min.js"></script>
+    <script src="socket.io.js"></script>
+    <script src="script.js"></script>
+  </head>
+
+<body class="with-warrior-menu">
+  
+  <div id="connection-error">There is no connection with the warrior.</div>
+
+  <div id="warrior-menu">
+    <div id="warrior-logo">
+      <h1><span class="i">&#9852;</span>ArchiveTeam Warrior</h1>
+    </div>
+
+    <ul>
+      <li class="active"><a href="#">Current project</a></li>
+    </ul>
+    <ul>
+      <li><a href="#">All projects</a></li>
+      <li><a href="#">Your settings</a></li>
+    </ul>
+
+    <table id="warrior-status" cellspacing="0">
+      <tbody>
+        <tr>
+          <td>The warrior will stop.</td>
+        </tr>
+        <tr>
+          <td>
+            <form method="post" action="/api/stop" class="js-api-form">
+              <input type="submit" value="Stop" />
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="content" id="project-view">
+    <div id="project-header">
+      <img class="project-logo" alt="Picplz" src="https://s3.amazonaws.com/data.tumblr.com/tumblr_l3vf57DJ1e1qaewyu.png" height="50px" />
+      <h2>Picplz <span class="links"><a href="http://picplz.com/">Picplz website</a> &middot; <a href="http://picplz.heroku.com/">Leaderboard</a></span></h2>
+      <p>picplz is a photo sharing app that makes it easy for you to share your mobile pictures on the Web with just a few clicks.</p>
+      <table class="time-left" cellspacing="0">
+        <thead>
+          <tr><th colspan="2">time left:</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span id="days-left">12</span></td><td><span id="hours-left">5</span></td></tr>
+        </tbody>
+        <tfoot>
+          <tr><th scope="col">days</th><th scope="col">hours</th></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div id="items">
+
+      <div class="item">
+        <h3>Item 123456</h3>
+        <div class="number"># 1234</div>
+        <ol class="tasks">
+          <li class="completed">GetItemFromTracker <span class="s">&#x2714;</span></li>
+          <li class="running">PrepareDirectories <span class="s">&#x29BF;</span></li>
+          <li>WgetDownload</li>
+          <li>PrepareStatsForTracker</li>
+          <li>RsyncUpload</li>
+          <li>SendDoneToTracker</li>
+        </ol>
+        <pre class="log">
+.item ol.tasks {
+  margin: 0;
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+  this also works with very long lines, I presume? let me see, this is becoming long, but is it long enough and is it wrapped?
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+}
+        </pre>
+      </div>
+
+      <div class="item">
+        <h3>Item 123456</h3>
+        <div class="number"># 1234</div>
+        <ol class="tasks">
+          <li class="completed">GetItemFromTracker <span class="s">&#x2714;</span></li>
+          <li class="completed">PrepareDirectories <span class="s">&#x2714;</span></li>
+          <li class="running">WgetDownload <span class="s">&#x29BF;</span></li>
+          <li>PrepareStatsForTracker</li>
+          <li>RsyncUpload</li>
+          <li>SendDoneToTracker</li>
+        </ol>
+        <pre class="log">
+.item ol.tasks {
+  margin: 0;
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+  this also works with very long lines, I presume? let me see, this is becoming long, but is it long enough and is it wrapped?
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+}
+        </pre>
+      </div>
+
+      <div class="item item-completed">
+        <h3>Item 123456</h3>
+        <div class="status">Completed</div>
+        <div class="number"># 1234</div>
+        <ol class="tasks">
+          <li class="completed">GetItemFromTracker <span class="s">&#x2714;</span></li>
+          <li class="completed">PrepareDirectories <span class="s">&#x2714;</span></li>
+          <li class="completed">WgetDownload <span class="s">&#x2714;</span></li>
+          <li class="completed">PrepareStatsForTracker <span class="s">&#x2714;</span></li>
+          <li class="completed">RsyncUpload <span class="s">&#x2714;</span></li>
+          <li class="completed">SendDoneToTracker <span class="s">&#x2714;</span></li>
+        </ol>
+        <pre class="log">
+.item ol.tasks {
+  margin: 0;
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+  this also works with very long lines, I presume? let me see, this is becoming long, but is it long enough and is it wrapped?
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+}
+        </pre>
+      </div>
+
+      <div class="item item-failed">
+        <h3>Item 123456</h3>
+        <div class="status">Failed</div>
+        <div class="number"># 1234</div>
+        <ol class="tasks">
+          <li class="completed">GetItemFromTracker <span class="s">&#x2714;</span></li>
+          <li class="completed">PrepareDirectories <span class="s">&#x2714;</span></li>
+          <li class="completed">WgetDownload <span class="s">&#x2714;</span></li>
+          <li class="completed">PrepareStatsForTracker <span class="s">&#x2714;</span></li>
+          <li class="failed">RsyncUpload <span class="s">Failed</span></li>
+          <li>SendDoneToTracker</li>
+        </ol>
+        <pre class="log">
+.item ol.tasks {
+  margin: 0;
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+}
+.item ol.tasks li {
+  background: #f00;
+  padding: 5px;
+  margin: 0 0 2px 0;
+  vertical-align: middle;
+  border-radius: 0 15px 15px 0;
+}
+        </pre>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+

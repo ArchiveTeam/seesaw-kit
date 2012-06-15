@@ -23,6 +23,10 @@ class TrackerRequest(Task):
     self.send_request(item)
 
   def send_request(self, item):
+    if item.canceled:
+      return
+
+    item.may_be_canceled = False
     self.http_client.fetch(HTTPRequest(
         "%s/%s" % (self.tracker_url, self.tracker_command),
         method="POST",
@@ -48,6 +52,7 @@ class TrackerRequest(Task):
       else:
         item.log_output("Tracker returned status code %d. \n" % (response.code))
     item.log_output("Retrying after %d seconds...\n" % (self.retry_delay))
+    item.may_be_canceled = True
     IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
         functools.partial(self.send_request, item))
 
