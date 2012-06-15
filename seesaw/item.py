@@ -6,60 +6,70 @@ class Item(object):
     self.item_id = item_id
     self.item_number = item_number
     self.properties = properties or {}
-    self._completed = False
-    self._failed = False
+    self.completed = False
+    self.failed = False
     self._errors = []
-    self._task_status = {}
+    self.task_status = {}
 
     self.on_output = Event()
     self.on_error = Event()
     self.on_task_status = Event()
+    self.on_property = Event()
     self.on_complete = Event()
     self.on_fail = Event()
     self.on_finish = Event()
 
   def log_output(self, data):
-    self.on_output.fire(self, data)
+    self.on_output(self, data)
 
   def log_error(self, task, *args):
     self._errors.append((task, args))
-    self.on_error.fire(self, task, *args)
+    self.on_error(self, task, *args)
 
   def set_task_status(self, task, status):
-    if task in self._task_status:
-      old_status = self._task_status[task]
+    if task in self.task_status:
+      old_status = self.task_status[task]
     else:
       old_status = None
     if status != old_status:
-      self._task_status[task] = status
-      self.on_task_status.fire(self, task, status, old_status)
+      self.task_status[task] = status
+      self.on_task_status(self, task, status, old_status)
 
   def complete(self):
-    self._completed = True
+    self.completed = True
     self._finished = True
-    self.on_complete.fire(self)
-    self.on_finish.fire(self)
+    self.on_complete(self)
+    self.on_finish(self)
 
   def fail(self):
-    self._failed = True
+    self.failed = True
     self._finished = True
-    self.on_fail.fire(self)
-    self.on_finish.fire(self)
+    self.on_fail(self)
+    self.on_finish(self)
 
   def description(self):
     return "Item %s" % (self.properties["item_name"] if "item_name" in self.properties else "")
+
+  def __contains__(self, key):
+    return key in self.properties
 
   def __getitem__(self, key):
     return self.properties[key]
 
   def __setitem__(self, key, value):
+    old_value = self.properties[key] if key in self.properties else None
     self.properties[key] = value
+    if old_value != value:
+      self.on_property(self, key, value, old_value)
 
   def __delitem__(self, key):
+    old_value = self.properties[key] if key in self.properties else None
     del self.properties[key]
+    if old_value:
+      self.on_property(self, key, None, old_value)
 
   def __str__(self):
-    s = "Item " + ("FAILED " if self._failed else "") + str(self.properties) 
+    s = "Item " + ("FAILED " if self.failed else "") + str(self.properties) 
     for err in self._errors:
       for e in err[1]:
         # TODO this isn't how exceptions work?

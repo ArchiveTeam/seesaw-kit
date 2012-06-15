@@ -13,13 +13,13 @@ class Pipeline(object):
       self.add_task(task)
 
   def add_task(self, task):
-    task.on_complete_item.handle(self._task_complete_item)
-    task.on_fail_item.handle(self._task_fail_item)
+    task.on_complete_item += self._task_complete_item
+    task.on_fail_item += self._task_fail_item
     self.tasks.append(task)
 
   def enqueue(self, item):
     self.items_in_pipeline.add(item)
-    self.on_start_item.fire(self, item)
+    self.on_start_item(self, item)
     self.tasks[0].enqueue(item)
 
   def _task_complete_item(self, task, item):
@@ -35,14 +35,20 @@ class Pipeline(object):
   def _complete_item(self, item):
     item.complete()
     self.items_in_pipeline.remove(item)
-    self.on_complete_item.fire(self, item)
-    self.on_finish_item.fire(self, item)
+    self.on_complete_item(self, item)
+    self.on_finish_item(self, item)
 
   def _fail_item(self, item):
     item.fail()
     self.items_in_pipeline.remove(item)
-    self.on_fail_item.fire(self, item)
-    self.on_finish_item.fire(self, item)
+    self.on_fail_item(self, item)
+    self.on_finish_item(self, item)
+
+  def ui_task_list(self):
+    task_list = []
+    for task in self.tasks:
+      task.fill_ui_task_list(task_list)
+    return task_list
 
   def __str__(self):
     return "Pipeline:\n -> " + ("\n -> ".join(map(str, self.tasks)))

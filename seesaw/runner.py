@@ -19,7 +19,7 @@ class Runner(object):
 
     self.on_create_item = Event()
     self.on_finish = Event()
-    self.pipeline.on_finish_item.handle(self._item_finished)
+    self.pipeline.on_finish_item += self._item_finished
 
   def start(self):
     self.add_items()
@@ -55,14 +55,14 @@ class Runner(object):
     if not self.should_stop():
       self.add_items()
     elif len(self.active_items) == 0:
-      self.on_finish.fire(self)
+      self.on_finish(self)
 
 class SimpleRunner(Runner):
   def __init__(self, pipeline, stop_file=None, concurrent_items=1):
     Runner.__init__(self, pipeline, stop_file=stop_file, concurrent_items=concurrent_items)
 
-    self.on_create_item.handle(self._handle_create_item)
-    self.on_finish.handle(self._stop_ioloop)
+    self.on_create_item += self._handle_create_item
+    self.on_finish += self._stop_ioloop
 
   def start(self):
     Runner.start(self)
@@ -72,7 +72,7 @@ class SimpleRunner(Runner):
     ioloop.IOLoop.instance().stop()
 
   def _handle_create_item(self, ignored, item):
-    item.on_output.handle(self._handle_item_output)
+    item.on_output += self._handle_item_output
 
   def _handle_item_output(self, item, data):
     sys.stdout.write(data)

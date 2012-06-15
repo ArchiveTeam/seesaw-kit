@@ -16,17 +16,17 @@ class Task(object):
 
   def start_item(self, item):
     item.set_task_status(self, Item.TaskStatus.running)
-    self.on_start_item.fire(self, item)
+    self.on_start_item(self, item)
 
   def fail_item(self, item):
     item.set_task_status(self, Item.TaskStatus.failed)
-    self.on_fail_item.fire(self, item)
-    self.on_finish_item.fire(self, item)
+    self.on_fail_item(self, item)
+    self.on_finish_item(self, item)
 
   def complete_item(self, item):
     item.set_task_status(self, Item.TaskStatus.completed)
-    self.on_complete_item.fire(self, item)
-    self.on_finish_item.fire(self, item)
+    self.on_complete_item(self, item)
+    self.on_finish_item(self, item)
 
   @contextlib.contextmanager
   def task_cwd(self):
@@ -70,8 +70,8 @@ class LimitConcurrent(Task):
     Task.__init__(self, "LimitConcurrent")
     self.concurrency = concurrency
     self.inner_task = inner_task
-    self.inner_task.on_complete_item.handle(self._inner_task_complete_item)
-    self.inner_task.on_fail_item.handle(self._inner_task_fail_item)
+    self.inner_task.on_complete_item += self._inner_task_complete_item
+    self.inner_task.on_fail_item += self._inner_task_fail_item
     self._queue = []
     self._working = 0
 
