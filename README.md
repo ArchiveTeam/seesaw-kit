@@ -8,9 +8,9 @@ How to try it out
 
 To run the example pipeline:
 
-    pip install -r requirements.txt
+    sudo pip install -r requirements.txt
     ./run-pipeline --help
-    ./run-pipeline example-pipeline.py
+    ./run-pipeline example-pipeline.py someone
 
 Point your browser to `http://127.0.0.1:8001/`
 
