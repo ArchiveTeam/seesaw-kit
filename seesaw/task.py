@@ -37,6 +37,9 @@ class Task(object):
     finally:
       os.chdir(curdir)
 
+  def fill_ui_task_list(self, task_list):
+    task_list.append((self, self.name))
+
   def __str__(self):
     return self.name
 
@@ -95,6 +98,9 @@ class LimitConcurrent(Task):
       self._working += 1
       self.inner_task.enqueue(self.queue.pop(0))
     self.fail_item(item)
+
+  def fill_ui_task_list(self, task_list):
+    self.inner_task.fill_ui_task_list(task_list)
 
   def __str__(self):
     return "LimitConcurrent(" + str(self.concurrency) + " x " + str(self.inner_task) + ")"
