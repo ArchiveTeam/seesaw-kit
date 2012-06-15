@@ -1,2 +1,2 @@
-__all__ = [ "event", "item", "task", "pipeline", "externalprocess", "tracker", "runner" ]
+__all__ = [ "event", "project", "item", "task", "pipeline", "externalprocess", "tracker", "runner" ]
 
