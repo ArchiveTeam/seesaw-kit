@@ -4,7 +4,7 @@ import os.path
 from tornado import web, ioloop
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
-PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../public"))
+PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 
 class IndexHandler(web.RequestHandler):
   def get(self):
