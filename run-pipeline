@@ -4,7 +4,7 @@ import os.path
 from argparse import ArgumentParser
 
 from seesaw.runner import *
-from seesaw.web import SeesawConnection, start_server
+from seesaw.web import SeesawConnection, start_runner_server
 
 def load_pipeline(pipeline_path, context):
   dirname, basename = os.path.split(pipeline_path)
@@ -46,7 +46,7 @@ def main():
   print pipeline
 
   runner = SimpleRunner(pipeline, stop_file=args.stop_file, concurrent_items=args.concurrent_items)
-  start_server(project, runner, port_number=args.port_number)
+  start_runner_server(project, runner, port_number=args.port_number)
   runner.start()
 
 

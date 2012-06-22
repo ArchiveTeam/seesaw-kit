@@ -1,5 +1,6 @@
 $(function() {
   var conn = new io.connect('http://' + window.location.host);
+  var multiProject = false;
 
   conn.on('connect', function() {
     $('#connection-error').remove();
@@ -14,20 +15,61 @@ $(function() {
     conn.socket.reconnect();
   });
 
+  conn.on('warrior.projects_loaded', function(msg) {
+    multiProject = true;
+    $(document.body).removeClass('single-project');
+    reloadProjects();
+  });
+
+  function reloadProjects() {
+    $('#projects').load('/api/all-projects', null, function() {
+      $("#projects input[type='submit']").each(makeButtonLink);
+      $("#projects li").each(addProjectCountdown);
+    });
+  }
+
+  conn.on('warrior.project_installing', function(msg) {
+    var projectLi = $('#project-' + msg.project.name);
+    projectLi.addClass('installing');
+    $('div.select', projectLi).append('<span class="installing">Preparing project...</span>');
+    $('div.installation-failed', projectLi).remove();
+  });
+
+  conn.on('warrior.project_installed', function(msg) {
+    var projectLi = $('#project-' + msg.project.name);
+    projectLi.removeClass('installing');
+    $('div.select span.installing', projectLi).remove();
+    reloadProjects();
+  });
+
+  conn.on('warrior.project_installation_failed', function(msg) {
+    var projectLi = $('#project-' + msg.project.name);
+    projectLi.removeClass('installing');
+    $('div.select span.installing', projectLi).remove();
+    $('div.installation-failed', projectLi).remove();
+    projectLi.append('<div class="installation-failed"><p>The files for this project could not be installed. Look at the output below, or try again.</p><pre class="log"></pre></div>');
+    $('pre.log', projectLi).text(msg.output);
+  });
+
+  conn.on('warrior.project_selected', function(msg) { // project
+    reloadProjects();
+  });
+
   conn.on('project.refresh', function(msg) { // project, pipeline, items
     clearItems();
-    for (var i=0; i<msg.items.length; i++) {
-      addItem(msg.items[i], true);
+
+    if (msg) {
+      for (var i=0; i<msg.items.length; i++) {
+        addItem(msg.items[i], true);
+      }
+
+      showProject(msg.project);
+      showRunnerStatus(msg.status);
     }
-
-    showProject(msg.project);
-    showRunnerStatus(msg.status);
   });
 
-  conn.on('project.start', function(msg) { // project, pipeline
-  });
-
-  conn.on('project.stop', function(msg) { // project_id
+  conn.on('warrior.status', function(msg) {
+    showWarriorStatus(msg.status);
   });
 
   conn.on('runner.status', function(msg) { // project_id
@@ -78,16 +120,37 @@ $(function() {
 
 
   var warriorStatus = {
-    'running':  ['The warrior is running.', 'Stop', '/api/stop'],
-    'stopping': ['The warrior is stopping.', 'Keep running', '/api/keep_running']
+    'NO_PROJECT': ['The warrior is idle. Select a project.', 'Shut down', '/api/stop'],
+    'STOPPING_PROJECT': ['The warrior is stopping the current project.', 'Shut down', '/api/stop'],
+    'RESTARTING_PROJECT': ['The warrior is restarting the current project.', 'Shut down', '/api/stop'],
+    'RUNNING_PROJECT': ['The warrior is working on a project.', 'Shut down', '/api/stop'],
+    'SWITCHING_PROJECT': ['The warrior will switch to a different project.', 'Shut down', '/api/stop'],
+    'STARTING_PROJECT': ['The warrior is beginning work on a project.', 'Shut down', '/api/stop'],
+    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', '/api/keep_running']
   };
 
-  function showRunnerStatus(status) {
+  function showWarriorStatus(status) {
     var s = warriorStatus[status];
     if (s) {
       $('#warrior-status-description').text(s[0]);
       $('#warrior-status-form .button-link').text(s[1]);
       $('#warrior-status-form').attr('action', s[2]);
+    }
+  }
+
+  var runnerStatus = {
+    'running':  ['The runner is running.', 'Stop', '/api/stop'],
+    'stopping': ['The runner is stopping.', 'Keep running', '/api/keep_running']
+  };
+
+  function showRunnerStatus(status) {
+    if (!multiProject) {
+      var s = runnerStatus[status];
+      if (s) {
+        $('#warrior-status-description').text(s[0]);
+        $('#warrior-status-form .button-link').text(s[1]);
+        $('#warrior-status-form').attr('action', s[2]);
+      }
     }
   }
 
@@ -106,6 +169,19 @@ $(function() {
       projectCountdown = new Countdown(project.utc_deadline, 'project-header');
       $('#project-header').append(projectCountdown.buildTable());
       projectCountdown.start();
+    }
+  }
+
+  /* the projects list */
+  function addProjectCountdown(i, li) {
+    li = $(li);
+    var deadline = li.attr('data-deadline');
+    if (deadline) {
+      var randomId = 'project-countdown-' + Math.ceil(100000000*Math.random());
+      var countdown = new Countdown(1 * deadline, randomId);
+      li.append(countdown.buildTable());
+      countdown.start();
+      li.addClass('with-time-left');
     }
   }
 
@@ -197,18 +273,20 @@ $(function() {
 
   function submitApiForm(e) {
     var form = $(e.target).closest('form');
-    $.post(form.attr('action'));
+    $.post(form.attr('action'), form.serialize());
     return false;
   }
 
-  $("form.js-api-form input[type='submit']").each(function(i, input) {
+  function makeButtonLink(i, input) {
     var a = document.createElement('a');
     a.className = 'button-link';
     a.href = '#';
     a.appendChild(document.createTextNode(input.value));
     $(a).click(submitApiForm);
     $(input).replaceWith(a);
-  });
+  }
+
+  $("form.js-api-form input[type='submit']").each(makeButtonLink);
 
   var Countdown = function(deadline, tableId) {
     this.deadline = deadline;
@@ -231,6 +309,9 @@ $(function() {
 
       $('.days-left', table).text(days);
       $('.hours-left', table).text(hours);
+    } else {
+      // table removed
+      this.stop();
     }
   };
   Countdown.prototype.start = function() {
@@ -243,6 +324,27 @@ $(function() {
       window.clearInterval(this.interval);
     }
   };
+
+  function showTab(view) {
+    var views = $('div.content');
+    for (var i=views.length - 1; i>=0; i--) {
+      views[i].style.display = (views[i].id == view ? '' : 'none');
+    }
+    var tabs = $('#tabs li a');
+    for (var i=tabs.length - 1; i>=0; i--) {
+      tabs[i].parentNode.className = ($(tabs[i]).attr('data-view') == view ? 'active' : '');
+    }
+  }
+
+  $('#tabs').click(function(e) {
+    var view = $(e.target).closest('li').find('a').attr('data-view');
+    if (view) {
+      showTab(view);
+    }
+    return false;
+  });
+
+  showTab('view-settings');
 
   /*
   addItem({

@@ -19,14 +19,20 @@
       <h1><span class="i">&#9852;</span>ArchiveTeam Warrior</h1>
     </div>
 
-    <ul>
-      <li class="active"><a href="#" onclick="return false;">Current project</a></li>
-    </ul>
+    <div id="tabs">
+      <ul>
+        <li class="active" id="tab-current-project"><a href="#current" data-view="view-current-project">Current project</a></li>
+      </ul>
+      <ul class="multi-project">
+        <li id="tab-all-projects"><a href="#all" data-view="view-all-projects">All projects</a></li>
+        <li id="tab-settings"><a href="#settings" data-view="view-settings">Your settings</a></li>
+      </ul>
+    </div>
 
     <table id="warrior-status" cellspacing="0">
       <tbody>
         <tr>
-          <td id="warrior-status-description">The warrior is running.</td>
+          <td id="warrior-status-description">&nbsp;</td>
         </tr>
         <tr>
           <td>
@@ -39,9 +45,35 @@
     </table>
   </div>
 
-  <div class="content" id="project-view">
+  <div class="content" id="view-current-project">
     <div id="project-header"></div>
     <div id="items"></div>
+  </div>
+
+  <div class="content multi-project" id="view-all-projects">
+    <div id="projects-header">
+      <h2>All projects</h2>
+      <p>What would you like to do?</p>
+    </div>
+    <div id="projects"></div>
+  </div>
+
+  <div class="content multi-project" id="view-settings">
+    <div id="settings-header">
+      <h2>Your settings</h2>
+      <p>Customize your warrior</p>
+    </div>
+    <div id="settings">
+      <form method="post" action="/api/settings" class="js-api-form">
+        <ul id="settings-list"></ul>
+        <ul>
+          <li>
+            <input type="submit" value="Save settings" />
+            <span id="settings-saved">Settings saved.</span>
+          </li>
+        </ul>
+      </form>
+    </div>
   </div>
 
 </body>

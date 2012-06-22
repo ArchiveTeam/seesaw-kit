@@ -21,13 +21,15 @@
       <h1><span class="i">&#9852;</span>ArchiveTeam Warrior</h1>
     </div>
 
-    <ul>
-      <li class="active"><a href="#">Current project</a></li>
-    </ul>
-    <ul>
-      <li><a href="#">All projects</a></li>
-      <li><a href="#">Your settings</a></li>
-    </ul>
+    <div id="tabs">
+      <ul>
+        <li class="active" id="tab-current-project"><a href="#current" data-view="view-current-project">Current project</a></li>
+      </ul>
+      <ul class="multi-project">
+        <li id="tab-all-projects"><a href="#all" data-view="view-all-projects">All projects</a></li>
+        <li id="tab-settings"><a href="#settings" data-view="view-settings">Your settings</a></li>
+      </ul>
+    </div>
 
     <table id="warrior-status" cellspacing="0">
       <tbody>
@@ -45,7 +47,7 @@
     </table>
   </div>
 
-  <div class="content" id="project-view">
+  <div class="content" id="view-current-project" style="display: none">
     <div id="project-header">
       <img class="project-logo" alt="Picplz" src="https://s3.amazonaws.com/data.tumblr.com/tumblr_l3vf57DJ1e1qaewyu.png" height="50px" />
       <h2>Picplz <span class="links"><a href="http://picplz.com/">Picplz website</a> &middot; <a href="http://picplz.heroku.com/">Leaderboard</a></span></h2>
@@ -199,6 +201,126 @@
       </div>
     </div>
   </div>
+
+  <div class="content multi-project" id="view-all-projects">
+    <div id="projects-header">
+      <h2>All projects</h2>
+      <p>What would you like to do?</p>
+    </div>
+    <div id="projects">
+
+      <h3>Your current project</h3>
+      <ul>
+        <li>
+          <h4>ArchiveTeam&#8217;s Choice</h4>
+          <p>Your warrior will automatically work on the most urgent project.</p>
+          <form method="post" action="/api/stop" class="js-api-form">
+            <div class="select"><input type="submit" value="Stop this project" /></div>
+          </form>
+        </li>
+      </ul>
+
+      <h3>Available projects</h3>
+      <ul>
+        <li class="with-time-left">
+          <h4>Example project</h4>
+          <p>An example</p>
+          <form method="post" action="/api/stop" class="js-api-form">
+            <div class="select"><input type="submit" value="Work on this project" /></div>
+          </form>
+          <table class="time-left" cellspacing="0">
+            <thead>
+              <tr><th colspan="2">time left:</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><span id="days-left">12</span></td><td><span id="hours-left">5</span></td></tr>
+            </tbody>
+            <tfoot>
+              <tr><th scope="col">days</th><th scope="col">hours</th></tr>
+            </tfoot>
+          </table>
+        </li>
+        <li>
+          <img class="project-logo" alt="Picplz" src="https://s3.amazonaws.com/data.tumblr.com/tumblr_l3vf57DJ1e1qaewyu.png" height="50px" />
+          <h4>Picplz</h4>
+          <p>An example</p>
+          <form method="post" action="/api/stop" class="js-api-form">
+            <div class="select"><input type="submit" value="Work on this project" /></div>
+          </form>
+        </li>
+        <li>
+          <img class="project-logo" alt="Picplz" src="https://s3.amazonaws.com/data.tumblr.com/tumblr_l3vf57DJ1e1qaewyu.png" height="50px" />
+          <h4>Picplz</h4>
+          <p>An example</p>
+          <form method="post" action="/api/stop" class="js-api-form">
+            <div class="select"><span class="installing">Preparing project...</span></div>
+          </form>
+        </li>
+        <li>
+          <img class="project-logo" alt="Picplz" src="https://s3.amazonaws.com/data.tumblr.com/tumblr_l3vf57DJ1e1qaewyu.png" height="50px" />
+          <h4>Picplz</h4>
+          <p>An example</p>
+          <form method="post" action="/api/stop" class="js-api-form">
+            <div class="select"><input type="submit" value="Work on this project" /></div>
+          </form>
+          <div class="installation-failed">
+            <p>The files for this project could not be installed. Look at the output below, or try again.</p>
+            <pre class="log">
+123
+123
+123
+            </pre>
+          </div>
+        </li>
+      </ul>
+
+    </div>
+  </div>
+
+  <div class="content multi-project" id="view-settings">
+    <div id="settings-header">
+      <h2>Your settings</h2>
+      <p>Customize your warrior</p>
+    </div>
+    <div id="settings">
+
+      <form method="post" action="/api/stop" class="js-api-form">
+        <ul id="settings-list">
+          <li>
+            <p><label for="f-settings-downloader">Your nickname</label></p>
+            <p>
+              <input type="text" value="test" name="downloader" id="f-settings-downloader" size="30" pattern="^[-_A-Za-z0-9]{3,30}$" />
+            </p>
+            <p class="info">
+              We use your nickname to show your results on our tracker.
+              Letters and numbers only.
+            </p>
+          </li>
+          <li class="error">
+            <p><label for="f-settings-downloader">Your nickname</label></p>
+            <p>
+              <input type="text" value="test" name="downloader" id="f-settings-downloader" size="30" pattern="^[-_A-Za-z0-9]{3,30}$" />
+            </p>
+            <p class="error">
+              Please enter your nickname.
+            </p>
+            <p class="info">
+              We use your nickname to show your results on our tracker.
+              Letters and numbers only.
+            </p>
+          </li>
+        </ul>
+        <ul>
+          <li>
+            <input type="submit" value="Save settings" />
+            <span id="settings-saved">Settings saved.</span>
+          </li>
+        </ul>
+      </form>
+
+    </div>
+  </div>
+
 
 </body>
 </html>

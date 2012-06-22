@@ -1,10 +1,11 @@
 import re
 import os.path
 
-from tornado import web, ioloop
+from tornado import web, ioloop, template
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
 PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
+TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
 
 class IndexHandler(web.RequestHandler):
   def get(self):
@@ -82,16 +83,39 @@ class ItemMonitor(object):
 
 
 class ApiHandler(web.RequestHandler):
-  def initialize(self, runner):
+  def initialize(self, warrior = None, runner = None):
+    self.warrior = warrior
     self.runner = runner
 
+  def get_template_path(self):
+    return TEMPLATES_PATH
+
   def post(self, command):
+    if self.warrior:
+      self.runner = self.warrior.current_runner
+
     if command == "stop":
-      self.runner.stop_gracefully()
-      return "OK"
+      if self.warrior:
+        self.warrior.stop_gracefully()
+      else:
+        self.runner.stop_gracefully()
+      self.write("OK")
     elif command == "keep_running":
-      self.runner.keep_running()
-      return "OK"
+      if self.warrior:
+        self.warrior.keep_running()
+      else:
+        self.runner.keep_running()
+      self.write("OK")
+    elif command == "select-project":
+      self.warrior.select_project(self.get_argument("project_name"))
+      self.write("OK")
+    elif command == "deselect-project":
+      self.warrior.select_project(None)
+      self.write("OK")
+
+  def get(self, command):
+    if command == "all-projects":
+      self.render("all-projects.html", warrior=self.warrior)
 
 
 class SeesawConnection(SocketConnection):
@@ -107,11 +131,73 @@ class SeesawConnection(SocketConnection):
     items = []
     for item_monitor in self.item_monitors.itervalues():
       items.append(item_monitor.item_for_broadcast())
-    self.emit("project.refresh", {
-      "project": self.project.data_for_json(),
-      "status": ("stopping" if self.runner.should_stop() else "running"),
-      "items": items
+
+    if self.project:
+      self.emit("project.refresh", {
+        "project": self.project.data_for_json(),
+        "status": ("stopping" if self.runner.should_stop() else "running"),
+        "items": items
+      })
+    else:
+      self.emit("project.refresh", None)
+
+    self.emit("warrior.projects_loaded", {
+      "projects": self.warrior.projects
     })
+    self.emit("warrior.status", { "status": self.warrior.warrior_status() })
+
+  @classmethod
+  def handle_warrior_status(cls, warrior, new_status):
+    cls.broadcast("warrior.status", { "status": new_status })
+
+  @classmethod
+  def handle_projects_loaded(cls, warrior, projects):
+    cls.broadcast_projects()
+
+  @classmethod
+  def broadcast_projects(cls):
+    cls.broadcast("warrior.projects_loaded", {
+      "projects": cls.warrior.projects
+    })
+
+  @classmethod
+  def handle_project_selected(cls, warrior, project):
+    cls.broadcast("warrior.project_selected", { "project": project })
+
+  @classmethod
+  def handle_project_installing(cls, warrior, project):
+    cls.broadcast("warrior.project_installing", { "project": project })
+
+  @classmethod
+  def handle_project_installed(cls, warrior, project, output):
+    output = re.sub("\r\n?", "\n", output)
+    cls.broadcast("warrior.project_installed", { "project": project, "output": output })
+
+  @classmethod
+  def handle_project_installation_failed(cls, warrior, project, output):
+    output = re.sub("\r\n?", "\n", output)
+    cls.broadcast("warrior.project_installation_failed", { "project": project, "output": output })
+
+  @classmethod
+  def handle_project_refresh(cls, warrior, project, runner):
+    cls.project = project
+    cls.runner = runner
+    if project:
+      runner.pipeline.on_start_item += SeesawConnection.handle_start_item
+      runner.pipeline.on_finish_item += SeesawConnection.handle_finish_item
+      runner.on_status += SeesawConnection.handle_runner_status
+    cls.broadcast_project_refresh()
+
+  @classmethod
+  def broadcast_project_refresh(cls):
+    if cls.project:
+      cls.broadcast("project.refresh", {
+        "project": cls.project.data_for_json(),
+        "status": ("stopping" if cls.runner.should_stop() else "running"),
+        "items": []
+      })
+    else:
+      cls.broadcast("project.refresh", None)
 
   @classmethod
   def handle_runner_status(cls, runner, status):
@@ -139,7 +225,7 @@ class SeesawConnection(SocketConnection):
     self.clients.remove(self)
 
 
-def start_server(project, runner, port_number=8001):
+def start_runner_server(project, runner, port_number=8001):
   SeesawConnection.project = project
   SeesawConnection.runner = runner
 
@@ -153,6 +239,29 @@ def start_server(project, runner, port_number=8001):
                           web.StaticFileHandler, {"path": PUBLIC_PATH}),
                          ("/", IndexHandler),
                          ("/api/(.+)$", ApiHandler, {"runner": runner})]),
+#   flash_policy_port = 843,
+#   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
+    socket_io_port = port_number
+  )
+  SocketServer(application, auto_start=False)
+
+def start_warrior_server(warrior, port_number=8001):
+  SeesawConnection.warrior = warrior
+
+  warrior.on_projects_loaded += SeesawConnection.handle_projects_loaded
+  warrior.on_project_refresh += SeesawConnection.handle_project_refresh
+  warrior.on_project_installing += SeesawConnection.handle_project_installing
+  warrior.on_project_installed += SeesawConnection.handle_project_installed
+  warrior.on_project_installation_failed += SeesawConnection.handle_project_installation_failed
+  warrior.on_project_selected += SeesawConnection.handle_project_selected
+  warrior.on_status += SeesawConnection.handle_warrior_status
+
+  router = TornadioRouter(SeesawConnection)
+  application = web.Application(
+    router.apply_routes([(r"/(.*\.(html|css|js|swf))$",
+                          web.StaticFileHandler, {"path": PUBLIC_PATH}),
+                         ("/", IndexHandler),
+                         ("/api/(.+)$", ApiHandler, {"warrior": warrior})]),
 #   flash_policy_port = 843,
 #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
     socket_io_port = port_number

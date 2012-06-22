@@ -27,6 +27,9 @@ a:hover, a:active {
 .with-warrior-menu .content {
   margin-left: 175px;
 }
+.single-project .multi-project {
+  display: none;
+}
 
 #connection-error {
   position: fixed;
@@ -100,6 +103,9 @@ a:hover, a:active {
 }
 #warrior-menu table#warrior-status {
   margin-top: 20px;
+}
+#warrior-menu #warrior-status-description {
+  line-height: 1.2;
 }
 #warrior-menu table .button-link {
   display: block;
@@ -241,6 +247,135 @@ table.time-left td span {
   overflow-y: scroll;
   overflow-x: hidden;
   white-space: pre-wrap;
+}
+
+#projects-header {
+  position: relative;
+  height: 60px;
+  background: #fff;
+  padding: 15px 150px 15px 15px;
+}
+#projects ul {
+  position: relative;
+  margin: 0 10px 25px 10px;
+}
+#projects li {
+  position: relative;
+  background: #fff;
+  border-radius: 5px;
+  margin: 10px 0 10px 0;
+  padding: 5px;
+}
+#projects h3 {
+  font-size: 150%;
+  padding: 15px 0 0 20px;
+}
+#projects li img.project-logo {
+  float: left;
+  margin: -2px 5px 0 0;
+}
+#projects li h4 {
+  font-size: 150%;
+  padding: 5px 0 0 5px;
+}
+#projects li p {
+  font-size: 14px;
+  margin-right: 180px;
+}
+#projects li div.select {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+#projects li.installing div.select .button-link {
+  display: none;
+}
+#projects li div.select span.installing {
+  display: block;
+  padding: 10px 15px;
+  font-size: 14px;
+}
+#projects li.with-time-left {
+  min-height: 65px;
+}
+#projects li.with-time-left div.select {
+  right: 140px;
+}
+#projects li.with-time-left p {
+  margin-right: 300px
+}
+#projects li table.time-left {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+}
+#projects li table.time-left thead {
+  display: none;
+}
+#projects .installation-failed {
+  clear: both;
+  background: #fce5e5;
+  padding: 5px;
+  margin: 10px -5px -5px -5px;
+  border-radius: 0 0 5px 5px;
+}
+#projects li.with-time-left .installation-failed {
+  margin-top: 20px;
+}
+#projects .installation-failed pre.log {
+  margin: 10px 5px 5px 5px;
+  padding: 3px;
+  background: #190A06;
+  height: 200px;
+  color: #fff;
+  font-family: monospace;
+  border-radius: 4px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+}
+
+#settings-header {
+  position: relative;
+  height: 60px;
+  background: #fff;
+  padding: 15px 150px 15px 15px;
+}
+#settings ul {
+  position: relative;
+  margin: 0 10px 25px 10px;
+}
+#settings li {
+  position: relative;
+  background: #fff;
+  border-radius: 5px;
+  margin: 10px 0 10px 0;
+  padding: 5px;
+}
+#settings li.error {
+  margin-left: -5px;
+  border-left: 5px solid #A70B0B;
+}
+#settings input[type="text"] {
+  font-size: 14px;
+  padding: 0 6px;
+  height: 30px;
+}
+#settings li.error input[type="text"] {
+  background: #FCE5E5;
+}
+#settings p {
+  font-size: 14px;
+}
+#settings p.info {
+  font-size: 12px;
+}
+#settings li.error p.error {
+  color: #A70B0B;
+}
+#settings #settings-saved {
+  display: none;
+  padding-left: 10px;
 }
 
 .button-link {

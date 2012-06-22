@@ -7,10 +7,59 @@ import datetime
 import pty
 
 import tornado.ioloop
-from tornado.ioloop import IOLoop
+from tornado.ioloop import IOLoop, PeriodicCallback
 
+from .event import Event
 from .task import Task
 from .item import realize
+
+class AsyncPopen(object):
+  def __init__(self, *args, **kwargs):
+    self.args = args
+    self.kwargs = kwargs
+
+    self.on_output = Event()
+    self.on_end = Event()
+
+  def run(self):
+    self.ioloop = IOLoop.instance()
+    (master_fd, slave_fd) = pty.openpty()
+
+    # make stdout, stderr non-blocking
+    fcntl.fcntl(master_fd, fcntl.F_SETFL, fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+
+    self.master_fd = master_fd
+    self.master = os.fdopen(master_fd)
+
+    # check for process exit
+    self.wait_callback = PeriodicCallback(self._wait_for_end, 250)
+
+    # listen to stdout, stderr
+    self.ioloop.add_handler(master_fd, self._handle_subprocess_stdout, self.ioloop.READ)
+    self.wait_callback.start()
+
+    slave = os.fdopen(slave_fd)
+    self.kwargs["stdout"] = slave
+    self.kwargs["stderr"] = slave
+    self.kwargs["close_fds"] = True
+    self.pipe = subprocess.Popen(*self.args, **self.kwargs)
+
+    self.stdin = self.pipe.stdin
+
+  def _handle_subprocess_stdout(self, fd, events):
+    if not self.master.closed and (events & IOLoop._EPOLLIN) != 0:
+      data = self.master.read()
+      self.on_output(data)
+
+    self._wait_for_end(events)
+
+  def _wait_for_end(self, events=0):
+    self.pipe.poll()
+    if self.pipe.returncode != None or (events & tornado.ioloop.IOLoop._EPOLLHUP) > 0:
+      self.wait_callback.stop()
+      self.master.close()
+      self.ioloop.remove_handler(self.master_fd)
+      self.on_end(self.pipe.returncode)
 
 class ExternalProcess(Task):
   def __init__(self, name, args, max_tries=1, retry_delay=30, accept_on_exit_code=[0], retry_on_exit_code=None, env=None):
@@ -32,49 +81,30 @@ class ExternalProcess(Task):
     return ""
 
   def process(self, item):
-    i = IOLoop.instance()
-    (master_fd, slave_fd) = pty.openpty()
-    slave = os.fdopen(slave_fd)
     with self.task_cwd():
-      p = subprocess.Popen(
+      p = AsyncPopen(
           args=realize(self.args, item),
           env=realize(self.env, item),
           stdin=subprocess.PIPE,
-          stdout=slave,
-          stderr=slave,
           close_fds=True
       )
+
+      p.on_output += functools.partial(self.on_subprocess_stdout, p, item)
+      p.on_end += functools.partial(self.on_subprocess_end, item)
+
+      p.run()
+
       p.stdin.write(self.stdin_data(item))
       p.stdin.close()
 
-    # make stdout, stderr non-blocking
-    fcntl.fcntl(master_fd, fcntl.F_SETFL, fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+  def on_subprocess_stdout(self, pipe, item, data):
+    item.log_output(data)
 
-    i.add_handler(master_fd,
-        functools.partial(self.on_subprocess_stdout, os.fdopen(master_fd), i, p, item),
-        i.READ)
-
-  def on_subprocess_stdout(self, m, ioloop, pipe, item, fd, events):
-    if not m.closed and (events & tornado.ioloop.IOLoop._EPOLLIN) != 0:
-      data = m.read()
-      item.log_output(data)
-
-    if (events & tornado.ioloop.IOLoop._EPOLLHUP) > 0:
-      m.close()
-      ioloop.remove_handler(fd)
-      self.wait_for_end(ioloop, pipe, item)
-
-  def wait_for_end(self, ioloop, pipe, item):
-    pipe.poll()
-    if pipe.returncode != None:
-      if pipe.returncode in self.accept_on_exit_code:
-        self.handle_process_result(pipe.returncode, item)
-      else:
-        self.handle_process_error(pipe.returncode, item)
+  def on_subprocess_end(self, item, returncode):
+    if returncode in self.accept_on_exit_code:
+      self.handle_process_result(returncode, item)
     else:
-      # wait for process to exit
-      ioloop.add_timeout(datetime.timedelta(milliseconds=250),
-          functools.partial(self.wait_for_end, ioloop, pipe, item))
+      self.handle_process_error(returncode, item)
 
   def handle_process_result(self, exit_code, item):
     item.log_output("Finished %s for %s\n" % (self, item.description()))
