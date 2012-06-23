@@ -6,8 +6,8 @@ import os.path
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 from tornado.ioloop import IOLoop
 
-from .config import realize
-from .task import Task, SimpleTask
+from seesaw.config import realize
+from seesaw.task import Task, SimpleTask
 
 class TrackerRequest(Task):
   def __init__(self, name, tracker_url, tracker_command):

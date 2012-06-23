@@ -9,9 +9,9 @@ import pty
 import tornado.ioloop
 from tornado.ioloop import IOLoop, PeriodicCallback
 
-from .event import Event
-from .task import Task
-from .config import realize
+from seesaw.event import Event
+from seesaw.task import Task
+from seesaw.config import realize
 
 class AsyncPopen(object):
   def __init__(self, *args, **kwargs):

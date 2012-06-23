@@ -1,7 +1,7 @@
 import traceback
 import re
 
-from .event import Event
+from seesaw.event import Event
 
 class Item(object):
   def __init__(self, item_id, item_number, properties=None):

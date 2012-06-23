@@ -1,9 +1,9 @@
 import sys
 import os.path
 
-from .event import Event
-from .item import Item
-from .config import realize
+from seesaw.event import Event
+from seesaw.item import Item
+from seesaw.config import realize
 
 from tornado import ioloop
 

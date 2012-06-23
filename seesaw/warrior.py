@@ -13,11 +13,11 @@ from tornado import ioloop
 from tornado import gen
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 
-from .event import Event
-from .externalprocess import AsyncPopen
-from .runner import Runner
-from .web import SeesawConnection
-from .config import NumberConfigValue, StringConfigValue, ConfigValue
+from seesaw.event import Event
+from seesaw.externalprocess import AsyncPopen
+from seesaw.runner import Runner
+from seesaw.web import SeesawConnection
+from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 
 class ConfigManager(object):
   def __init__(self, config_file):

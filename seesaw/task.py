@@ -2,9 +2,9 @@ import contextlib
 import os
 import traceback
 
-from .event import Event
-from .item import Item
-from .config import realize
+from seesaw.event import Event
+from seesaw.item import Item
+from seesaw.config import realize
 
 class Task(object):
   def __init__(self, name):

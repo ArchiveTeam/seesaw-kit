@@ -1,4 +1,4 @@
-from .event import Event
+from seesaw.event import Event
 
 class Pipeline(object):
   def __init__(self, *tasks):
