@@ -6,6 +6,8 @@ import shutil
 import sys
 import time
 import re
+import json
+from collections import OrderedDict
 
 from tornado import ioloop
 from tornado import gen
@@ -15,13 +17,79 @@ from .event import Event
 from .externalprocess import AsyncPopen
 from .runner import Runner
 from .web import SeesawConnection
+from .config import NumberConfigValue, StringConfigValue, ConfigValue
+
+class ConfigManager(object):
+  def __init__(self, config_file):
+    self.config_file = config_file
+    self.config_memory = {}
+    self.config_values = OrderedDict()
+
+    self.load()
+
+  def add(self, config_value):
+    self.config_values[config_value.name] = config_value
+    if config_value.name in self.config_memory:
+      remembered_value = self.config_memory[config_value.name]
+      if config_value.check_value(remembered_value) == None:
+        config_value.set_value(remembered_value)
+    self.save()
+
+  def remove(self, name):
+    if name in self.config_values:
+      del self.config_values[name]
+    self.save()
+
+  def all_valid(self):
+    return all([ c.is_valid() for c in self ])
+
+  def set_value(self, name, value):
+    if name in self.config_values:
+      if self.config_values[name].set_value(value):
+        self.config_memory[name] = value
+        self.save()
+        return True
+    return False
+
+  def load(self):
+    try:
+      with open(self.config_file) as f:
+        self.config_memory = json.load(f)
+    except Exception, e:
+      self.config_memory = {}
+
+  def save(self):
+    with open(self.config_file, "w") as f:
+      json.dump(self.config_memory, f)
+
+  def __iter__(self):
+    return self.config_values.itervalues()
+
 
 class Warrior(object):
-  WARRIOR_HQ_URL = "http://127.0.0.1/seesaw2"
-
-  def __init__(self, projects_dir, data_dir):
+  def __init__(self, projects_dir, data_dir, warrior_hq_url):
     self.projects_dir = projects_dir
     self.data_dir = data_dir
+    self.warrior_hq_url = warrior_hq_url
+
+    self.downloader = StringConfigValue(
+      name="downloader",
+      title="Your nickname",
+      description="We use your nickname to show your results on our tracker. Letters and numbers only.",
+      regex="^[-_a-zA-Z0-9]{3,30}$"
+    )
+    self.concurrent_items = NumberConfigValue(
+      name="concurrent_items",
+      title="Concurrent items",
+      description="How many items should the warrior download at a time? (Max: 6)",
+      min=1,
+      max=6,
+      default=2
+    )
+
+    self.config_manager = ConfigManager(os.path.join(projects_dir, "config.json"))
+    self.config_manager.add(self.downloader)
+    self.config_manager.add(self.concurrent_items)
 
     self.current_project_name = None
     self.current_project = None
@@ -50,10 +118,10 @@ class Warrior(object):
   @gen.engine
   def load_projects(self):
     response = yield gen.Task(self.http_client.fetch,
-                              "%s/projects.json" % self.WARRIOR_HQ_URL)
+                              os.path.join(self.warrior_hq_url, "projects.json"))
     if response.code == 200:
       projects_list = json.loads(response.body)["projects"]
-      self.projects = dict([ (project["name"], project) for project in projects_list ])
+      self.projects = OrderedDict([ (project["name"], project) for project in projects_list ])
       for project_data in self.projects.itervalues():
         if "deadline" in project_data:
           project_data["deadline_int"] = time.mktime(time.strptime(project_data["deadline"], "%Y-%m-%dT%H:%M:%SZ"))
@@ -197,6 +265,8 @@ class Warrior(object):
     with open(pipeline_path) as f:
       pipeline_str = f.read()
 
+    ConfigValue.start_collecting()
+
     local_context = context
     global_context = context
     curdir = os.getcwd()
@@ -205,7 +275,10 @@ class Warrior(object):
       exec pipeline_str in local_context, global_context
     finally:
       os.chdir(curdir)
-    return ( local_context["project"], local_context["pipeline"] )
+
+    config_values = ConfigValue.stop_collecting()
+
+    return ( local_context["project"], local_context["pipeline"], config_values )
 
   @gen.engine
   def start_selected_project(self):
@@ -231,9 +304,13 @@ class Warrior(object):
       project_path = os.path.join(self.projects_dir, project_name)
       pipeline_path = os.path.join(project_path, "pipeline.py")
 
-      (project, pipeline) = self.load_pipeline(pipeline_path, { "downloader": "testdownloader" })
-      runner = Runner(pipeline, concurrent_items=2)
+      (project, pipeline, config_values) = self.load_pipeline(pipeline_path, { "downloader": self.downloader })
 
+      for config_value in config_values:
+        self.config_manager.add(config_value)
+      project.config_values = config_values
+
+      runner = Runner(pipeline, concurrent_items=self.concurrent_items)
       runner.on_finish += self.handle_runner_finish
 
       self.current_project_name = project_name
@@ -247,6 +324,10 @@ class Warrior(object):
       runner.start()
 
   def handle_runner_finish(self, runner):
+    if self.current_project:
+      for config_value in self.current_project.config_values:
+        self.config_manager.remove(config_value.name)
+
     self.current_project_name = None
     self.current_project = None
     self.current_pipeline = None
@@ -279,6 +360,7 @@ class Warrior(object):
 
   class Status(object):
     NO_PROJECT = "NO_PROJECT"
+    INVALID_SETTINGS = "INVALID_SETTINGS"
     STOPPING_PROJECT = "STOPPING_PROJECT"
     RESTARTING_PROJECT = "RESTARTING_PROJECT"
     RUNNING_PROJECT = "RUNNING_PROJECT"
@@ -292,6 +374,8 @@ class Warrior(object):
   def warrior_status(self):
     if self.shut_down_flag:
       return Warrior.Status.SHUTTING_DOWN
+    elif not self.config_manager.all_valid():
+      return Warrior.Status.INVALID_SETTINGS
     elif self.selected_project == None and self.current_project_name == None:
       return Warrior.Status.NO_PROJECT
     elif self.selected_project:

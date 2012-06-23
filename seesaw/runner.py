@@ -2,7 +2,8 @@ import sys
 import os.path
 
 from .event import Event
-from .item import Item, realize
+from .item import Item
+from .config import realize
 
 from tornado import ioloop
 
@@ -62,7 +63,7 @@ class Runner(object):
       return None
 
   def add_items(self):
-    items_required = realize(self.concurrent_items)
+    items_required = int(realize(self.concurrent_items))
     while len(self.active_items) < items_required:
       self.item_count += 1
       item_id = "%d-%d" % (id(self), self.item_count)

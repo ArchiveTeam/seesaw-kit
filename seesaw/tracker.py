@@ -6,7 +6,7 @@ import os.path
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 from tornado.ioloop import IOLoop
 
-from .item import realize
+from .config import realize
 from .task import Task, SimpleTask
 
 class TrackerRequest(Task):

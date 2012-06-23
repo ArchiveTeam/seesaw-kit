@@ -3,7 +3,8 @@ import os
 import traceback
 
 from .event import Event
-from .item import Item, realize
+from .item import Item
+from .config import realize
 
 class Task(object):
   def __init__(self, name):
@@ -112,7 +113,7 @@ class SetItemKey(SimpleTask):
     self.value = value
 
   def process(self, item):
-    item[self.key] = self.value
+    item[self.key] = realize(self.value, self)
 
   def __str__(self):
     return "SetItemKey(" + str(self.key) + ": " + str(self.value) + ")"

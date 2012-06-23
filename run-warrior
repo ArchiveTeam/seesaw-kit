@@ -8,16 +8,18 @@ from seesaw.web import start_warrior_server
 
 def main():
   parser = ArgumentParser(description="Run the warrior web interface")
-  parser.add_argument("projects_dir", metavar="DIRECTORY", type=str,
-                      help="the warrior projects directory")
-  parser.add_argument("data_dir", metavar="DIRECTORY", type=str,
-                      help="the data directory")
+  parser.add_argument("--projects-dir", dest="projects_dir", metavar="DIRECTORY", type=str,
+                      help="the warrior projects directory", required=True)
+  parser.add_argument("--data-dir", dest="data_dir", metavar="DIRECTORY", type=str,
+                      help="the data directory", required=True)
+  parser.add_argument("--warrior-hq", dest="warrior_hq_url", metavar="URL", type=str,
+                      help="the url to the Warrior HQ", required=True)
   parser.add_argument("--port", dest="port_number",
                       help="the port number for the web interface (default: 8001)",
                       metavar="PORT", type=int, default=8001)
   args = parser.parse_args()
 
-  warrior = Warrior(args.projects_dir, args.data_dir)
+  warrior = Warrior(args.projects_dir, args.data_dir, args.warrior_hq_url)
   
   start_warrior_server(warrior, port_number=args.port_number)
 

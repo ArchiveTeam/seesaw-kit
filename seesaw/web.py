@@ -112,10 +112,22 @@ class ApiHandler(web.RequestHandler):
     elif command == "deselect-project":
       self.warrior.select_project(None)
       self.write("OK")
+    elif command == "settings":
+      success = True
+      posted_values = {}
+      for (name, value) in self.request.arguments.iteritems():
+        if not self.warrior.config_manager.set_value(name, value[0]):
+          success = False
+          posted_values[name] = value[0]
+      if self.warrior.config_manager.all_valid():
+        self.warrior.fire_status()
+      self.render("settings.html", warrior=self.warrior, posted_values=posted_values)
 
   def get(self, command):
     if command == "all-projects":
       self.render("all-projects.html", warrior=self.warrior)
+    elif command == "settings":
+      self.render("settings.html", warrior=self.warrior, posted_values={})
 
 
 class SeesawConnection(SocketConnection):
@@ -264,7 +276,8 @@ def start_warrior_server(warrior, port_number=8001):
                          ("/api/(.+)$", ApiHandler, {"warrior": warrior})]),
 #   flash_policy_port = 843,
 #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
-    socket_io_port = port_number
+    socket_io_port = port_number,
+    debug = True
   )
   SocketServer(application, auto_start=False)
 

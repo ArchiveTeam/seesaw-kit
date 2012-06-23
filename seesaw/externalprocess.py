@@ -11,7 +11,7 @@ from tornado.ioloop import IOLoop, PeriodicCallback
 
 from .event import Event
 from .task import Task
-from .item import realize
+from .config import realize
 
 class AsyncPopen(object):
   def __init__(self, *args, **kwargs):

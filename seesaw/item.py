@@ -1,4 +1,6 @@
 import traceback
+import re
+
 from .event import Event
 
 class Item(object):
@@ -94,19 +96,6 @@ class Item(object):
     completed = "completed"
     failed = "failed"
 
-def realize(v, item=None):
-  if isinstance(v, dict):
-    realized_dict = {}
-    for (key, value) in v.iteritems():
-      realized_dict[key] = realize(value, item)
-    return realized_dict
-  elif isinstance(v, list):
-    return [ realize(vi, item) for vi in v ]
-  elif hasattr(v, "realize"):
-    return v.realize(item)
-  else:
-    return v
-
 class ItemValue(object):
   def __init__(self, key):
     self.key = key
@@ -134,16 +123,4 @@ class ItemInterpolation(object):
 
   def __str__(self):
     return "<'" + self.s + "'>"
-
-class ConfigValue(object):
-  def __init__(self, name="", default=None):
-    self.name = name
-    self.value = default
-
-  def realize(self, ignored):
-    return self.value
-
-  def __str__(self):
-    return "<" + self.name + ":" + str(self.value) + ">"
-
 

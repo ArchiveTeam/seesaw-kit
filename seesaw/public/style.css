@@ -356,6 +356,10 @@ table.time-left td span {
   margin-left: -5px;
   border-left: 5px solid #A70B0B;
 }
+#settings li.required {
+  margin-left: -5px;
+  border-left: 5px solid #459B34;
+}
 #settings input[type="text"] {
   font-size: 14px;
   padding: 0 6px;
@@ -373,7 +377,7 @@ table.time-left td span {
 #settings li.error p.error {
   color: #A70B0B;
 }
-#settings #settings-saved {
+#settings #settings-saving {
   display: none;
   padding-left: 10px;
 }

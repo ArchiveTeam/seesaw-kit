@@ -15,18 +15,15 @@ $(function() {
     conn.socket.reconnect();
   });
 
+  conn.on('warrior.settings_update', function(msg) {
+    reloadSettingsTab();
+  });
+
   conn.on('warrior.projects_loaded', function(msg) {
     multiProject = true;
     $(document.body).removeClass('single-project');
-    reloadProjects();
+    reloadProjectsTab();
   });
-
-  function reloadProjects() {
-    $('#projects').load('/api/all-projects', null, function() {
-      $("#projects input[type='submit']").each(makeButtonLink);
-      $("#projects li").each(addProjectCountdown);
-    });
-  }
 
   conn.on('warrior.project_installing', function(msg) {
     var projectLi = $('#project-' + msg.project.name);
@@ -39,7 +36,7 @@ $(function() {
     var projectLi = $('#project-' + msg.project.name);
     projectLi.removeClass('installing');
     $('div.select span.installing', projectLi).remove();
-    reloadProjects();
+    reloadProjectsTab();
   });
 
   conn.on('warrior.project_installation_failed', function(msg) {
@@ -52,7 +49,7 @@ $(function() {
   });
 
   conn.on('warrior.project_selected', function(msg) { // project
-    reloadProjects();
+    reloadProjectsTab();
   });
 
   conn.on('project.refresh', function(msg) { // project, pipeline, items
@@ -68,8 +65,18 @@ $(function() {
     }
   });
 
+  var currentWarriorStatus = null;
+
   conn.on('warrior.status', function(msg) {
+    currentWarriorStatus = msg.status;
     showWarriorStatus(msg.status);
+    if (msg.status == 'INVALID_SETTINGS') {
+      showTab('view-settings');
+    } else if (msg.status == 'NO_PROJECT') {
+      showTab('view-all-projects');
+    } else if (msg.status == 'STARTING_PROJECT') {
+      showTab('view-current-project');
+    }
   });
 
   conn.on('runner.status', function(msg) { // project_id
@@ -119,8 +126,20 @@ $(function() {
   });
 
 
+  function reloadProjectsTab() {
+    $('#projects').load('/api/all-projects', null, function() {
+      $("#projects input[type='submit']").each(makeButtonLink);
+      $("#projects li").each(addProjectCountdown);
+    });
+  }
+
+  function reloadSettingsTab() {
+    $('#settings-list').load('/api/settings');
+  }
+
   var warriorStatus = {
     'NO_PROJECT': ['The warrior is idle. Select a project.', 'Shut down', '/api/stop'],
+    'INVALID_SETTINGS': ['You must configure the warrior.', 'Shut down', '/api/stop'],
     'STOPPING_PROJECT': ['The warrior is stopping the current project.', 'Shut down', '/api/stop'],
     'RESTARTING_PROJECT': ['The warrior is restarting the current project.', 'Shut down', '/api/stop'],
     'RUNNING_PROJECT': ['The warrior is working on a project.', 'Shut down', '/api/stop'],
@@ -288,6 +307,31 @@ $(function() {
 
   $("form.js-api-form input[type='submit']").each(makeButtonLink);
 
+  function submitSettingsForm() {
+    $('form#settings-form').submit();
+    return false;
+  }
+
+  $("form#settings-form input[type='submit']").each(function(i, input) {
+    var a = document.createElement('a');
+    a.className = 'button-link';
+    a.href = '#';
+    a.appendChild(document.createTextNode(input.value));
+    $(a).click(submitSettingsForm);
+    $(input).replaceWith(a);
+  });
+
+  function hideSettingsSaving() {
+    $('#settings-saving')[0].style.display = 'none';
+  }
+
+  $('form#settings-form').submit(function(e) {
+    var form = $(e.target);
+    $('#settings-saving')[0].style.display = 'inline-block';
+    $('#settings-list').load(form.attr('action'), form.serializeArray(), hideSettingsSaving);
+    return false;
+  });
+
   var Countdown = function(deadline, tableId) {
     this.deadline = deadline;
     this.tableId = tableId;
@@ -326,6 +370,11 @@ $(function() {
   };
 
   function showTab(view) {
+    console.log(currentWarriorStatus);
+    if (currentWarriorStatus == 'INVALID_SETTINGS') {
+      view = 'view-settings';
+    }
+
     var views = $('div.content');
     for (var i=views.length - 1; i>=0; i--) {
       views[i].style.display = (views[i].id == view ? '' : 'none');
@@ -334,6 +383,10 @@ $(function() {
     for (var i=tabs.length - 1; i>=0; i--) {
       tabs[i].parentNode.className = ($(tabs[i]).attr('data-view') == view ? 'active' : '');
     }
+    if (view=='view-all-projects')
+      reloadProjectsTab();
+    else if (view=='view-settings')
+      reloadSettingsTab();
   }
 
   $('#tabs').click(function(e) {
@@ -344,7 +397,7 @@ $(function() {
     return false;
   });
 
-  showTab('view-settings');
+  showTab('view-current-project');
 
   /*
   addItem({

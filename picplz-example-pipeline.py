@@ -6,6 +6,7 @@ import json
 
 from seesaw.project import *
 from seesaw.item import *
+from seesaw.config import *
 from seesaw.task import *
 from seesaw.pipeline import *
 from seesaw.externalprocess import *
