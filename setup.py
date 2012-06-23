@@ -47,7 +47,7 @@ requires = [
   'argparse',
   'ordereddict',
   'Tornado>=2.3',
-  'tornadio>=0.0.3'
+  'tornadio2>=0.0.3'
 ]
 
 setup(
