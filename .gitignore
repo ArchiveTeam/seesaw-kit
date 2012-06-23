@@ -1,3 +1,5 @@
 *.pyc
 .*.swp
 *.swp
+seesaw.egg-info
+dist
