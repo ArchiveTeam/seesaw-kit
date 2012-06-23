@@ -16,6 +16,11 @@ try:
 except ImportError:
   from distutils.core import setup
 
+try:
+  from distutils.command.build_py import build_py_2to3 as build_py
+except ImportError:
+  from distutils.command.build_py import build_py
+
 packages = [
   'seesaw'
 ]
@@ -56,6 +61,7 @@ setup(
   package_data=package_data,
   include_package_data=True,
   scripts=scripts,
-  install_requires=requires
+  install_requires=requires,
+  cmdclass={'build_py': build_py}
 )
 
