@@ -44,6 +44,8 @@ scripts = [
 ]
 
 requires = [
+  'argparse',
+  'ordereddict',
   'Tornado>=2.3',
   'tornadio>=0.0.3'
 ]

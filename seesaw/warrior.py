@@ -7,7 +7,7 @@ import sys
 import time
 import re
 import json
-from collections import OrderedDict
+from ordereddict import OrderedDict
 
 from tornado import ioloop
 from tornado import gen
