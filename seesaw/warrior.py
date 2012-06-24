@@ -234,10 +234,11 @@ class Warrior(object):
         callback(True)
         return
 
-      output = subprocess.check_output(
+      output = subprocess.Popen(
           args=[ "git", "rev-list", "HEAD..FETCH_HEAD" ],
-          cwd=project_path
-      )
+          cwd=project_path,
+          stdout=subprocess.PIPE
+      ).communicate()[0]
       if output.strip() != "":
         callback(True)
       else:
