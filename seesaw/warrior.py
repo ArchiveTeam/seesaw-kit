@@ -100,6 +100,7 @@ class Warrior(object):
 
     self.projects = {}
     self.installed_projects = set()
+    self.failed_projects = set()
 
     self.on_projects_loaded = Event()
     self.on_project_installing = Event()
@@ -142,6 +143,11 @@ class Warrior(object):
 
       self.on_project_installing(self, project)
 
+      if project_name in self.failed_projects:
+        if os.path.exists(project_path):
+          shutil.rmtree(project_path)
+        self.failed_projects.discard(project_name)
+
       if os.path.exists(project_path):
         p = AsyncPopen(
             args=[ "git", "pull" ],
@@ -158,6 +164,7 @@ class Warrior(object):
         self.install_output.append("\ngit returned %d\n" % result)
         self.on_project_installation_failed(self, project, "".join(self.install_output))
         self.installing = None
+        self.failed_projects.add(project_name)
         if callback:
           callback(False)
         return
@@ -178,6 +185,7 @@ class Warrior(object):
           self.install_output.append("\nCustom installer returned %d\n" % result)
           self.on_project_installation_failed(self, project, "".join(self.install_output))
           self.installing = None
+          self.failed_projects.add(project_name)
           if callback:
             callback(False)
           return
