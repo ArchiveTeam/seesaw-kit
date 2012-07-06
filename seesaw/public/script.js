@@ -145,7 +145,8 @@ $(function() {
     'RUNNING_PROJECT': ['The warrior is working on a project.', 'Shut down', '/api/stop'],
     'SWITCHING_PROJECT': ['The warrior will switch to a different project.', 'Shut down', '/api/stop'],
     'STARTING_PROJECT': ['The warrior is beginning work on a project.', 'Shut down', '/api/stop'],
-    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', '/api/keep_running']
+    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', '/api/keep_running'],
+    'REBOOTING': ['The warrior is stopping and restarting.', 'Keep running', '/api/keep_running']
   };
 
   function showWarriorStatus(status) {

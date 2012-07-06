@@ -67,10 +67,11 @@ class ConfigManager(object):
 
 
 class Warrior(object):
-  def __init__(self, projects_dir, data_dir, warrior_hq_url):
+  def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False):
     self.projects_dir = projects_dir
     self.data_dir = data_dir
     self.warrior_hq_url = warrior_hq_url
+    self.real_shutdown = real_shutdown
 
     self.downloader = StringConfigValue(
       name="downloader",
@@ -345,24 +346,46 @@ class Warrior(object):
     self.on_project_refresh(self, self.current_project, self.current_runner)
     self.fire_status()
 
-    if self.shut_down_flag:
+    if self.shut_down_flag or self.reboot_flag:
       ioloop.IOLoop.instance().stop()
+
+      if self.real_shutdown:
+        if self.shut_down_flag:
+          os.system("sudo shutdown -h now")
+        elif self.reboot_flag:
+          os.system("sudo shutdown -r now")
+
     elif self.selected_project:
       self.start_selected_project()
 
   def start(self):
     ioloop.IOLoop.instance().start()
 
-  def stop_gracefully(self):
-    self.shut_down_flag = True
+  def reboot_gracefully(self):
+    self.shut_down_flag = False
+    self.reboot_flag = True
     self.fire_status()
     if self.current_runner:
       self.current_runner.stop_gracefully()
     else:
       ioloop.IOLoop.instance().stop()
+      if self.real_shutdown:
+        os.system("sudo shutdown -r now")
+
+  def stop_gracefully(self):
+    self.shut_down_flag = True
+    self.reboot_flag = False
+    self.fire_status()
+    if self.current_runner:
+      self.current_runner.stop_gracefully()
+    else:
+      ioloop.IOLoop.instance().stop()
+      if self.real_shutdown:
+        os.system("sudo shutdown -h now")
 
   def keep_running(self):
     self.shut_down_flag = False
+    self.reboot_flag = False
     if self.current_runner:
       self.current_runner.keep_running()
     self.fire_status()
@@ -376,6 +399,7 @@ class Warrior(object):
     SWITCHING_PROJECT = "SWITCHING_PROJECT"
     STARTING_PROJECT = "STARTING_PROJECT"
     SHUTTING_DOWN = "SHUTTING_DOWN"
+    REBOOTING = "REBOOTING"
 
   def fire_status(self):
     self.on_status(self, self.warrior_status())
@@ -383,6 +407,8 @@ class Warrior(object):
   def warrior_status(self):
     if self.shut_down_flag:
       return Warrior.Status.SHUTTING_DOWN
+    elif self.reboot_flag:
+      return Warrior.Status.REBOOTING
     elif not self.config_manager.all_valid():
       return Warrior.Status.INVALID_SETTINGS
     elif self.selected_project == None and self.current_project_name == None:

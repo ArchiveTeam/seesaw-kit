@@ -17,9 +17,17 @@ def main():
   parser.add_argument("--port", dest="port_number",
                       help="the port number for the web interface (default: 8001)",
                       metavar="PORT", type=int, default=8001)
+  parser.add_argument("--real-shutdown", dest="real_shutdown",
+                      help="The shutdown button in the web interface uses sudo shutdown",
+                      action="store_true")
   args = parser.parse_args()
 
-  warrior = Warrior(args.projects_dir, args.data_dir, args.warrior_hq_url)
+  print args.real_shutdown
+  warrior = Warrior(
+      args.projects_dir,
+      args.data_dir,
+      args.warrior_hq_url,
+      real_shutdown=args.real_shutdown)
   
   start_warrior_server(warrior, port_number=args.port_number)
 
