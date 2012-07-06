@@ -4,6 +4,8 @@ import os.path
 from tornado import web, ioloop, template
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
+from seesaw.config import realize
+
 PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
 
@@ -107,9 +109,11 @@ class ApiHandler(web.RequestHandler):
         self.runner.keep_running()
       self.write("OK")
     elif command == "select-project":
+      self.warrior.config_manager.set_value("selected_project", self.get_argument("project_name"))
       self.warrior.select_project(self.get_argument("project_name"))
       self.write("OK")
     elif command == "deselect-project":
+      self.warrior.config_manager.set_value("selected_project", "none")
       self.warrior.select_project(None)
       self.write("OK")
     elif command == "settings":
@@ -125,7 +129,7 @@ class ApiHandler(web.RequestHandler):
 
   def get(self, command):
     if command == "all-projects":
-      self.render("all-projects.html", warrior=self.warrior)
+      self.render("all-projects.html", warrior=self.warrior, realize=realize)
     elif command == "settings":
       self.render("settings.html", warrior=self.warrior, posted_values={})
 

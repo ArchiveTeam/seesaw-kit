@@ -140,7 +140,7 @@ class Warrior(object):
     self.reboot_flag = False
 
     self.hq_updater = ioloop.PeriodicCallback(self.update_warrior_hq, 10*60*1000)
-    self.project_updater = ioloop.PeriodicCallback(self.update_project, 10*60*1000)
+    self.project_updater = ioloop.PeriodicCallback(self.update_project, 60*60*1000)
 
   @gen.engine
   def update_warrior_hq(self):
@@ -185,11 +185,20 @@ class Warrior(object):
         if "deadline" in project_data:
           project_data["deadline_int"] = time.mktime(time.strptime(project_data["deadline"], "%Y-%m-%dT%H:%M:%SZ"))
 
+
+      previous_project_choice = realize(self.selected_project_config_value)
+
       if self.selected_project and not self.selected_project in self.projects:
         self.select_project(None)
-      elif realize(self.selected_project_config_value) in self.projects:
+      elif previous_project_choice in self.projects:
         # select previous project
-        self.select_project(realize(self.selected_project_config_value))
+        self.select_project(previous_project_choice)
+      elif previous_project_choice == "auto":
+        # ArchiveTeam's choice
+        if "auto_project" in data:
+          self.select_project(data["auto_project"])
+        else:
+          self.select_project(None)
 
       self.on_projects_loaded(self, self.projects)
 
@@ -279,7 +288,8 @@ class Warrior(object):
   def update_project(self):
     if self.selected_project and (yield gen.Task(self.check_project_has_update, self.selected_project)):
       # restart project
-      self.current_runner.stop_gracefully()
+      if self.current_runner:
+        self.current_runner.stop_gracefully()
 
   @gen.engine
   def check_project_has_update(self, project_name, callback):
@@ -327,14 +337,12 @@ class Warrior(object):
       result = yield gen.Task(self.install_project, project_name)
       if result:
         self.selected_project = project_name
-        self.config_manager.set_value("selected_project", project_name)
         self.on_project_selected(self, project_name)
         self.start_selected_project()
         self.fire_status()
 
     else:
       self.selected_project = None
-      self.config_manager.set_value("selected_project", "none")
       self.on_project_selected(self, None)
       if self.current_runner:
         self.current_runner.stop_gracefully()
