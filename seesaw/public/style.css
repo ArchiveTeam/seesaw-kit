@@ -272,7 +272,7 @@ table.time-left td span {
 }
 #projects li img.project-logo {
   float: left;
-  margin: -2px 5px 0 0;
+  margin: 5px 5px 0 5px;
 }
 #projects li h4 {
   font-size: 150%;
