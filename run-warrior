@@ -22,7 +22,6 @@ def main():
                       action="store_true")
   args = parser.parse_args()
 
-  print args.real_shutdown
   warrior = Warrior(
       args.projects_dir,
       args.data_dir,

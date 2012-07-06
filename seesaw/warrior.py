@@ -8,14 +8,18 @@ import time
 import re
 import json
 from ordereddict import OrderedDict
+from distutils.version import StrictVersion
 
 from tornado import ioloop
 from tornado import gen
+from tornado.ioloop import PeriodicCallback
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 
+import seesaw
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen
 from seesaw.runner import Runner
+from seesaw.config import realize
 from seesaw.web import SeesawConnection
 from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 
@@ -65,6 +69,9 @@ class ConfigManager(object):
   def __iter__(self):
     return self.config_values.itervalues()
 
+  def editable_values(self):
+    return [ v for v in self if v.editable ]
+
 
 class Warrior(object):
   def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False):
@@ -73,6 +80,19 @@ class Warrior(object):
     self.warrior_hq_url = warrior_hq_url
     self.real_shutdown = real_shutdown
 
+    self.warrior_id = StringConfigValue(
+      name="warrior_id",
+      title="Warrior ID",
+      description="The unique number of your warrior instance.",
+      editable=False
+    )
+    self.selected_project_config_value = StringConfigValue(
+      name="selected_project",
+      title="Selected project",
+      description="The project (to be continued when the warrior restarts).",
+      default="none",
+      editable=False
+    )
     self.downloader = StringConfigValue(
       name="downloader",
       title="Your nickname",
@@ -89,6 +109,8 @@ class Warrior(object):
     )
 
     self.config_manager = ConfigManager(os.path.join(projects_dir, "config.json"))
+    self.config_manager.add(self.warrior_id)
+    self.config_manager.add(self.selected_project_config_value)
     self.config_manager.add(self.downloader)
     self.config_manager.add(self.concurrent_items)
 
@@ -112,22 +134,65 @@ class Warrior(object):
     self.on_status = Event()
 
     self.http_client = AsyncHTTPClient()
-    self.load_projects()
 
     self.installing = False
     self.shut_down_flag = False
+    self.reboot_flag = False
+
+    self.hq_updater = ioloop.PeriodicCallback(self.update_warrior_hq, 10*60*1000)
+    self.project_updater = ioloop.PeriodicCallback(self.update_project, 10*60*1000)
 
   @gen.engine
-  def load_projects(self):
+  def update_warrior_hq(self):
+    if realize(self.warrior_id) == None:
+      response = yield gen.Task(self.http_client.fetch,
+                                os.path.join(self.warrior_hq_url, "api/register.json"),
+                                method="POST",
+                                headers={"Content-Type": "application/json"},
+                                user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
+                                body=json.dumps({"warrior":{"version": seesaw.__version__}}))
+      if response.code == 200:
+        data = json.loads(response.body)
+        print "Received Warrior ID '%s'." % data["warrior_id"]
+        self.config_manager.set_value("warrior_id", data["warrior_id"])
+      else:
+        print "HTTP error %s" % (response.code)
+        return
+    else:
+      print "Warrior ID '%s'." % realize(self.warrior_id)
+
     response = yield gen.Task(self.http_client.fetch,
-                              os.path.join(self.warrior_hq_url, "projects.json"))
+                              os.path.join(self.warrior_hq_url, "api/update.json"),
+                              method="POST",
+                              headers={"Content-Type": "application/json"},
+                              user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
+                              body=json.dumps({"warrior":{
+                                "warrior_id": realize(self.warrior_id),
+                                "downloader": realize(self.downloader)
+                              }}))
     if response.code == 200:
-      projects_list = json.loads(response.body)["projects"]
+      data = json.loads(response.body)
+
+      if StrictVersion(seesaw.__version__) < StrictVersion(data["warrior"]["seesaw_version"]):
+        # time for an update
+        print "Reboot for Seesaw update."
+        self.reboot_gracefully()
+        return
+
+      projects_list = data["projects"]
       self.projects = OrderedDict([ (project["name"], project) for project in projects_list ])
       for project_data in self.projects.itervalues():
         if "deadline" in project_data:
           project_data["deadline_int"] = time.mktime(time.strptime(project_data["deadline"], "%Y-%m-%dT%H:%M:%SZ"))
+
+      if self.selected_project and not self.selected_project in self.projects:
+        self.select_project(None)
+      elif realize(self.selected_project_config_value) in self.projects:
+        # select previous project
+        self.select_project(realize(self.selected_project_config_value))
+
       self.on_projects_loaded(self, self.projects)
+
     else:
       print "HTTP error %s" % (response.code)
 
@@ -211,6 +276,12 @@ class Warrior(object):
         callback(True)
 
   @gen.engine
+  def update_project(self):
+    if self.selected_project and (yield gen.Task(self.check_project_has_update, self.selected_project)):
+      # restart project
+      self.current_runner.stop_gracefully()
+
+  @gen.engine
   def check_project_has_update(self, project_name, callback):
     if project_name in self.projects:
       project = self.projects[project_name]
@@ -256,12 +327,14 @@ class Warrior(object):
       result = yield gen.Task(self.install_project, project_name)
       if result:
         self.selected_project = project_name
+        self.config_manager.set_value("selected_project", project_name)
         self.on_project_selected(self, project_name)
         self.start_selected_project()
         self.fire_status()
 
     else:
       self.selected_project = None
+      self.config_manager.set_value("selected_project", "none")
       self.on_project_selected(self, None)
       if self.current_runner:
         self.current_runner.stop_gracefully()
@@ -359,6 +432,9 @@ class Warrior(object):
       self.start_selected_project()
 
   def start(self):
+    self.hq_updater.start()
+    self.project_updater.start()
+    self.update_warrior_hq()
     ioloop.IOLoop.instance().start()
 
   def reboot_gracefully(self):

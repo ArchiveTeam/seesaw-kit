@@ -8,7 +8,7 @@
   </li>
 {% end %}
 
-{% for config_value in warrior.config_manager ; if config_value.editable %}
+{% for config_value in warrior.config_manager.editable_values() %}
   {% set value = posted_values[config_value.name] if posted_values and config_value.name in posted_values else config_value.value %}
 
   <li {% if config_value.error %} class="error" {% elif not config_value.is_valid() %} class="required" {% end %}>
@@ -24,5 +24,5 @@
     {% end %}
   </li>
 
-{% end ; end %}
+{% end %}
 

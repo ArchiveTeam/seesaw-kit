@@ -26,12 +26,13 @@ class ConfigValue(object):
     ConfigValue.collector = None
     return collected
 
-  def __init__(self, name, title="", description="", default=None):
+  def __init__(self, name, title="", description="", default=None, editable=True):
     self.name = name
     self.title = title
     self.description = description
     self.value = default
     self.error = None
+    self.editable = editable
 
     if ConfigValue.collector != None:
       ConfigValue.collector.append(self)
