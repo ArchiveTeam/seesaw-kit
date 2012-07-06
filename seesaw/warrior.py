@@ -333,7 +333,10 @@ class Warrior(object):
 
   @gen.engine
   def select_project(self, project_name):
-    if project_name in self.projects:
+    if project_name == "auto":
+      self.update_warrior_hq()
+
+    elif project_name in self.projects:
       result = yield gen.Task(self.install_project, project_name)
       if result:
         self.selected_project = project_name
