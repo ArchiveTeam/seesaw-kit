@@ -121,7 +121,7 @@ class ExternalProcess(Task):
       IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
           functools.partial(self.process, item))
 
-    elif self.on_error:
+    else:
       item.log_output("Failed %s for %s\n" % (self, item.description()))
       self.fail_item(item)
 
