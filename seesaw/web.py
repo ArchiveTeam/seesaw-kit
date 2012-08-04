@@ -138,6 +138,7 @@ class SeesawConnection(SocketConnection):
   clients = set()
   item_monitors = dict()
 
+  warrior = None
   project = None
   runner = None
 
@@ -157,10 +158,11 @@ class SeesawConnection(SocketConnection):
     else:
       self.emit("project.refresh", None)
 
-    self.emit("warrior.projects_loaded", {
-      "projects": self.warrior.projects
-    })
-    self.emit("warrior.status", { "status": self.warrior.warrior_status() })
+    if self.warrior:
+      self.emit("warrior.projects_loaded", {
+        "projects": self.warrior.projects
+      })
+      self.emit("warrior.status", { "status": self.warrior.warrior_status() })
 
   @classmethod
   def handle_warrior_status(cls, warrior, new_status):
