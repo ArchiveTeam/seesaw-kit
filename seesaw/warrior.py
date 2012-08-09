@@ -357,9 +357,7 @@ class Warrior(object):
       # restart
       self.selected_project = project_name
       self.on_project_selected(self, project_name)
-      if self.current_runner:
-        self.current_runner.stop_gracefully()
-      self.fire_status()
+      self.start_selected_project()
 
   def load_pipeline(self, pipeline_path, context):
     dirname, basename = os.path.split(pipeline_path)
@@ -393,15 +391,15 @@ class Warrior(object):
       return
 
     if project_name in self.projects:
-      if not project_name in self.installed_projects or (yield gen.Task(self.check_project_has_update, project_name)):
-        result = yield gen.Task(self.install_project, project_name)
-        if not result:
-          return
-
       if self.current_runner:
         self.current_runner.stop_gracefully()
         self.fire_status()
         return
+
+      if not project_name in self.installed_projects or (yield gen.Task(self.check_project_has_update, project_name)):
+        result = yield gen.Task(self.install_project, project_name)
+        if not result:
+          return
 
       project = self.projects[self.selected_project]
 
