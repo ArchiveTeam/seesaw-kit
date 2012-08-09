@@ -152,6 +152,6 @@ class RsyncUpload(ExternalProcess):
     self.target_source_path = target_source_path
 
   def stdin_data(self, item):
-    return "".join([ "%s\n" % os.path.relpath(realize(f, item), self.target_source_path) for f in self.files ])
+    return "".join([ "%s\n" % os.path.relpath(realize(f, item), realize(self.target_source_path, item)) for f in self.files ])
 
 
