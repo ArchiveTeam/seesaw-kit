@@ -168,7 +168,8 @@ class Warrior(object):
                               user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
                               body=json.dumps({"warrior":{
                                 "warrior_id": realize(self.warrior_id),
-                                "downloader": realize(self.downloader)
+                                "downloader": realize(self.downloader),
+                                "selected_project": realize(self.selected_project_config_value)
                               }}))
     if response.code == 200:
       data = json.loads(response.body)
