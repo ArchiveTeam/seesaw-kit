@@ -390,12 +390,12 @@ class Warrior(object):
       # already running
       return
 
-    if project_name in self.projects:
-      if self.current_runner:
-        self.current_runner.stop_gracefully()
-        self.fire_status()
-        return
+    if self.current_runner:
+      self.current_runner.stop_gracefully()
+      self.fire_status()
+      return
 
+    if project_name in self.projects:
       if not project_name in self.installed_projects or (yield gen.Task(self.check_project_has_update, project_name)):
         result = yield gen.Task(self.install_project, project_name)
         if not result:
