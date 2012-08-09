@@ -100,3 +100,14 @@ class NumberConfigValue(ConfigValue):
     else:
       return None
 
+class ConfigInterpolation(object):
+  def __init__(self, s, c):
+    self.s = s
+    self.c = c
+
+  def realize(self, item):
+    return realize(self.s, item) % realize(self.c, item)
+
+  def __str__(self):
+    return "<'" + self.s + "'>"
+

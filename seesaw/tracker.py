@@ -109,5 +109,5 @@ class PrepareStatsForTracker(SimpleTask):
     if self.id_function:
       stats["id"] = self.id_function(item)
 
-    item["stats"] = stats
+    item["stats"] = realize(stats, item)
 
