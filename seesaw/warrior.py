@@ -142,6 +142,17 @@ class Warrior(object):
     self.hq_updater = ioloop.PeriodicCallback(self.update_warrior_hq, 10*60*1000)
     self.project_updater = ioloop.PeriodicCallback(self.update_project, 60*60*1000)
 
+    self.lat_lng = None
+    self.find_lat_lng()
+
+  def find_lat_lng(self):
+    response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
+
+  def handle_lat_lng(self, response):
+    m = re.search(r"Latitude/Longitude</td>\s*<td[^>]*>\s*([-/.0-9]+)\s*</td>", response.body)
+    if m:
+      self.lat_lng = m.group(1)
+
   @gen.engine
   def update_warrior_hq(self):
     if realize(self.warrior_id) == None:
@@ -168,6 +179,7 @@ class Warrior(object):
                               user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
                               body=json.dumps({"warrior":{
                                 "warrior_id": realize(self.warrior_id),
+                                "lat_lng": self.lat_lng,
                                 "downloader": realize(self.downloader),
                                 "selected_project": realize(self.selected_project_config_value)
                               }}))
