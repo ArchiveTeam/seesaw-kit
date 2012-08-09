@@ -336,18 +336,15 @@ class Warrior(object):
   def select_project(self, project_name):
     if project_name == "auto":
       self.update_warrior_hq()
+      return
 
-    elif project_name in self.projects:
-      result = yield gen.Task(self.install_project, project_name)
-      if result:
-        self.selected_project = project_name
-        self.on_project_selected(self, project_name)
-        self.start_selected_project()
-        self.fire_status()
+    if not project_name in self.projects:
+      project_name = None
 
-    else:
-      self.selected_project = None
-      self.on_project_selected(self, None)
+    if project_name != self.selected_project:
+      # restart
+      self.selected_project = project_name
+      self.on_project_selected(self, project_name)
       if self.current_runner:
         self.current_runner.stop_gracefully()
       self.fire_status()
