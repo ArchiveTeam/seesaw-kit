@@ -253,7 +253,7 @@ def start_runner_server(project, runner, port_number=8001):
 
   router = TornadioRouter(SeesawConnection)
   application = web.Application(
-    router.apply_routes([(r"/(.*\.(html|css|js|swf))$",
+    router.apply_routes([(r"/(.*\.(html|css|js|swf|png))$",
                           web.StaticFileHandler, {"path": PUBLIC_PATH}),
                          ("/", IndexHandler),
                          ("/api/(.+)$", ApiHandler, {"runner": runner})]),
@@ -276,7 +276,7 @@ def start_warrior_server(warrior, port_number=8001):
 
   router = TornadioRouter(SeesawConnection)
   application = web.Application(
-    router.apply_routes([(r"/(.*\.(html|css|js|swf))$",
+    router.apply_routes([(r"/(.*\.(html|css|js|swf|png))$",
                           web.StaticFileHandler, {"path": PUBLIC_PATH}),
                          ("/", IndexHandler),
                          ("/api/(.+)$", ApiHandler, {"warrior": warrior})]),
