@@ -134,19 +134,25 @@ class WgetDownload(ExternalProcess):
         env=env)
 
 class RsyncUpload(ExternalProcess):
-  def __init__(self, target, files, target_source_path="./", bwlimit="0", max_tries=None):
+  def __init__(self, target, files, target_source_path="./", bwlimit="0", max_tries=None, extra_args=[]):
+    args = [
+      "rsync",
+      "-avz",
+      "--compress-level=9",
+      "--timeout=30",
+      "--contimeout=30",
+      "--progress",
+      "--bwlimit", bwlimit
+    ]
+    if extra_args:
+      args.extend(extra_args)
+    args.extend([
+      "--files-from=-",
+      target_source_path,
+      target
+    ])
     ExternalProcess.__init__(self, "RsyncUpload",
-        args=[ "rsync",
-               "-avz",
-               "--compress-level=9",
-               "--timeout=30",
-               "--contimeout=30",
-               "--progress",
-               "--bwlimit", bwlimit,
-               "--files-from=-",
-               target_source_path,
-               target
-             ],
+        args = args,
         max_tries = max_tries)
     self.files = files
     self.target_source_path = target_source_path
