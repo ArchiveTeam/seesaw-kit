@@ -139,8 +139,8 @@ class RsyncUpload(ExternalProcess):
       "rsync",
       "-avz",
       "--compress-level=9",
-      "--timeout=30",
-      "--contimeout=30",
+      "--timeout=300",
+      "--contimeout=300",
       "--progress",
       "--bwlimit", bwlimit
     ]
