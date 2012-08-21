@@ -47,6 +47,8 @@ class TrackerRequest(Task):
         item.log_output("Tracker rate limiting is in effect. ")
       elif response.code == 404:
         item.log_output("No item received. ")
+      elif response.code == 455:
+        item.log_output("Project code is out of date and needs to be upgraded. ")
       elif response.code == 599:
         item.log_output("No HTTP response received from tracker. ")
       else:
@@ -57,12 +59,16 @@ class TrackerRequest(Task):
         functools.partial(self.send_request, item))
 
 class GetItemFromTracker(TrackerRequest):
-  def __init__(self, tracker_url, downloader):
+  def __init__(self, tracker_url, downloader, version = None):
     TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url, "request")
     self.downloader = downloader
+    self.version = version
 
   def data(self, item):
-    return {"downloader": realize(self.downloader, item)}
+    data = {"downloader": realize(self.downloader, item)}
+    if self.version:
+      data["version"] = realize(self.version, item)
+    return data
 
   def process_body(self, body, item):
     if len(body.strip()) > 0:
