@@ -511,7 +511,7 @@ class Warrior(object):
     elif self.selected_project:
       if self.selected_project == self.current_project_name:
         if self.current_runner.should_stop():
-          return Warrior.Status.RESTARTING_CURRENT_PROJECT
+          return Warrior.Status.RESTARTING_PROJECT
         else:
           return Warrior.Status.RUNNING_PROJECT
       elif self.current_runner:
