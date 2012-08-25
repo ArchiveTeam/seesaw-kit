@@ -73,6 +73,53 @@ class ConfigManager(object):
     return [ v for v in self if v.editable ]
 
 
+class BandwidthMonitor(object):
+  devre = re.compile(r"^\s*([a-z0-9]+):(.+)$")
+  
+  def __init__(self, device):
+    self.device = device
+    self.prev_time = None
+    self.prev_stats = None
+    self.bandwidth = None
+    self.update()
+
+  def current_stats(self):
+    if self.prev_stats and self.bandwidth:
+      return {
+          "received": self.prev_stats[0],
+          "sent": self.prev_stats[1],
+          "receiving": self.bandwidth[0],
+          "sending": self.bandwidth[1]
+        }
+    return None
+  
+  def update(self):
+    cur_time = time.time()
+    cur_stats = self._get_stats()
+    if self.prev_stats != None and cur_stats != None:
+      time_delta = cur_time - self.prev_time
+      self.bandwidth = [
+        (cur_stats[0] - self.prev_stats[0]) / time_delta,
+        (cur_stats[1] - self.prev_stats[1]) / time_delta,
+      ]
+    self.prev_time = cur_time
+    self.prev_stats = cur_stats
+    return self.bandwidth
+  
+  def _get_stats(self):
+    with open("/proc/net/dev") as f:
+      lines = f.readlines()
+    for line in lines:
+      m = self.devre.match(line)
+      if m and m.group(1) == self.device:
+        fields = m.group(2).split()
+        received = fields[0]
+        sent = fields[8]
+        return [int(received), int(sent)]
+    return None
+
+
+
 class Warrior(object):
   def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False):
     self.projects_dir = projects_dir
@@ -114,6 +161,9 @@ class Warrior(object):
     self.config_manager.add(self.downloader)
     self.config_manager.add(self.concurrent_items)
 
+    self.bandwidth_monitor = BandwidthMonitor("eth0")
+    self.bandwidth_monitor.update()
+
     self.current_project_name = None
     self.current_project = None
     self.current_pipeline = None
@@ -152,6 +202,10 @@ class Warrior(object):
     m = re.search(r"Latitude/Longitude</td>\s*<td[^>]*>\s*([-/.0-9]+)\s*</td>", response.body)
     if m:
       self.lat_lng = m.group(1)
+
+  def bandwidth_stats(self):
+    self.bandwidth_monitor.update()
+    return self.bandwidth_monitor.current_stats()
 
   @gen.engine
   def update_warrior_hq(self):

@@ -125,6 +125,32 @@ $(function() {
     scheduleDelete(msg.item_id);
   });
 
+  var bandwidthChart = new SmoothieChart({ minValue: 0, millisPerPixel: 100, grid: { fillStyle:'#000000', strokeStyle: '#444444', lineWidth: 1, millisPerLine: 2000, verticalSections: 3 } });
+  bandwidthChart.streamTo(document.getElementById('bandwidth-canvas'), 1000);
+  var sending = new TimeSeries();
+  var receiving = new TimeSeries();
+  bandwidthChart.addTimeSeries(receiving,{ strokeStyle:'#459B34' });
+  bandwidthChart.addTimeSeries(sending);
+
+  function humanBytes(bytes) {
+    if (bytes > 1024 * 1024 * 1024) {
+      return (Math.round(10 * bytes / (1024 * 1024 * 1024)) / 10) + ' GB';
+    } else if (bytes > 1024 * 1024) {
+      return (Math.round(10 * bytes / (1024 * 1024)) / 10) + ' MB';
+    } else {
+      return (Math.round(10 * bytes / (1024)) / 10) + ' kB';
+    }
+  }
+
+  conn.on('bandwidth', function(msg) { // received, receiving, sent, sending
+    sending.append(new Date().getTime(), msg.sending / 1024);
+    receiving.append(new Date().getTime(), msg.receiving / 1024);
+    document.getElementById('bandwidth-sending').innerHTML = humanBytes(msg.sending) + '/s';
+    document.getElementById('bandwidth-receiving').innerHTML = humanBytes(msg.receiving) + '/s';
+    document.getElementById('bandwidth-sent').innerHTML = humanBytes(msg.sent);
+    document.getElementById('bandwidth-received').innerHTML = humanBytes(msg.received);
+  });
+
 
   function reloadProjectsTab() {
     $('#projects').load('/api/all-projects', null, function() {

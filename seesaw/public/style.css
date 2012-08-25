@@ -118,6 +118,26 @@ a:hover, a:active {
   text-align: center;
 }
 
+#bandwidth {
+  position: absolute;
+  bottom: 0;
+}
+#bandwidth table {
+  margin-bottom: 0;
+}
+#bandwidth table td {
+  font-size: 11px;
+  width: 45%;
+}
+#bandwidth canvas {
+  width: 159px;
+  height: 80px;
+  margin: 4px 8px 8px 8px;
+}
+body.single-project #bandwidth {
+  visibility: hidden;
+}
+
 #project-header {
   position: relative;
   height: 60px;

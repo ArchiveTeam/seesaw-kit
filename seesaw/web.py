@@ -165,6 +165,13 @@ class SeesawConnection(SocketConnection):
       self.emit("warrior.status", { "status": self.warrior.warrior_status() })
 
   @classmethod
+  def broadcast_bandwidth(cls):
+    if cls.warrior:
+      bw_stats = cls.warrior.bandwidth_stats()
+      if bw_stats:
+        cls.broadcast("bandwidth", bw_stats)
+
+  @classmethod
   def handle_warrior_status(cls, warrior, new_status):
     cls.broadcast("warrior.status", { "status": new_status })
 
@@ -273,6 +280,8 @@ def start_warrior_server(warrior, port_number=8001):
   warrior.on_project_installation_failed += SeesawConnection.handle_project_installation_failed
   warrior.on_project_selected += SeesawConnection.handle_project_selected
   warrior.on_status += SeesawConnection.handle_warrior_status
+
+  ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
 
   router = TornadioRouter(SeesawConnection)
   application = web.Application(

@@ -9,6 +9,7 @@
     <link rel="stylesheet" type="text/css" href="style.css" />
     <script src="jquery-1.7.2.min.js"></script>
     <script src="socket.io.js"></script>
+    <script src="smoothie.js"></script>
     <script src="script.js"></script>
   </head>
 
@@ -45,6 +46,18 @@
         </tr>
       </tbody>
     </table>
+
+    <div id="bandwidth">
+      <table cellspacing="0">
+        <tbody>
+          <tr>
+            <td><span id="bandwidth-upload-v">12 kB/s</span> &#x2b06;</td>
+            <td style="color: #459B34"><span id="bandwidth-download-v">12 kB/s</span> &#x2b07;</td>
+          </tr>
+        </tbody>
+      </table>
+      <canvas id="bandwidth-canvas" width="159" height="80"></canvas>
+    </div>
   </div>
 
   <div class="content" id="view-current-project" style="display: none">
