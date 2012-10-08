@@ -67,7 +67,7 @@ class Runner(object):
     while len(self.active_items) < items_required:
       self.item_count += 1
       item_id = "%d-%d" % (id(self), self.item_count)
-      item = Item(item_id=item_id, item_number=self.item_count)
+      item = Item(pipeline=self.pipeline, item_id=item_id, item_number=self.item_count)
       self.on_create_item(self, item)
       self.active_items.add(item)
       self.pipeline.enqueue(item)

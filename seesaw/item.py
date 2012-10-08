@@ -7,7 +7,8 @@ import shutil
 from seesaw.event import Event
 
 class Item(object):
-  def __init__(self, item_id, item_number, properties=None):
+  def __init__(self, pipeline, item_id, item_number, properties=None):
+    self.pipeline = pipeline
     self.item_id = item_id
     self.item_number = item_number
     self.properties = properties or {}
@@ -30,7 +31,7 @@ class Item(object):
     self.prepare_data_directory()
 
   def prepare_data_directory(self):
-    dirname = "data/%s" % self.item_id
+    dirname = os.path.join(self.pipeline.cwd, "data/%s" % self.item_id)
     self["data_dir"] = dirname
     if os.path.isdir(dirname):
       shutil.rmtree(dirname)

@@ -1,7 +1,10 @@
+import os
+
 from seesaw.event import Event
 
 class Pipeline(object):
   def __init__(self, *tasks):
+    self.cwd = os.getcwd()
     self.on_start_item = Event()
     self.on_complete_item = Event()
     self.on_fail_item = Event()

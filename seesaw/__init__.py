@@ -1,6 +1,6 @@
 __all__ = [ 'config', 'event', 'externalprocess', 'item', 'pipeline', 'project', 'runner', 'task', 'tracker', 'warrior', 'web' ]
 
 __title__ = 'seesaw'
-__version__ = '0.0.5'
-__build__ = 0x00005
+__version__ = '0.0.6'
+__build__ = 0x00006
 
