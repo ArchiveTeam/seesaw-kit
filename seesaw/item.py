@@ -1,5 +1,8 @@
 import traceback
 import re
+import os
+import os.path
+import shutil
 
 from seesaw.event import Event
 
@@ -24,6 +27,20 @@ class Item(object):
     self.on_fail = Event()
     self.on_finish = Event()
 
+    self.prepare_data_directory()
+
+  def prepare_data_directory(self):
+    dirname = "data/%s" % self.item_id
+    self["data_dir"] = dirname
+    if os.path.isdir(dirname):
+      shutil.rmtree(dirname)
+    os.makedirs(dirname)
+
+  def clear_data_directory(self):
+    dirname = self["data_dir"]
+    if os.path.isdir(dirname):
+      shutil.rmtree(dirname)
+
   def log_output(self, data):
     self.on_output(self, data)
 
@@ -41,18 +58,21 @@ class Item(object):
       self.on_task_status(self, task, status, old_status)
 
   def cancel(self):
+    self.clear_data_directory()
     self.canceled = True
     self.finished = True
     self.on_cancel(self)
     self.on_finish(self)
 
   def complete(self):
+    self.clear_data_directory()
     self.completed = True
     self.finished = True
     self.on_complete(self)
     self.on_finish(self)
 
   def fail(self):
+    self.clear_data_directory()
     self.failed = True
     self.finished = True
     self.on_fail(self)
