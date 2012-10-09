@@ -1,7 +1,7 @@
 __all__ = [ 'config', 'event', 'externalprocess', 'item', 'pipeline', 'project', 'runner', 'task', 'tracker', 'warrior', 'web' ]
 
 __title__ = 'seesaw'
-__version__ = '0.0.6'
-__build__ = 0x00006
+__version__ = '0.0.7'
+__build__ = 0x00007
 runner_type = ""
 

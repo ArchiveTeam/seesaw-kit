@@ -200,7 +200,7 @@ class Warrior(object):
     pass
 
   def handle_lat_lng(self, response):
-    m = re.search(r"Latitude/Longitude</td>\s*<td[^>]*>\s*([-/.0-9]+)\s*</td>", response.body)
+    m = re.search(r"geoip-demo-results-tbodyLatitude/Longitude</td>\s*<td[^>]*>\s*([-/.0-9]+)\s*</td>", response.body)
     if m:
       self.lat_lng = m.group(1)
 
