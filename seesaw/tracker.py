@@ -6,6 +6,7 @@ import os.path
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 from tornado.ioloop import IOLoop
 
+import seesaw
 from seesaw.config import realize
 from seesaw.task import Task, SimpleTask
 
@@ -31,6 +32,7 @@ class TrackerRequest(Task):
         "%s/%s" % (self.tracker_url, self.tracker_command),
         method="POST",
         headers={"Content-Type": "application/json"},
+        user_agent=("ArchiveTeam Warrior/%s %s" % (seesaw.__version__, seesaw.runner_type)),
         body=json.dumps(self.data(item))
       ), functools.partial(self.handle_response, item))
 

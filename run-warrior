@@ -3,6 +3,9 @@ import sys
 import os.path
 from argparse import ArgumentParser
 
+import seesaw
+seesaw.runner_type = "Warrior"
+
 from seesaw.warrior import Warrior
 from seesaw.web import start_warrior_server
 

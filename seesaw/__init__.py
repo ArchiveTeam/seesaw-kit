@@ -3,4 +3,5 @@ __all__ = [ 'config', 'event', 'externalprocess', 'item', 'pipeline', 'project',
 __title__ = 'seesaw'
 __version__ = '0.0.6'
 __build__ = 0x00006
+runner_type = ""
 

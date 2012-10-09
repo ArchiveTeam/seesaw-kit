@@ -230,7 +230,7 @@ class Warrior(object):
                               os.path.join(self.warrior_hq_url, "api/update.json"),
                               method="POST",
                               headers={"Content-Type": "application/json"},
-                              user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
+                              user_agent=("ArchiveTeam Warrior/%s %s" % (seesaw.__version__, seesaw.runner_type)),
                               body=json.dumps({"warrior":{
                                 "warrior_id": realize(self.warrior_id),
                                 "lat_lng": self.lat_lng,

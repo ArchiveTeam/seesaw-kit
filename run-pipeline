@@ -3,6 +3,9 @@ import sys
 import os.path
 from argparse import ArgumentParser
 
+import seesaw
+seesaw.runner_type = "Standalone"
+
 from seesaw.runner import *
 from seesaw.web import SeesawConnection, start_runner_server
 
