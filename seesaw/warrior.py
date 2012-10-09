@@ -196,7 +196,8 @@ class Warrior(object):
     self.find_lat_lng()
 
   def find_lat_lng(self):
-    response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
+    # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
+    pass
 
   def handle_lat_lng(self, response):
     m = re.search(r"Latitude/Longitude</td>\s*<td[^>]*>\s*([-/.0-9]+)\s*</td>", response.body)
