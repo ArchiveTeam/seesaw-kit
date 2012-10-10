@@ -166,7 +166,6 @@ class Warrior(object):
 
     self.current_project_name = None
     self.current_project = None
-    self.current_pipeline = None
     self.current_runner = None
 
     self.selected_project = None
@@ -472,7 +471,6 @@ class Warrior(object):
 
       self.current_project_name = project_name
       self.current_project = project
-      self.current_pipeline = pipeline
       self.current_runner = runner
 
       self.on_project_refresh(self, self.current_project, self.current_runner)
@@ -487,7 +485,6 @@ class Warrior(object):
 
     self.current_project_name = None
     self.current_project = None
-    self.current_pipeline = None
     self.current_runner = None
 
     self.on_project_refresh(self, self.current_project, self.current_runner)
