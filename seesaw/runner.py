@@ -20,7 +20,10 @@ class Runner(object):
 
     self.on_status = Event()
     self.on_create_item = Event()
+    self.on_pipeline_start_item = Event()
+    self.on_pipeline_finish_item = Event()
     self.on_finish = Event()
+    self.pipeline.on_start_item += self._item_starting
     self.pipeline.on_finish_item += self._item_finished
 
     if stop_file:
@@ -72,7 +75,11 @@ class Runner(object):
       self.active_items.add(item)
       self.pipeline.enqueue(item)
 
+  def _item_starting(self, pipeline, item):
+    self.on_pipeline_start_item(self, pipeline, item)
+
   def _item_finished(self, pipeline, item):
+    self.on_pipeline_finish_item(self, pipeline, item)
     self.active_items.remove(item)
     if not self.should_stop():
       self.add_items()

@@ -15,8 +15,8 @@ class IndexHandler(web.RequestHandler):
 
 
 class ItemMonitor(object):
-  def __init__(self, pipeline, item):
-    self.pipeline = pipeline
+  def __init__(self, item):
+    self.pipeline = item.pipeline
     self.item = item
 
     item.on_output += self.handle_item_output
@@ -208,8 +208,8 @@ class SeesawConnection(SocketConnection):
     cls.project = project
     cls.runner = runner
     if project:
-      runner.pipeline.on_start_item += SeesawConnection.handle_start_item
-      runner.pipeline.on_finish_item += SeesawConnection.handle_finish_item
+      runner.on_pipeline_start_item += SeesawConnection.handle_start_item
+      runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
       runner.on_status += SeesawConnection.handle_runner_status
     cls.broadcast_project_refresh()
 
@@ -231,11 +231,11 @@ class SeesawConnection(SocketConnection):
     })
 
   @classmethod
-  def handle_start_item(cls, pipeline, item):
-    cls.item_monitors[item] = ItemMonitor(pipeline, item)
+  def handle_start_item(cls, runner, pipeline, item):
+    cls.item_monitors[item] = ItemMonitor(item)
 
   @classmethod
-  def handle_finish_item(cls, pipeline, item):
+  def handle_finish_item(cls, runner, pipeline, item):
     del cls.item_monitors[item]
 
   @classmethod
@@ -257,8 +257,8 @@ def start_runner_server(project, runner, bind_address="", port_number=8001):
   SeesawConnection.project = project
   SeesawConnection.runner = runner
 
-  runner.pipeline.on_start_item += SeesawConnection.handle_start_item
-  runner.pipeline.on_finish_item += SeesawConnection.handle_finish_item
+  runner.on_pipeline_start_item += SeesawConnection.handle_start_item
+  runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
   runner.on_status += SeesawConnection.handle_runner_status
 
   router = TornadioRouter(SeesawConnection)
