@@ -466,7 +466,8 @@ class Warrior(object):
         self.config_manager.add(config_value)
       project.config_values = config_values
 
-      runner = Runner(pipeline, concurrent_items=self.concurrent_items)
+      runner = Runner(concurrent_items=self.concurrent_items)
+      runner.set_current_pipeline(pipeline)
       runner.on_finish += self.handle_runner_finish
 
       self.current_project_name = project_name

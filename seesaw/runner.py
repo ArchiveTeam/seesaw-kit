@@ -8,8 +8,8 @@ from seesaw.config import realize
 from tornado import ioloop
 
 class Runner(object):
-  def __init__(self, pipeline, stop_file=None, concurrent_items=1):
-    self.pipeline = pipeline
+  def __init__(self, stop_file=None, concurrent_items=1):
+    self.pipeline = None
     self.concurrent_items = concurrent_items
 
     self.item_count = 0
@@ -23,11 +23,18 @@ class Runner(object):
     self.on_pipeline_start_item = Event()
     self.on_pipeline_finish_item = Event()
     self.on_finish = Event()
-    self.pipeline.on_start_item += self._item_starting
-    self.pipeline.on_finish_item += self._item_finished
 
     if stop_file:
       ioloop.PeriodicCallback(self.check_stop_file, 5000).start()
+
+  def set_current_pipeline(self, pipeline):
+    if self.pipeline:
+      # stop any cancellable items in the previous pipeline
+      self.pipeline.cancel_items()
+
+    self.pipeline = pipeline
+    self.pipeline.on_start_item += self._item_starting
+    self.pipeline.on_finish_item += self._item_finished
 
   def start(self):
     self.add_items()
@@ -88,8 +95,9 @@ class Runner(object):
 
 class SimpleRunner(Runner):
   def __init__(self, pipeline, stop_file=None, concurrent_items=1):
-    Runner.__init__(self, pipeline, stop_file=stop_file, concurrent_items=concurrent_items)
+    Runner.__init__(self, stop_file=stop_file, concurrent_items=concurrent_items)
 
+    self.set_current_pipeline(pipeline)
     self.on_create_item += self._handle_create_item
     self.on_finish += self._stop_ioloop
 
