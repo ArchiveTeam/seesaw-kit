@@ -4,6 +4,7 @@ import functools
 import os.path
 import shutil
 import sys
+import datetime
 import time
 import re
 import json
@@ -203,6 +204,7 @@ class Warrior(object):
 
     self.hq_updater = ioloop.PeriodicCallback(self.update_warrior_hq, 10*60*1000)
     self.project_updater = ioloop.PeriodicCallback(self.update_project, 60*60*1000)
+    self.forced_reboot_timeout = None
 
     self.lat_lng = None
     self.find_lat_lng()
@@ -257,6 +259,9 @@ class Warrior(object):
         # time for an update
         print "Reboot for Seesaw update."
         self.reboot_gracefully()
+
+        # schedule a forced reboot after two days
+        self.schedule_forced_reboot()
         return
 
       projects_list = data["projects"]
@@ -552,6 +557,14 @@ class Warrior(object):
       ioloop.IOLoop.instance().stop()
       if self.real_shutdown:
         os.system("sudo shutdown -r now")
+
+  def schedule_forced_reboot(self):
+    if self.real_shutdown and not self.forced_reboot_timeout:
+      self.forced_reboot_timeout = ioloop.IOLoop.instance().add_timeout(datetime.timedelta(days=2), self.forced_reboot)
+
+  def forced_reboot(self):
+    if self.real_shutdown:
+      os.system("sudo shutdown -r now")
 
   def stop_gracefully(self):
     self.shut_down_flag = True
