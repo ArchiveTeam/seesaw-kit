@@ -28,13 +28,20 @@ class Runner(object):
       ioloop.PeriodicCallback(self.check_stop_file, 5000).start()
 
   def set_current_pipeline(self, pipeline):
-    if self.pipeline:
-      # stop any cancellable items in the previous pipeline
-      self.pipeline.cancel_items()
+    old_pipeline = self.pipeline
+
+    if pipeline:
+      pipeline.on_start_item += self._item_starting
+      pipeline.on_finish_item += self._item_finished
 
     self.pipeline = pipeline
-    self.pipeline.on_start_item += self._item_starting
-    self.pipeline.on_finish_item += self._item_finished
+
+    if old_pipeline:
+      # stop any cancellable items in the previous pipeline
+      old_pipeline.cancel_items()
+
+  def is_active(self):
+    return len(self.active_items) > 0
 
   def start(self):
     self.add_items()
@@ -73,14 +80,15 @@ class Runner(object):
       return None
 
   def add_items(self):
-    items_required = int(realize(self.concurrent_items))
-    while len(self.active_items) < items_required:
-      self.item_count += 1
-      item_id = "%d-%d" % (id(self), self.item_count)
-      item = Item(pipeline=self.pipeline, item_id=item_id, item_number=self.item_count)
-      self.on_create_item(self, item)
-      self.active_items.add(item)
-      self.pipeline.enqueue(item)
+    if self.pipeline:
+      items_required = int(realize(self.concurrent_items))
+      while len(self.active_items) < items_required:
+        self.item_count += 1
+        item_id = "%d-%d" % (id(self), self.item_count)
+        item = Item(pipeline=self.pipeline, item_id=item_id, item_number=self.item_count)
+        self.on_create_item(self, item)
+        self.active_items.add(item)
+        self.pipeline.enqueue(item)
 
   def _item_starting(self, pipeline, item):
     self.on_pipeline_start_item(self, pipeline, item)
@@ -90,7 +98,7 @@ class Runner(object):
     self.active_items.remove(item)
     if not self.should_stop():
       self.add_items()
-    elif len(self.active_items) == 0:
+    if len(self.active_items) == 0:
       self.on_finish(self)
 
 class SimpleRunner(Runner):

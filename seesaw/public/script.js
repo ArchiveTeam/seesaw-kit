@@ -53,8 +53,6 @@ $(function() {
   });
 
   conn.on('project.refresh', function(msg) { // project, pipeline, items
-    clearItems();
-
     if (msg) {
       for (var i=0; i<msg.items.length; i++) {
         addItem(msg.items[i], true);

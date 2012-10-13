@@ -93,9 +93,6 @@ class ApiHandler(web.RequestHandler):
     return TEMPLATES_PATH
 
   def post(self, command):
-    if self.warrior:
-      self.runner = self.warrior.current_runner
-
     if command == "stop":
       if self.warrior:
         self.warrior.stop_gracefully()
@@ -207,10 +204,6 @@ class SeesawConnection(SocketConnection):
   def handle_project_refresh(cls, warrior, project, runner):
     cls.project = project
     cls.runner = runner
-    if project:
-      runner.on_pipeline_start_item += SeesawConnection.handle_start_item
-      runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
-      runner.on_status += SeesawConnection.handle_runner_status
     cls.broadcast_project_refresh()
 
   @classmethod
@@ -284,6 +277,9 @@ def start_warrior_server(warrior, port_number=8001):
   warrior.on_project_installation_failed += SeesawConnection.handle_project_installation_failed
   warrior.on_project_selected += SeesawConnection.handle_project_selected
   warrior.on_status += SeesawConnection.handle_warrior_status
+  warrior.runner.on_pipeline_start_item += SeesawConnection.handle_start_item
+  warrior.runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
+  warrior.runner.on_status += SeesawConnection.handle_runner_status
 
   ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
 

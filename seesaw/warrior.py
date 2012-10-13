@@ -164,9 +164,11 @@ class Warrior(object):
     self.bandwidth_monitor = BandwidthMonitor("eth0")
     self.bandwidth_monitor.update()
 
+    self.runner = Runner(concurrent_items=self.concurrent_items)
+    self.runner.on_finish += self.handle_runner_finish
+
     self.current_project_name = None
     self.current_project = None
-    self.current_runner = None
 
     self.selected_project = None
 
@@ -355,8 +357,7 @@ class Warrior(object):
   def update_project(self):
     if self.selected_project and (yield gen.Task(self.check_project_has_update, self.selected_project)):
       # restart project
-      if self.current_runner:
-        self.current_runner.stop_gracefully()
+      self.start_selected_project()
 
   @gen.engine
   def check_project_has_update(self, project_name, callback):
@@ -413,6 +414,24 @@ class Warrior(object):
       self.on_project_selected(self, project_name)
       self.start_selected_project()
 
+  def clone_project(self, project_name, project_path):
+    version_string = subprocess.Popen(
+        args=[ "git", "log", "-1", "--pretty=%h" ],
+        cwd=project_path,
+        stdout=subprocess.PIPE
+    ).communicate()[0].strip()
+    
+    project_versioned_path = os.path.join(self.data_dir, "projects", "%s-%s" % (project_name, version_string))
+    if not os.path.exists(project_versioned_path):
+      if not os.path.exists(os.path.join(self.data_dir, "projects")):
+        os.makedirs(os.path.join(self.data_dir, "projects"))
+
+      subprocess.Popen(
+          args=[ "git", "clone", project_path, project_versioned_path ]
+      ).communicate()
+
+    return project_versioned_path
+
   def load_pipeline(self, pipeline_path, context):
     dirname, basename = os.path.split(pipeline_path)
     if dirname == "":
@@ -440,44 +459,51 @@ class Warrior(object):
   def start_selected_project(self):
     project_name = self.selected_project
 
-    if self.current_project_name == project_name:
-      # already running
-      return
-
-    if self.current_runner:
-      self.current_runner.stop_gracefully()
-      self.fire_status()
-      return
-
     if project_name in self.projects:
+      # install or update project if necessary
       if not project_name in self.installed_projects or (yield gen.Task(self.check_project_has_update, project_name)):
         result = yield gen.Task(self.install_project, project_name)
         if not result:
           return
 
-      project = self.projects[self.selected_project]
+      # remove the configuration variables from the previous project
+      if self.current_project:
+        for config_value in self.current_project.config_values:
+          self.config_manager.remove(config_value.name)
 
+      # the path with the project code
+      # (this is the most recent code from the repository)
       project_path = os.path.join(self.projects_dir, project_name)
-      pipeline_path = os.path.join(project_path, "pipeline.py")
 
+      # clone the project code to a versioned directory
+      # where the pipeline is actually run
+      project_versioned_path = self.clone_project(project_name, project_path)
+
+      # load the pipeline from the versioned directory
+      pipeline_path = os.path.join(project_versioned_path, "pipeline.py")
       (project, pipeline, config_values) = self.load_pipeline(pipeline_path, { "downloader": self.downloader })
 
+      # add the configuration values to the config manager
       for config_value in config_values:
         self.config_manager.add(config_value)
       project.config_values = config_values
 
-      runner = Runner(concurrent_items=self.concurrent_items)
-      runner.set_current_pipeline(pipeline)
-      runner.on_finish += self.handle_runner_finish
+      # start the pipeline
+      self.runner.set_current_pipeline(pipeline)
 
       self.current_project_name = project_name
       self.current_project = project
-      self.current_runner = runner
 
-      self.on_project_refresh(self, self.current_project, self.current_runner)
+      self.on_project_refresh(self, self.current_project, self.runner)
       self.fire_status()
 
-      runner.start()
+      self.runner.start()
+
+    else:
+      # project_name not in self.projects,
+      # stop the current project (if there is one)
+      self.runner.set_current_pipeline(None)
+      self.fire_status()
 
   def handle_runner_finish(self, runner):
     if self.current_project:
@@ -486,9 +512,8 @@ class Warrior(object):
 
     self.current_project_name = None
     self.current_project = None
-    self.current_runner = None
 
-    self.on_project_refresh(self, self.current_project, self.current_runner)
+    self.on_project_refresh(self, self.current_project, self.runner)
     self.fire_status()
 
     if self.shut_down_flag or self.reboot_flag:
@@ -500,9 +525,6 @@ class Warrior(object):
         elif self.reboot_flag:
           os.system("sudo shutdown -r now")
 
-    elif self.selected_project:
-      self.start_selected_project()
-
   def start(self):
     self.hq_updater.start()
     self.project_updater.start()
@@ -513,8 +535,8 @@ class Warrior(object):
     self.shut_down_flag = False
     self.reboot_flag = True
     self.fire_status()
-    if self.current_runner:
-      self.current_runner.stop_gracefully()
+    if self.runner.is_active():
+      self.runner.set_current_pipeline(None)
     else:
       ioloop.IOLoop.instance().stop()
       if self.real_shutdown:
@@ -524,8 +546,8 @@ class Warrior(object):
     self.shut_down_flag = True
     self.reboot_flag = False
     self.fire_status()
-    if self.current_runner:
-      self.current_runner.stop_gracefully()
+    if self.runner.is_active():
+      self.runner.set_current_pipeline(None)
     else:
       ioloop.IOLoop.instance().stop()
       if self.real_shutdown:
@@ -534,8 +556,7 @@ class Warrior(object):
   def keep_running(self):
     self.shut_down_flag = False
     self.reboot_flag = False
-    if self.current_runner:
-      self.current_runner.keep_running()
+    self.start_selected_project()
     self.fire_status()
 
   class Status(object):
@@ -563,12 +584,7 @@ class Warrior(object):
       return Warrior.Status.NO_PROJECT
     elif self.selected_project:
       if self.selected_project == self.current_project_name:
-        if self.current_runner.should_stop():
-          return Warrior.Status.RESTARTING_PROJECT
-        else:
-          return Warrior.Status.RUNNING_PROJECT
-      elif self.current_runner:
-        return Warrior.Status.SWITCHING_PROJECT
+        return Warrior.Status.RUNNING_PROJECT
       else:
         return Warrior.Status.STARTING_PROJECT
     else:
