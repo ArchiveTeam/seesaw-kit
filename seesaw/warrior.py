@@ -83,6 +83,11 @@ class BandwidthMonitor(object):
     self.bandwidth = None
     self.update()
 
+    self._prev_received = 0
+    self._prev_sent = 0
+    self._overflow_received = 0
+    self._overflow_sent = 0
+
   def current_stats(self):
     if self.prev_stats and self.bandwidth:
       return {
@@ -113,9 +118,15 @@ class BandwidthMonitor(object):
       m = self.devre.match(line)
       if m and m.group(1) == self.device:
         fields = m.group(2).split()
-        received = fields[0]
-        sent = fields[8]
-        return [int(received), int(sent)]
+        received = long(fields[0])
+        sent = long(fields[8])
+        if self._prev_received > received:
+          self._overflow_received += 2**32
+        self._pref_received = received
+        if self._prev_sent > sent:
+          self._overflow_sent += 2**32
+        self._pref_sent = sent
+        return [received + self._overflow_received, sent + self._overflow_sent ]
     return None
 
 
