@@ -81,12 +81,12 @@ class BandwidthMonitor(object):
     self.prev_time = None
     self.prev_stats = None
     self.bandwidth = None
-    self.update()
-
     self._prev_received = 0
     self._prev_sent = 0
     self._overflow_received = 0
     self._overflow_sent = 0
+
+    self.update()
 
   def current_stats(self):
     if self.prev_stats and self.bandwidth:
@@ -122,10 +122,10 @@ class BandwidthMonitor(object):
         sent = long(fields[8])
         if self._prev_received > received:
           self._overflow_received += 2**32
-        self._pref_received = received
+        self._prev_received = received
         if self._prev_sent > sent:
           self._overflow_sent += 2**32
-        self._pref_sent = sent
+        self._prev_sent = sent
         return [received + self._overflow_received, sent + self._overflow_sent ]
     return None
 
