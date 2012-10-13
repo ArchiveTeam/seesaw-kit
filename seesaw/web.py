@@ -1,5 +1,6 @@
 import re
 import os.path
+import time
 
 from tornado import web, ioloop, template
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
@@ -11,7 +12,7 @@ TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__
 
 class IndexHandler(web.RequestHandler):
   def get(self):
-    self.render(os.path.join(PUBLIC_PATH, "index.html"))
+    self.render(os.path.join(PUBLIC_PATH, "index.html"), timestamp=time.time())
 
 
 class ItemMonitor(object):
