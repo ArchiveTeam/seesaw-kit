@@ -2,6 +2,10 @@ $(function() {
   var conn = new io.connect('http://' + window.location.host);
   var multiProject = false;
 
+  function processCarriageReturns(txt) {
+    return txt.replace(/[^\n]*\r(?!\n)/g, "");
+  }
+
   conn.on('connect', function() {
     $('#connection-error').remove();
   });
@@ -88,7 +92,14 @@ $(function() {
   conn.on('item.output', function(msg) { // item_id, data
     var itemLog = $('#item-' + msg.item_id + ' pre.log')[0];
     if (itemLog) {
-      itemLog.appendChild(document.createTextNode(msg.data));
+      if (itemLog.data) {
+        itemLog.data = processCarriageReturns(itemLog.data + msg.data);
+        itemLog.firstChild.nodeValue = itemLog.data;
+      } else {
+        itemLog.data = processCarriageReturns(msg.data);
+        itemLog.empty();
+        itemLog.appendChild(document.createTextNode(msg.data));
+      }
       itemLog.scrollTop = itemLog.scrollHeight + 1000;
     }
   });
@@ -289,7 +300,8 @@ $(function() {
 
     pre = document.createElement('pre');
     pre.className = 'log';
-    pre.appendChild(document.createTextNode(item.output));
+    pre.data = processCarriageReturns(item.output);
+    pre.appendChild(document.createTextNode(pre.data));
     itemDiv.appendChild(pre);
 
     if (!skipAnimation) {

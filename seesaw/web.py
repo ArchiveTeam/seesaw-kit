@@ -64,7 +64,6 @@ class ItemMonitor(object):
       return "running"
 
   def handle_item_output(self, item, data):
-    data = re.sub("\r\n?", "\n", data)
     self.collected_data.append(data)
     SeesawConnection.broadcast("item.output", { "item_id": item.item_id, "data": data })
 
