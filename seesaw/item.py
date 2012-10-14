@@ -44,7 +44,7 @@ class Item(object):
       shutil.rmtree(dirname)
 
   def log_output(self, data, full_line=True):
-    if on_new_line and len(data) > 0:
+    if full_line and len(data) > 0:
       if data[0] != "\n" and len(self._last_output) > 0 and self._last_output[-1] != "\n":
         data = "\n" + data
       if data[-1] != "\n":
