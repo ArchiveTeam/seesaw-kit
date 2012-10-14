@@ -505,7 +505,8 @@ class Warrior(object):
       project.config_values = config_values
 
       # start the pipeline
-      self.runner.set_current_pipeline(pipeline)
+      if not self.shut_down_flag and not self.reboot_flag:
+        self.runner.set_current_pipeline(pipeline)
 
       self.current_project_name = project_name
       self.current_project = project
@@ -513,7 +514,8 @@ class Warrior(object):
       self.on_project_refresh(self, self.current_project, self.runner)
       self.fire_status()
 
-      self.runner.start()
+      if not self.shut_down_flag and not self.reboot_flag:
+        self.runner.start()
 
     else:
       # project_name not in self.projects,
