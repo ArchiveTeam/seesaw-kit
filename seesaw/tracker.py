@@ -54,7 +54,7 @@ class TrackerRequest(Task):
       elif response.code == 599:
         r = "No HTTP response received from tracker. "
       else:
-        r = ("Tracker returned status code %d. \n" % (response.code)
+        r = "Tracker returned status code %d. \n" % (response.code)
     item.log_output("%sRetrying after %d seconds...\n" % (r, self.retry_delay))
     item.may_be_canceled = True
     IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
