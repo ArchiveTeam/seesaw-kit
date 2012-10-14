@@ -98,7 +98,7 @@ class ExternalProcess(Task):
       p.stdin.close()
 
   def on_subprocess_stdout(self, pipe, item, data):
-    item.log_output(data)
+    item.log_output(data, full_line=False)
 
   def on_subprocess_end(self, item, returncode):
     if returncode in self.accept_on_exit_code:

@@ -46,16 +46,16 @@ class TrackerRequest(Task):
         return
     else:
       if response.code == 420 or response.code == 429:
-        item.log_output("Tracker rate limiting is in effect. ")
+        r = "Tracker rate limiting is in effect. "
       elif response.code == 404:
-        item.log_output("No item received. ")
+        r = "No item received. "
       elif response.code == 455:
-        item.log_output("Project code is out of date and needs to be upgraded. ")
+        r = "Project code is out of date and needs to be upgraded. "
       elif response.code == 599:
-        item.log_output("No HTTP response received from tracker. ")
+        r = "No HTTP response received from tracker. "
       else:
-        item.log_output("Tracker returned status code %d. \n" % (response.code))
-    item.log_output("Retrying after %d seconds...\n" % (self.retry_delay))
+        r = ("Tracker returned status code %d. \n" % (response.code)
+    item.log_output("%sRetrying after %d seconds...\n" % (r, self.retry_delay))
     item.may_be_canceled = True
     IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
         functools.partial(self.send_request, item))

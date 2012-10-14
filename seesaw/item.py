@@ -17,6 +17,7 @@ class Item(object):
     self.completed = False
     self.failed = False
     self._errors = []
+    self._last_output = ""
     self.task_status = {}
 
     self.on_output = Event()
@@ -42,7 +43,13 @@ class Item(object):
     if os.path.isdir(dirname):
       shutil.rmtree(dirname)
 
-  def log_output(self, data):
+  def log_output(self, data, full_line=True):
+    if on_new_line and len(data) > 0:
+      if data[0] != "\n" and len(self._last_output) > 0 and self._last_output[-1] != "\n":
+        data = "\n" + data
+      if data[-1] != "\n":
+        data = data + "\n"
+    self._last_output = data
     self.on_output(self, data)
 
   def log_error(self, task, *args):
