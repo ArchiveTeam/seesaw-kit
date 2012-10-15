@@ -8,9 +8,10 @@ from seesaw.config import realize
 from tornado import ioloop
 
 class Runner(object):
-  def __init__(self, stop_file=None, concurrent_items=1):
+  def __init__(self, stop_file=None, concurrent_items=1, max_items=None):
     self.pipeline = None
     self.concurrent_items = concurrent_items
+    self.max_items = max_items
 
     self.item_count = 0
     self.active_items = set()
@@ -81,6 +82,9 @@ class Runner(object):
 
   def add_items(self):
     if self.pipeline:
+      if self.max_items and self.max_items <= self.item_count:
+        return
+
       items_required = int(realize(self.concurrent_items))
       while len(self.active_items) < items_required:
         self.item_count += 1
@@ -102,8 +106,8 @@ class Runner(object):
       self.on_finish(self)
 
 class SimpleRunner(Runner):
-  def __init__(self, pipeline, stop_file=None, concurrent_items=1):
-    Runner.__init__(self, stop_file=stop_file, concurrent_items=concurrent_items)
+  def __init__(self, pipeline, stop_file=None, concurrent_items=1, max_items=None):
+    Runner.__init__(self, stop_file=stop_file, concurrent_items=concurrent_items, max_items=max_items)
 
     self.set_current_pipeline(pipeline)
     self.on_create_item += self._handle_create_item

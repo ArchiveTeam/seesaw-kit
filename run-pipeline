@@ -36,6 +36,9 @@ def main():
   parser.add_argument("--concurrent", dest="concurrent_items",
                       help="work on N items at a time (default: 1)",
                       metavar="N", type=int, default=1)
+  parser.add_argument("--max-items", dest="max_items",
+                      help="stop after completing N items",
+                      metavar="N", type=int, default=None)
   parser.add_argument("--stop-file", dest="stop_file",
                       help="the STOP file to be monitored (default: STOP)",
                       metavar="FILE", type=str, default="STOP")
@@ -51,7 +54,7 @@ def main():
 
   print pipeline
 
-  runner = SimpleRunner(pipeline, stop_file=args.stop_file, concurrent_items=args.concurrent_items)
+  runner = SimpleRunner(pipeline, stop_file=args.stop_file, concurrent_items=args.concurrent_items, max_items=args.max_items)
   start_runner_server(project, runner, bind_address=args.address, port_number=args.port_number)
   runner.start()
 
