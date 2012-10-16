@@ -30,7 +30,7 @@ class ConfigValue(object):
     self.name = name
     self.title = title
     self.description = description
-    self.value = default
+    self.value = self.convert_value(default)
     self.error = None
     self.editable = editable
 
@@ -43,13 +43,16 @@ class ConfigValue(object):
   def set_value(self, value):
     self.error = self.check_value(value)
     if self.error == None:
-      self.value = value
+      self.value = self.convert_value(value)
       return True
     else:
       return False
 
   def check_value(self, value):
     return None
+
+  def convert_value(self, value):
+    return value
 
   def is_valid(self):
     return self.value != None
@@ -99,6 +102,9 @@ class NumberConfigValue(ConfigValue):
       return "Number must be %d or smaller." % self.max
     else:
       return None
+
+  def convert_value(self, value):
+    return int(value)
 
 class ConfigInterpolation(object):
   def __init__(self, s, c):
