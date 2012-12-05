@@ -313,6 +313,11 @@ class Warrior(object):
         self.failed_projects.discard(project_name)
 
       if os.path.exists(project_path):
+        subprocess.Popen(
+            args=[ "git", "config", "remote.origin.url", project["repository"] ],
+            cwd=project_path
+        ).communicate()
+
         p = AsyncPopen(
             args=[ "git", "pull" ],
             cwd=project_path,
@@ -394,6 +399,11 @@ class Warrior(object):
       if not os.path.exists(project_path):
         callback(True)
         return
+
+      subprocess.Popen(
+          args=[ "git", "config", "remote.origin.url", project["repository"] ],
+          cwd=project_path
+      ).communicate()
 
       p = AsyncPopen(
           args=[ "git", "fetch" ],
