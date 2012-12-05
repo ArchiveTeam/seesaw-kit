@@ -1,6 +1,7 @@
 import json
 import subprocess
 import functools
+import os
 import os.path
 import shutil
 import sys
@@ -138,6 +139,9 @@ class Warrior(object):
     self.data_dir = data_dir
     self.warrior_hq_url = warrior_hq_url
     self.real_shutdown = real_shutdown
+
+    # disable the password prompts
+    self.gitenv = dict( os.environ.items() + { 'GIT_ASKPASS': 'echo', 'SSH_ASKPASS': 'echo' }.items() )
 
     self.warrior_id = StringConfigValue(
       name="warrior_id",
@@ -311,10 +315,14 @@ class Warrior(object):
       if os.path.exists(project_path):
         p = AsyncPopen(
             args=[ "git", "pull" ],
-            cwd=project_path
+            cwd=project_path,
+            env=self.gitenv
         )
       else:
-        p = AsyncPopen(args=[ "git", "clone", project["repository"], project_path ])
+        p = AsyncPopen(
+            args=[ "git", "clone", project["repository"], project_path ],
+            env=self.gitenv
+        )
       p.on_output += self.collect_install_output
       p.on_end += yield gen.Callback("gitend")
       p.run()
@@ -389,7 +397,8 @@ class Warrior(object):
 
       p = AsyncPopen(
           args=[ "git", "fetch" ],
-          cwd=project_path
+          cwd=project_path,
+          env=self.gitenv
       )
       p.on_output += self.collect_install_output
       p.on_end += yield gen.Callback("gitend")
@@ -443,7 +452,8 @@ class Warrior(object):
         os.makedirs(os.path.join(self.data_dir, "projects"))
 
       subprocess.Popen(
-          args=[ "git", "clone", project_path, project_versioned_path ]
+          args=[ "git", "clone", project_path, project_versioned_path ],
+          env=self.gitenv
       ).communicate()
 
     return project_versioned_path
