@@ -224,8 +224,11 @@ table.time-left td span {
 .item ol.tasks {
   display: block;
   float: left;
-  margin: 0 5px 0 5px;
+  margin: 0 3px 0 5px;
+  padding-right: 2px;
   width: 200px;
+  max-height: 206px;
+  overflow-y: auto;
 }
 .item ol.tasks li {
   position: relative;
