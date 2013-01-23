@@ -3,17 +3,20 @@ import subprocess
 def test_executable(name, version, path):
   print "Looking for %s in %s" % (name, path)
   try:
-    result = subprocess.check_output([path, "-V"])
+    process = subprocess.Popen([path, "-V"], stdout=subprocess.PIPE)
+    result = process.communicate()[0]
+    if not process.returncode == 0:
+      print "%s: Returned code %d" % process.returncode
+      return False
     if not version in result:
       print "%s: Incorrect %s version (want %s)." % (path, name, version)
       return False
     else:
       print "Found usable %s in %s" % (name, path)
       return True
-  except subprocess.CalledProcessError as e:
-    print "%s:" % path, e
   except OSError as e:
     print "%s:" % path, e
+    return False
 
 def find_executable(name, version, paths):
   for path in paths:
