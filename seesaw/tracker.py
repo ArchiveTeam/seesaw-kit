@@ -2,6 +2,7 @@ import json
 import functools
 import datetime
 import os.path
+import re
 
 from tornado.httpclient import AsyncHTTPClient, HTTPRequest
 from tornado.ioloop import IOLoop
@@ -9,14 +10,16 @@ from tornado.ioloop import IOLoop
 import seesaw
 from seesaw.config import realize
 from seesaw.task import Task, SimpleTask
+from seesaw.externalprocess import RsyncUpload, CurlUpload
 
 class TrackerRequest(Task):
-  def __init__(self, name, tracker_url, tracker_command):
+  def __init__(self, name, tracker_url, tracker_command, may_be_canceled=False):
     Task.__init__(self, name)
     self.http_client = AsyncHTTPClient()
     self.tracker_url = tracker_url
     self.tracker_command = tracker_command
     self.retry_delay = 30
+    self._set_may_be_canceled = may_be_canceled
 
   def enqueue(self, item):
     self.start_item(item)
@@ -27,7 +30,8 @@ class TrackerRequest(Task):
     if item.canceled:
       return
 
-    item.may_be_canceled = False
+    if self._set_may_be_canceled:
+      item.may_be_canceled = False
     self.http_client.fetch(HTTPRequest(
         "%s/%s" % (self.tracker_url, self.tracker_command),
         method="POST",
@@ -41,9 +45,7 @@ class TrackerRequest(Task):
 
   def handle_response(self, item, response):
     if response.code == 200:
-      if self.process_body(response.body, item):
-        self.complete_item(item)
-        return
+      self.process_body(response.body, item)
     else:
       if response.code == 420 or response.code == 429:
         r = "Tracker rate limiting is in effect. "
@@ -55,14 +57,18 @@ class TrackerRequest(Task):
         r = "No HTTP response received from tracker. "
       else:
         r = "Tracker returned status code %d. \n" % (response.code)
-    item.log_output("%sRetrying after %d seconds...\n" % (r, self.retry_delay))
-    item.may_be_canceled = True
+      self.schedule_retry(item, r)
+
+  def schedule_retry(self, item, message=""):
+    if self._set_may_be_canceled:
+      item.may_be_canceled = True
+    item.log_output("%sRetrying after %d seconds...\n" % (message, self.retry_delay))
     IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
         functools.partial(self.send_request, item))
 
 class GetItemFromTracker(TrackerRequest):
   def __init__(self, tracker_url, downloader, version = None):
-    TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url, "request")
+    TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url, "request", may_be_canceled=True)
     self.downloader = downloader
     self.version = version
 
@@ -76,10 +82,10 @@ class GetItemFromTracker(TrackerRequest):
     if len(body.strip()) > 0:
       item["item_name"] = body.strip()
       item.log_output("Received item '%s' from tracker\n" % item["item_name"])
-      return True
+      self.complete_item(item)
     else:
       item.log_output("Tracker responded with empty response.\n")
-      return False
+      self.schedule_retry(item)
 
 class SendDoneToTracker(TrackerRequest):
   def __init__(self, tracker_url, stats):
@@ -92,10 +98,10 @@ class SendDoneToTracker(TrackerRequest):
   def process_body(self, body, item):
     if body.strip()=="OK":
       item.log_output("Tracker confirmed item '%s'.\n" % item["item_name"])
-      return True
+      self.complete_item(item)
     else:
       item.log_output("Tracker responded with unexpected '%s'.\n" % body.strip())
-      return False
+      self.schedule_retry(item)
 
 class PrepareStatsForTracker(SimpleTask):
   def __init__(self, defaults=None, file_groups=None, id_function=None):
@@ -118,4 +124,64 @@ class PrepareStatsForTracker(SimpleTask):
       stats["id"] = self.id_function(item)
 
     item["stats"] = realize(stats, item)
+
+class UploadWithTracker(TrackerRequest):
+  def __init__(self, tracker_url, downloader, files, version=None, rsync_target_source_path="./", rsync_bwlimit="0", rsync_extra_args=[], curl_connect_timeout="60", curl_speed_limit="1", curl_speed_time="900"):
+    TrackerRequest.__init__(self, "Upload", tracker_url, "upload")
+
+    self.downloader = downloader
+    self.version = version
+
+    self.files = files
+    self.rsync_target_source_path = rsync_target_source_path
+    self.rsync_bwlimit = rsync_bwlimit
+    self.rsync_extra_args = rsync_extra_args
+    self.curl_connect_timeout = curl_connect_timeout
+    self.curl_speed_limit = curl_speed_limit
+    self.curl_speed_time = curl_speed_time
+  
+  def data(self, item):
+    data = {"downloader": realize(self.downloader, item),
+            "item_name": item["item_name"]}
+    if self.version:
+      data["version"] = realize(self.version, item)
+    return data
+
+  def process_body(self, body, item):
+    data = json.loads(body)
+    if "upload_target" in data:
+      inner_task = None
+
+      if re.match(r"^rsync://", data["upload_target"]):
+        item.log_output("Uploading with Rsync to %s" % data["upload_target"])
+        inner_task = RsyncUpload(data["upload_target"], self.files, target_source_path=self.rsync_target_source_path, bwlimit=self.rsync_bwlimit, extra_args=self.rsync_extra_args, max_tries=1)
+
+      elif re.match(r"^https?://", data["upload_target"]):
+        item.log_output("Uploading with Curl to %s" % data["upload_target"])
+
+        if len(self.files) != 1:
+          item.log_output("Curl expects to upload a single file.")
+          self.fail_item(item)
+          return
+
+        inner_task = CurlUpload(data["upload_target"], self.files[0], self.curl_connect_timeout, self.curl_speed_limit, self.curl_speed_time, max_tries=1)
+
+      else:
+        item.log_output("Received invalid upload type.")
+        self.fail_item(item)
+        return
+
+      inner_task.on_complete_item += self._inner_task_complete_item
+      inner_task.on_fail_item += self._inner_task_fail_item
+      inner_task.enqueue(item)
+
+    else:
+      item.log_output("Tracker did not provide an upload target.")
+      self.schedule_retry(item)
+  
+  def _inner_task_complete_item(self, task, item):
+    self.complete_item(item)
+  
+  def _inner_task_fail_item(self, task, item):
+    self.schedule_retry(item)
 
