@@ -6,7 +6,7 @@ def test_executable(name, version, path):
     process = subprocess.Popen([path, "-V"], stdout=subprocess.PIPE)
     result = process.communicate()[0]
     if not process.returncode == 0:
-      print "%s: Returned code %d" % process.returncode
+      print "%s: Returned code %d" % (path, process.returncode)
       return False
     if not version in result:
       print "%s: Incorrect %s version (want %s)." % (path, name, version)
