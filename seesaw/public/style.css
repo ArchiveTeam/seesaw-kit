@@ -194,6 +194,9 @@ table.time-left td span {
   margin: 10px 0 10px 0;
   padding: 0 0 5px 0;
 }
+.item.closed {
+  padding-bottom: 0;
+}
 .item h3 {
   margin: 0 0 5px 0;
   padding: 5px 5px 7px 10px;
@@ -206,6 +209,26 @@ table.time-left td span {
 }
 .item-failed h3 strong {
   background: #A70B0B;
+}
+.item.open .status-line {
+  display: none;
+}
+.item .log-line {
+  font-family: monospace;
+}
+.item.open .log-line {
+  display: none;
+}
+.item .twisty {
+  padding: 3px;
+  background: #190A06;
+  border-radius: 3px;
+}
+.item.open .twisty:before {
+  content: "v";
+}
+.item.closed .twisty:before {
+  content: ">";
 }
 .item div.number {
   padding: 5px 7px 0 10px;
@@ -229,6 +252,9 @@ table.time-left td span {
   width: 200px;
   max-height: 206px;
   overflow-y: auto;
+}
+.item.closed ol.tasks {
+  display: none;
 }
 .item ol.tasks li {
   position: relative;
@@ -269,6 +295,9 @@ table.time-left td span {
   overflow-y: scroll;
   overflow-x: hidden;
   white-space: pre-wrap;
+}
+.item.closed pre.log {
+  display: none;
 }
 
 #projects-header {

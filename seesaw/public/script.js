@@ -102,6 +102,9 @@ $(function() {
       }
       itemLog.scrollTop = itemLog.scrollHeight + 1000;
     }
+
+    var lines = msg.data.split("\n");
+    $('#item-'+ msg.item_id + ' .log-line').text(lines[lines.length - 1]);
   });
 
   conn.on('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
@@ -109,6 +112,7 @@ $(function() {
     if (itemTask) {
       itemTask.className = 'task-' + msg.task_id + ' ' + msg.new_status;
       $('span.s', itemTask).text(taskStatusChars[msg.new_status] || '');
+      $('#item-'+ msg.item_id +' span.status-line').text(': Step '+ itemTask.data('index') +' of '+ $('#item-' + msg.item_id + ' li').length);
     }
   });
 
@@ -262,15 +266,24 @@ $(function() {
   }
 
   function addItem(item, skipAnimation) {
-    var itemDiv, h3, div, ol, li, span, pre,
+    var itemDiv, h3, div, ol, li, span, pre, name, briefTasks, briefLog,
         i, task;
 
     itemDiv = document.createElement('div');
     itemDiv.id = 'item-' + item.id;
-    itemDiv.className = 'item ' + (itemStatusClassName[item.status] || '');
+    itemDiv.className = 'item closed ' + (itemStatusClassName[item.status] || '');
 
     h3 = document.createElement('h3');
-    h3.appendChild(document.createTextNode(item.name));
+    $("<span>", { "class": 'twisty' }).appendTo(h3);
+    name = document.createElement('span');
+    name.appendChild(document.createTextNode(item.name));
+    h3.appendChild(name);
+    briefTasks = document.createElement('span');
+    briefTasks.className = 'status-line';
+    h3.appendChild(briefTasks);
+    briefLog = document.createElement('span');
+    briefLog.className = 'log-line';
+    h3.appendChild(briefLog);
     itemDiv.appendChild(h3);
 
     div = document.createElement('div');
@@ -285,6 +298,7 @@ $(function() {
 
     ol = document.createElement('ol');
     ol.className = 'tasks';
+    var currentTask = 0;
     for (i=0; i<item.tasks.length; i++) {
       task = item.tasks[i];
       li = document.createElement('li');
@@ -295,14 +309,20 @@ $(function() {
       span.appendChild(document.createTextNode(taskStatusChars[task.status] || ''));
       li.appendChild(span);
       ol.appendChild(li);
+      if (task.status == 'running') {
+        currentTask = i+1;
+      }
     }
     itemDiv.appendChild(ol);
+    briefTasks.appendChild(document.createTextNode(': Step '+ currentTask +' of '+ item.tasks.length));
 
     pre = document.createElement('pre');
     pre.className = 'log';
     pre.data = processCarriageReturns(item.output);
     pre.appendChild(document.createTextNode(pre.data));
     itemDiv.appendChild(pre);
+    var lines = pre.data.split("\n");
+    briefLog.textContent = lines[lines.length - 1];
 
     if (!skipAnimation) {
       itemDiv.style.display = 'none';
@@ -310,7 +330,7 @@ $(function() {
     }
 
     var itemsDiv = document.getElementById('items');
-    itemsDiv.insertBefore(itemDiv, itemsDiv.firstChild)
+    itemsDiv.insertBefore(itemDiv, itemsDiv.firstChild);
   }
 
   function scheduleAppear(item_id) {
@@ -435,6 +455,17 @@ $(function() {
   });
 
   showTab('view-current-project');
+
+  $(".item.closed .twisty").live('click',
+                                 function () {
+                                   $(this).parent().parent().removeClass('closed')
+                                                            .addClass('open');
+                                 });
+  $(".item.open .twisty").live('click',
+                               function () {
+                                 $(this).parent().parent().removeClass('open')
+                                                          .addClass('closed');
+                               });
 
   /*
   addItem({
