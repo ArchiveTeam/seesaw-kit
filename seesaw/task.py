@@ -106,6 +106,33 @@ class LimitConcurrent(Task):
   def __str__(self):
     return "LimitConcurrent(" + str(self.concurrency) + " x " + str(self.inner_task) + ")"
 
+class ConditionalTask(Task):
+  def __init__(self, condition_function, inner_task):
+    Task.__init__(self, "Conditional")
+    self.condition_function = condition_function
+    self.inner_task = inner_task
+    self.inner_task.on_complete_item += self._inner_task_complete_item
+    self.inner_task.on_fail_item += self._inner_task_fail_item
+
+  def enqueue(self, item):
+    if self.condition_function(item):
+      self.inner_task.enqueue(item)
+    else:
+      item.log_output("Skipping tasks for this item.")
+      self.complete_item(item)
+
+  def _inner_task_complete_item(self, task, item):
+    self.complete_item(item)
+  
+  def _inner_task_fail_item(self, task, item):
+    self.fail_item(item)
+
+  def fill_ui_task_list(self, task_list):
+    self.inner_task.fill_ui_task_list(task_list)
+
+  def __str__(self):
+    return "Conditional(" + str(self.inner_task) + ")"
+
 class SetItemKey(SimpleTask):
   def __init__(self, key, value):
     SimpleTask.__init__(self, "SetItemKey")
