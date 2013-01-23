@@ -160,4 +160,22 @@ class RsyncUpload(ExternalProcess):
   def stdin_data(self, item):
     return "".join([ "%s\n" % os.path.relpath(realize(f, item), realize(self.target_source_path, item)) for f in self.files ])
 
+class CurlUpload(ExternalProcess):
+  def __init__(self, target, filename, connect_timeout="60", speed_limit="1", speed_time="900", max_tries=None):
+    args = [
+      "curl",
+      "--fail",
+      "--output", "/dev/null",
+      "--connect-timeout", str(connect_timeout),
+      "--speed-limit", str(speed_limit),     # minimum upload speed 1B/s
+      "--speed-time", str(speed_time),       # stop if speed < speed-limit for 900 seconds
+      "--header", "X-Curl-Limits: inf,%s,%s" % (str(speed_limit),str(speed_time)),
+      "--write-out", "Upload server: %{url_effective}\\n",
+      "--location",
+      "--upload-file", filename,
+      target
+    ]
+    ExternalProcess.__init__(self, "CurlUpload",
+        args = args,
+        max_tries = max_tries)
 
