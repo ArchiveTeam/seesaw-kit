@@ -7,11 +7,13 @@ import shutil
 from seesaw.event import Event
 
 class Item(object):
-  def __init__(self, pipeline, item_id, item_number, properties=None):
+  def __init__(self, pipeline, item_id, item_number, properties=None, keep_data=False):
     self.pipeline = pipeline
     self.item_id = item_id
     self.item_number = item_number
     self.properties = properties or {}
+    self.keep_data = keep_data
+
     self.may_be_canceled = False
     self.canceled = False
     self.completed = False
@@ -39,9 +41,10 @@ class Item(object):
     os.makedirs(dirname)
 
   def clear_data_directory(self):
-    dirname = self["data_dir"]
-    if os.path.isdir(dirname):
-      shutil.rmtree(dirname)
+    if not self.keep_data:
+      dirname = self["data_dir"]
+      if os.path.isdir(dirname):
+        shutil.rmtree(dirname)
 
   def log_output(self, data, full_line=True):
     if full_line and len(data) > 0:

@@ -134,11 +134,12 @@ class BandwidthMonitor(object):
 
 
 class Warrior(object):
-  def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False):
+  def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False, keep_data=False):
     self.projects_dir = projects_dir
     self.data_dir = data_dir
     self.warrior_hq_url = warrior_hq_url
     self.real_shutdown = real_shutdown
+    self.keep_data = keep_data
 
     # disable the password prompts
     self.gitenv = dict( os.environ.items() + { 'GIT_ASKPASS': 'echo', 'SSH_ASKPASS': 'echo' }.items() )
@@ -180,7 +181,7 @@ class Warrior(object):
     self.bandwidth_monitor = BandwidthMonitor("eth0")
     self.bandwidth_monitor.update()
 
-    self.runner = Runner(concurrent_items=self.concurrent_items)
+    self.runner = Runner(concurrent_items=self.concurrent_items, keep_data=self.keep_data)
     self.runner.on_finish += self.handle_runner_finish
 
     self.current_project_name = None

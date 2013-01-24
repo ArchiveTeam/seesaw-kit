@@ -45,6 +45,9 @@ def main():
   parser.add_argument("--disable-web-server", dest="enable_web_server",
                       help="disable the web interface",
                       action="store_false")
+  parser.add_argument("--keep-data", dest="keep_data",
+                      help="do not remove data of finished items",
+                      action="store_true")
   parser.add_argument("--address", dest="address",
                       help="the IP address of the web interface (default: 0.0.0.0)",
                       metavar="HOST", type=str, default="0.0.0.0")

@@ -20,6 +20,9 @@ def main():
   parser.add_argument("--port", dest="port_number",
                       help="the port number for the web interface (default: 8001)",
                       metavar="PORT", type=int, default=8001)
+  parser.add_argument("--keep-data", dest="keep_data",
+                      help="do not remove data of finished items",
+                      action="store_true")
   parser.add_argument("--real-shutdown", dest="real_shutdown",
                       help="the shutdown button in the web interface uses sudo shutdown",
                       action="store_true")
@@ -29,7 +32,8 @@ def main():
       args.projects_dir,
       args.data_dir,
       args.warrior_hq_url,
-      real_shutdown=args.real_shutdown)
+      real_shutdown=args.real_shutdown,
+      keep_data=args.keep_data)
   
   start_warrior_server(warrior, port_number=args.port_number)
 
