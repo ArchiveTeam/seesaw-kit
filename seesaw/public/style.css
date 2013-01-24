@@ -220,15 +220,18 @@ table.time-left td span {
   display: none;
 }
 .item .twisty {
-  padding: 3px;
+  font-size: smaller;
+  display: inline-block;
+  width: 1em;
+  padding-right: 3px;
   background: #190A06;
   border-radius: 3px;
 }
 .item.open .twisty:before {
-  content: "v";
+  content: "▼";
 }
 .item.closed .twisty:before {
-  content: ">";
+  content: "▶";
 }
 .item div.number {
   padding: 5px 7px 0 10px;
