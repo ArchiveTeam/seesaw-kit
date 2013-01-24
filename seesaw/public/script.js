@@ -342,7 +342,7 @@ $(function() {
         if (line)
           break;
       }
-      $('#item-'+ item_id + ' .log-line').text(line.replace(/^\w+/, ""));
+      $('#item-'+ item_id + ' .log-line').text(line.trimLeft());
     }
   }
 
