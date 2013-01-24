@@ -247,6 +247,9 @@ table.time-left td span {
   left: 203px;
   color: #fff;
 }
+.item.closed div.status {
+  display: none;
+}
 .item ol.tasks {
   display: block;
   float: left;

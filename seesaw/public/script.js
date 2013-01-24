@@ -97,14 +97,12 @@ $(function() {
         itemLog.firstChild.nodeValue = itemLog.data;
       } else {
         itemLog.data = processCarriageReturns(msg.data);
-        itemLog.empty();
+        $(itemLog).empty();
         itemLog.appendChild(document.createTextNode(msg.data));
       }
       itemLog.scrollTop = itemLog.scrollHeight + 1000;
     }
-
-    var lines = msg.data.split("\n");
-    $('#item-'+ msg.item_id + ' .log-line').text(lines[lines.length - 1]);
+    updateBriefLog(msg.item_id, msg.data);
   });
 
   conn.on('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
@@ -112,12 +110,12 @@ $(function() {
     if (itemTask) {
       itemTask.className = 'task-' + msg.task_id + ' ' + msg.new_status;
       $('span.s', itemTask).text(taskStatusChars[msg.new_status] || '');
-      $('#item-'+ msg.item_id +' span.status-line').text(': Step '+ itemTask.data('index') +' of '+ $('#item-' + msg.item_id + ' li').length);
+      updateBriefTasks(msg.item_id, $(itemTask).data('index'), ('#item-' + msg.item_id + ' li').length);
     }
   });
 
   conn.on('item.update_name', function(msg) { // item_id, new_name
-    $('#item-' + msg.item_id + ' h3').text(msg.new_name);
+    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
   });
 
   conn.on('item.complete', function(msg) { // pipeline_id, item_id
@@ -274,16 +272,10 @@ $(function() {
     itemDiv.className = 'item closed ' + (itemStatusClassName[item.status] || '');
 
     h3 = document.createElement('h3');
-    $("<span>", { "class": 'twisty' }).appendTo(h3);
-    name = document.createElement('span');
-    name.appendChild(document.createTextNode(item.name));
-    h3.appendChild(name);
-    briefTasks = document.createElement('span');
-    briefTasks.className = 'status-line';
-    h3.appendChild(briefTasks);
-    briefLog = document.createElement('span');
-    briefLog.className = 'log-line';
-    h3.appendChild(briefLog);
+    $(h3).append($("<span>", { "class": 'twisty' }),
+                 $("<span>", { "class": 'name', text: item.name }),
+                 $("<span>", { "class": 'status-line' }),
+                 $("<span>", { "class": 'log-line' }));
     itemDiv.appendChild(h3);
 
     div = document.createElement('div');
@@ -304,6 +296,7 @@ $(function() {
       li = document.createElement('li');
       li.className = 'task-' + task.id + ' ' + (task.status || '');
       li.appendChild(document.createTextNode(task.name + ' '));
+      $(li).data('index', i + 1);
       span = document.createElement('span');
       span.className = 's';
       span.appendChild(document.createTextNode(taskStatusChars[task.status] || ''));
@@ -314,15 +307,12 @@ $(function() {
       }
     }
     itemDiv.appendChild(ol);
-    briefTasks.appendChild(document.createTextNode(': Step '+ currentTask +' of '+ item.tasks.length));
 
     pre = document.createElement('pre');
     pre.className = 'log';
     pre.data = processCarriageReturns(item.output);
     pre.appendChild(document.createTextNode(pre.data));
     itemDiv.appendChild(pre);
-    var lines = pre.data.split("\n");
-    briefLog.textContent = lines[lines.length - 1];
 
     if (!skipAnimation) {
       itemDiv.style.display = 'none';
@@ -331,6 +321,27 @@ $(function() {
 
     var itemsDiv = document.getElementById('items');
     itemsDiv.insertBefore(itemDiv, itemsDiv.firstChild);
+
+    updateBriefTasks(item.id, currentTask, item.tasks.length);
+    updateBriefLog(item.id, pre.data);
+  }
+
+  function updateBriefTasks(item_id, n, m) {
+    $('#item-'+ item_id +' span.status-line').text(': Step '+ n +' of '+ m +' ');
+  }
+
+  function updateBriefLog(item_id, data) {
+    var lines = data.split("\n");
+    if (lines) {
+      var line = "";
+      var len = lines.length;
+      for (var i = len - 1; i >= 0; i--) {
+        line = lines[i];
+        if (line)
+          break;
+      }
+      $('#item-'+ item_id + ' .log-line').text(line.replace(/^\w+/, ""));
+    }
   }
 
   function scheduleAppear(item_id) {
