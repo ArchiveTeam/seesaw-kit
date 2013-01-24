@@ -110,7 +110,7 @@ $(function() {
     if (itemTask) {
       itemTask.className = 'task-' + msg.task_id + ' ' + msg.new_status;
       $('span.s', itemTask).text(taskStatusChars[msg.new_status] || '');
-      updateBriefTasks(msg.item_id, $(itemTask).data('index'), ('#item-' + msg.item_id + ' li').length);
+      updateBriefTasks(msg.item_id, $(itemTask).data('index'), $('#item-' + msg.item_id + ' li').length);
     }
   });
 
