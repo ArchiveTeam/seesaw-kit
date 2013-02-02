@@ -60,7 +60,12 @@ def main():
 
   print pipeline
 
-  runner = SimpleRunner(pipeline, stop_file=args.stop_file, concurrent_items=args.concurrent_items, max_items=args.max_items)
+  runner = SimpleRunner(
+      pipeline,
+      stop_file=args.stop_file,
+      concurrent_items=args.concurrent_items,
+      max_items=args.max_items,
+      keep_data=args.keep_data)
   if args.enable_web_server:
     start_runner_server(project, runner, bind_address=args.address, port_number=args.port_number)
   runner.start()
