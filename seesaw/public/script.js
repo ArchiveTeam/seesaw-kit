@@ -3,7 +3,7 @@ $(function() {
   var multiProject = false;
 
   function processCarriageReturns(txt) {
-    return txt.replace(/[^\n]*\r(?!\n)/g, "");
+    return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
   }
 
   conn.on('connect', function() {
