@@ -224,6 +224,27 @@ $(function() {
 
     $('#project-header').html(project.project_html);
 
+    if (localStorage) {
+        $('#project-header').append($("<input>", { id: "collapse-all",
+                                                   type: "checkbox",
+                                                   checked: localStorage.getItem("collapse-all") == "true" }),
+                                    $("<label>", { for: "collapse-all",
+                                                   text: "Collapse all items" }));
+        $("#collapse-all").on('change',
+                              function () {
+                                  var isCollapsed = !!$(this).attr("checked");
+                                  localStorage.setItem("collapse-all",
+                                                       isCollapsed);
+                                  if (isCollapsed)
+                                      $(".item").removeClass('open')
+                                                .addClass('closed');
+                                  else
+                                      $(".item").removeClass('closed')
+                                                .addClass('open');
+                              })
+                          .trigger('change');
+    }
+
     if (project.utc_deadline) {
       projectCountdown = new Countdown(project.utc_deadline, 'project-header');
       $('#project-header').append(projectCountdown.buildTable());
@@ -271,7 +292,7 @@ $(function() {
 
     itemDiv = document.createElement('div');
     itemDiv.id = 'item-' + item.id;
-    itemDiv.className = 'item closed ' + (itemStatusClassName[item.status] || '');
+    itemDiv.className = 'item open ' + (itemStatusClassName[item.status] || '');
 
     h3 = document.createElement('h3');
     $(h3).append($("<span>", { "class": 'twisty' }),
