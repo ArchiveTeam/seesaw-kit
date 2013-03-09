@@ -565,10 +565,23 @@ class Warrior(object):
           os.system("sudo shutdown -r now")
 
   def start(self):
+    if self.real_shutdown:
+      # schedule a reboot
+      ioloop.IOLoop.instance().add_timeout(datetime.timedelta(days=7), self.max_age_reached)
+
     self.hq_updater.start()
     self.project_updater.start()
     self.update_warrior_hq()
     ioloop.IOLoop.instance().start()
+
+  def max_age_reached(self):
+    if self.real_shutdown:
+      # time for an sanity reboot
+      print "Running for more than 7 days. Time to schedule a reboot."
+      self.reboot_gracefully()
+
+      # schedule a forced reboot after two days
+      self.schedule_forced_reboot()
 
   def reboot_gracefully(self):
     self.shut_down_flag = False
