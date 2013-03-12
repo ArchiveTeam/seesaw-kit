@@ -3,7 +3,7 @@ $(function() {
   var multiProject = false;
 
   function processCarriageReturns(txt) {
-    return txt.replace(/[^\n]*\r(?!\n)/g, "");
+    return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
   }
 
   conn.on('connect', function() {
@@ -97,11 +97,12 @@ $(function() {
         itemLog.firstChild.nodeValue = itemLog.data;
       } else {
         itemLog.data = processCarriageReturns(msg.data);
-        itemLog.empty();
+        $(itemLog).empty();
         itemLog.appendChild(document.createTextNode(msg.data));
       }
       itemLog.scrollTop = itemLog.scrollHeight + 1000;
     }
+    updateBriefLog(msg.item_id, msg.data);
   });
 
   conn.on('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
@@ -109,11 +110,14 @@ $(function() {
     if (itemTask) {
       itemTask.className = 'task-' + msg.task_id + ' ' + msg.new_status;
       $('span.s', itemTask).text(taskStatusChars[msg.new_status] || '');
+      updateBriefTasks(msg.item_id,
+                       $(itemTask).data('index'),
+                       $('#item-' + msg.item_id + ' li').length);
     }
   });
 
   conn.on('item.update_name', function(msg) { // item_id, new_name
-    $('#item-' + msg.item_id + ' h3').text(msg.new_name);
+    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
   });
 
   conn.on('item.complete', function(msg) { // pipeline_id, item_id
@@ -220,6 +224,27 @@ $(function() {
 
     $('#project-header').html(project.project_html);
 
+    if (localStorage) {
+        $('#project-header').append($("<input>", { id: "collapse-all",
+                                                   type: "checkbox",
+                                                   checked: localStorage.getItem("collapse-all") == "true" }),
+                                    $("<label>", { for: "collapse-all",
+                                                   text: "Collapse all items" }));
+        $("#collapse-all").on('change',
+                              function () {
+                                  var isCollapsed = !!$(this).attr("checked");
+                                  localStorage.setItem("collapse-all",
+                                                       isCollapsed);
+                                  if (isCollapsed)
+                                      $(".item").removeClass('open')
+                                                .addClass('closed');
+                                  else
+                                      $(".item").removeClass('closed')
+                                                .addClass('open');
+                              })
+                          .trigger('change');
+    }
+
     if (project.utc_deadline) {
       projectCountdown = new Countdown(project.utc_deadline, 'project-header');
       $('#project-header').append(projectCountdown.buildTable());
@@ -262,15 +287,18 @@ $(function() {
   }
 
   function addItem(item, skipAnimation) {
-    var itemDiv, h3, div, ol, li, span, pre,
+    var itemDiv, h3, div, ol, li, span, pre, name, briefTasks, briefLog,
         i, task;
 
     itemDiv = document.createElement('div');
     itemDiv.id = 'item-' + item.id;
-    itemDiv.className = 'item ' + (itemStatusClassName[item.status] || '');
+    itemDiv.className = 'item open ' + (itemStatusClassName[item.status] || '');
 
     h3 = document.createElement('h3');
-    h3.appendChild(document.createTextNode(item.name));
+    $(h3).append($("<span>", { "class": 'twisty' }),
+                 $("<span>", { "class": 'name', text: item.name }),
+                 $("<span>", { "class": 'status-line' }),
+                 $("<span>", { "class": 'log-line' }));
     itemDiv.appendChild(h3);
 
     div = document.createElement('div');
@@ -285,16 +313,21 @@ $(function() {
 
     ol = document.createElement('ol');
     ol.className = 'tasks';
+    var currentTask = 0;
     for (i=0; i<item.tasks.length; i++) {
       task = item.tasks[i];
       li = document.createElement('li');
       li.className = 'task-' + task.id + ' ' + (task.status || '');
       li.appendChild(document.createTextNode(task.name + ' '));
+      $(li).data('index', i + 1);
       span = document.createElement('span');
       span.className = 's';
       span.appendChild(document.createTextNode(taskStatusChars[task.status] || ''));
       li.appendChild(span);
       ol.appendChild(li);
+      if (task.status == 'running') {
+        currentTask = i+1;
+      }
     }
     itemDiv.appendChild(ol);
 
@@ -310,7 +343,28 @@ $(function() {
     }
 
     var itemsDiv = document.getElementById('items');
-    itemsDiv.insertBefore(itemDiv, itemsDiv.firstChild)
+    itemsDiv.insertBefore(itemDiv, itemsDiv.firstChild);
+
+    updateBriefTasks(item.id, currentTask, item.tasks.length);
+    updateBriefLog(item.id, pre.data);
+  }
+
+  function updateBriefTasks(item_id, n, m) {
+    $('#item-'+ item_id +' span.status-line').text(': Step '+ n +' of '+ m +' ');
+  }
+
+  function updateBriefLog(item_id, data) {
+    var lines = data.split("\n");
+    if (lines) {
+      var line = "";
+      var len = lines.length;
+      for (var i = len - 1; i >= 0; i--) {
+        line = lines[i];
+        if (line)
+          break;
+      }
+      $('#item-'+ item_id + ' .log-line').text(line.trimLeft());
+    }
   }
 
   function scheduleAppear(item_id) {
@@ -435,6 +489,17 @@ $(function() {
   });
 
   showTab('view-current-project');
+
+  $(".item.closed .twisty").live('click',
+                                 function () {
+                                   $(this).parent().parent().removeClass('closed')
+                                                            .addClass('open');
+                                 });
+  $(".item.open .twisty").live('click',
+                               function () {
+                                 $(this).parent().parent().removeClass('open')
+                                                          .addClass('closed');
+                               });
 
   /*
   addItem({
