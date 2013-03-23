@@ -135,6 +135,11 @@ class BandwidthMonitor(object):
 
 class Warrior(object):
   def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False, keep_data=False):
+    if not os.access(projects_dir, os.W_OK):
+      raise Exception("Couldn't write to projects directory: %s" % projects_dir)
+    if not os.access(data_dir, os.W_OK):
+      raise Exception("Couldn't write to data directory: %s" % data_dir)
+
     self.projects_dir = projects_dir
     self.data_dir = data_dir
     self.warrior_hq_url = warrior_hq_url
