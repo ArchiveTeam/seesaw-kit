@@ -6,6 +6,7 @@ from tornado import web, ioloop, template
 from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
 
 from seesaw.config import realize
+from seesaw.web_util import AuthenticatedApplication
 
 PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
@@ -243,7 +244,7 @@ class SeesawConnection(SocketConnection):
     self.clients.remove(self)
 
 
-def start_runner_server(project, runner, bind_address="", port_number=8001):
+def start_runner_server(project, runner, bind_address="", port_number=8001, http_username=None, http_password=None):
   if bind_address=="0.0.0.0":
     bind_address = ""
 
@@ -255,7 +256,8 @@ def start_runner_server(project, runner, bind_address="", port_number=8001):
   runner.on_status += SeesawConnection.handle_runner_status
 
   router = TornadioRouter(SeesawConnection)
-  application = web.Application(
+
+  application = AuthenticatedApplication(
     router.apply_routes([(r"/(.*\.(html|css|js|swf|png))$",
                           web.StaticFileHandler, {"path": PUBLIC_PATH}),
                          ("/", IndexHandler),
@@ -263,11 +265,22 @@ def start_runner_server(project, runner, bind_address="", port_number=8001):
 #   flash_policy_port = 843,
 #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
     socket_io_address = bind_address,
-    socket_io_port = port_number
+    socket_io_port = port_number,
+
+    # settings for AuthenticatedApplication
+    auth_enabled = (http_password or "").strip() != "",
+    check_auth = lambda r, username, password: \
+        (
+          password==http_password and \
+          (http_username or "").strip() in ["", username]
+        ),
+    auth_realm = "ArchiveTeam Warrior",
+    skip_auth = [ r"^/socket\.io/1/websocket/[a-z0-9]+$" ]
   )
+
   SocketServer(application, auto_start=False)
 
-def start_warrior_server(warrior, bind_address="", port_number=8001):
+def start_warrior_server(warrior, bind_address="", port_number=8001, http_username=None, http_password=None):
   SeesawConnection.warrior = warrior
 
   warrior.on_projects_loaded += SeesawConnection.handle_projects_loaded
@@ -281,10 +294,16 @@ def start_warrior_server(warrior, bind_address="", port_number=8001):
   warrior.runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
   warrior.runner.on_status += SeesawConnection.handle_runner_status
 
+  if not http_username:
+    http_username = warrior.http_username
+  if not http_password:
+    http_password = warrior.http_password
+
   ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
 
   router = TornadioRouter(SeesawConnection)
-  application = web.Application(
+
+  application = AuthenticatedApplication(
     router.apply_routes([(r"/(.*\.(html|css|js|swf|png))$",
                           web.StaticFileHandler, {"path": PUBLIC_PATH}),
                          ("/", IndexHandler),
@@ -293,7 +312,16 @@ def start_warrior_server(warrior, bind_address="", port_number=8001):
 #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
     socket_io_address = bind_address,
     socket_io_port = port_number,
-    debug = True
+
+    # settings for AuthenticatedApplication
+    auth_enabled = lambda: (realize(http_password) or "").strip() != "",
+    check_auth = lambda r, username, password: \
+        (
+          password==realize(http_password) and \
+          (realize(http_username) or "").strip() in ["", username]
+        ),
+    auth_realm = "ArchiveTeam Warrior",
+    skip_auth = [ r"^/socket\.io/1/websocket/[a-z0-9]+$" ]
   )
   SocketServer(application, auto_start=False)
 

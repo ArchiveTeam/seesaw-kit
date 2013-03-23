@@ -172,12 +172,26 @@ class Warrior(object):
       max=6,
       default=2
     )
+    self.http_username = StringConfigValue(
+      name="http_username",
+      title="HTTP username",
+      description="Enter a username to protect the web interface, or leave empty.",
+      default=""
+    )
+    self.http_password = StringConfigValue(
+      name="http_password",
+      title="HTTP password",
+      description="Enter a password to protect the web interface, or leave empty.",
+      default=""
+    )
 
     self.config_manager = ConfigManager(os.path.join(projects_dir, "config.json"))
     self.config_manager.add(self.warrior_id)
     self.config_manager.add(self.selected_project_config_value)
     self.config_manager.add(self.downloader)
     self.config_manager.add(self.concurrent_items)
+    self.config_manager.add(self.http_username)
+    self.config_manager.add(self.http_password)
 
     self.bandwidth_monitor = BandwidthMonitor("eth0")
     self.bandwidth_monitor.update()
