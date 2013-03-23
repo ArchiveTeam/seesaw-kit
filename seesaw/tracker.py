@@ -73,14 +73,16 @@ class GetItemFromTracker(TrackerRequest):
     self.version = version
 
   def data(self, item):
-    data = {"downloader": realize(self.downloader, item)}
+    data = {"downloader": realize(self.downloader, item), "api_version": "2"}
     if self.version:
       data["version"] = realize(self.version, item)
     return data
 
   def process_body(self, body, item):
-    if len(body.strip()) > 0:
-      item["item_name"] = body.strip()
+    data = json.loads(body)
+    if "item_name" in data:
+      for (k,v) in data.iteritems():
+        item[k] = v
       item.log_output("Received item '%s' from tracker\n" % item["item_name"])
       self.complete_item(item)
     else:
