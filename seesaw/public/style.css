@@ -160,6 +160,9 @@ body.single-project #bandwidth {
   right: 8px;
   bottom: 8px;
 }
+#project-header input, #project-header label {
+  font-size: smaller;
+}
 table.time-left thead th {
   text-align: left;
   padding-left: 2px;
