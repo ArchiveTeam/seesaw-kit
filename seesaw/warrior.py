@@ -161,7 +161,8 @@ class Warrior(object):
       name="downloader",
       title="Your nickname",
       description="We use your nickname to show your results on our tracker. Letters and numbers only.",
-      regex="^[-_a-zA-Z0-9]{3,30}$"
+      regex="^[-_a-zA-Z0-9]{3,30}$",
+      advanced=False
     )
     self.concurrent_items = NumberConfigValue(
       name="concurrent_items",

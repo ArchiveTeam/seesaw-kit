@@ -423,6 +423,10 @@ $(function() {
     return false;
   });
 
+  $('#f-advanced-settings').click(function(e) {
+    $('#settings').toggleClass('show-advanced', e.target.checked);
+  });
+
   var Countdown = function(deadline, tableId) {
     this.deadline = deadline;
     this.tableId = tableId;

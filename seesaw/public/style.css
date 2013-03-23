@@ -429,6 +429,14 @@ table.time-left td span {
 #settings li.error input[type="text"] {
   background: #FCE5E5;
 }
+#settings li.advanced {
+  display: none;
+}
+#settings.show-advanced li.advanced,
+#settings li.error,
+#settings li.required {
+  display: list-item;
+}
 #settings p {
   font-size: 14px;
 }

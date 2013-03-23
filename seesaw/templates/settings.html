@@ -11,7 +11,7 @@
 {% for config_value in warrior.config_manager.editable_values() %}
   {% set value = posted_values[config_value.name] if posted_values and config_value.name in posted_values else config_value.value %}
 
-  <li {% if config_value.error %} class="error" {% elif not config_value.is_valid() %} class="required" {% end %}>
+  <li class="{% if config_value.error %} error {% elif not config_value.is_valid() %} required {% end %} {% if config_value.advanced %} advanced {% end %}">
     <p><label for="f-settings-{{ escape(str(id(config_value))) }}">{{ escape(config_value.title) }}:</label></p>
     <p>
       <input type="text" value="{{ escape(str(value or "")) }}" id="f-settings-{{ escape(str(id(config_value))) }}" name="{{ escape(config_value.name) }}" size="30" />
