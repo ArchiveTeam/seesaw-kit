@@ -36,7 +36,7 @@ class TrackerRequest(Task):
         "%s/%s" % (self.tracker_url, self.tracker_command),
         method="POST",
         headers={"Content-Type": "application/json"},
-        user_agent=("ArchiveTeam Warrior/%s %s" % (seesaw.__version__, seesaw.runner_type)),
+        user_agent=("ArchiveTeam Warrior/%s %s %s" % (seesaw.__version__, seesaw.runner_type, seesaw.warrior_build)).strip(),
         body=json.dumps(self.data(item))
       ), functools.partial(self.handle_response, item))
 
