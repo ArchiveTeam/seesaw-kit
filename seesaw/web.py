@@ -267,7 +267,7 @@ def start_runner_server(project, runner, bind_address="", port_number=8001):
   )
   SocketServer(application, auto_start=False)
 
-def start_warrior_server(warrior, port_number=8001):
+def start_warrior_server(warrior, bind_address="", port_number=8001):
   SeesawConnection.warrior = warrior
 
   warrior.on_projects_loaded += SeesawConnection.handle_projects_loaded
@@ -291,6 +291,7 @@ def start_warrior_server(warrior, port_number=8001):
                          ("/api/(.+)$", ApiHandler, {"warrior": warrior})]),
 #   flash_policy_port = 843,
 #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
+    socket_io_address = bind_address,
     socket_io_port = port_number,
     debug = True
   )
