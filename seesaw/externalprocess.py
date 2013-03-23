@@ -126,12 +126,19 @@ class ExternalProcess(Task):
       self.fail_item(item)
 
 class WgetDownload(ExternalProcess):
-  def __init__(self, args, max_tries=1, accept_on_exit_code=[0], retry_on_exit_code=None, env=None):
+  def __init__(self, args, max_tries=1, accept_on_exit_code=[0], retry_on_exit_code=None, env=None, stdin_data_function=None):
     ExternalProcess.__init__(self, "WgetDownload",
         args=args, max_tries=max_tries,
         accept_on_exit_code=accept_on_exit_code,
         retry_on_exit_code=retry_on_exit_code,
         env=env)
+    self.stdin_data_function = stdin_data_function
+
+  def stdin_data(self, item):
+    if self.stdin_data_function:
+      return self.stdin_data_function(item)
+    else:
+      return ""
 
 class RsyncUpload(ExternalProcess):
   def __init__(self, target, files, target_source_path="./", bwlimit="0", max_tries=None, extra_args=[]):
