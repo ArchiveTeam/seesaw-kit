@@ -38,8 +38,9 @@ class Pipeline(object):
       item.log_error(self, e_value)
       task.fail_item(item)
 
-    with tornado.stack_context.ExceptionStackContext(handle_item_exception):
-      task.enqueue(item)
+    with tornado.stack_context.NullContext():
+      with tornado.stack_context.ExceptionStackContext(handle_item_exception):
+        task.enqueue(item)
 
   def _task_complete_item(self, task, item):
     task_index = self.tasks.index(task) 
