@@ -105,7 +105,7 @@ class Runner(object):
       item.log_output("Waiting 10 seconds...")
       ioloop.IOLoop.instance().add_timeout(datetime.timedelta(seconds=10), functools.partial(self._item_finished_without_delay, pipeline, item))
     else:
-      self._item_finished_without_delay(self, pipeline, item)
+      self._item_finished_without_delay(pipeline, item)
 
   def _item_finished_without_delay(self, pipeline, item):
     self.on_pipeline_finish_item(self, pipeline, item)
