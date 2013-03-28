@@ -45,6 +45,17 @@ def main():
   if args.warrior_build:
     seesaw.warrior_build = args.warrior_build
 
+  print "*" * 74
+  print "*%-072s*" % " "
+  print "*%-072s*" % ("   ArchiveTeam Seesaw kit - %s" % seesaw.__version__)
+  print "*%-072s*" % " "
+  print "*" * 74
+  print
+  print "Starting the web interface on %s:%d..." % (args.address, args.port_number)
+  print
+  print "-" * 74
+  print
+
   warrior = Warrior(
       args.projects_dir,
       args.data_dir,
