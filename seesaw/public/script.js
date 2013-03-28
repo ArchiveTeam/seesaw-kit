@@ -184,7 +184,8 @@ $(function() {
     'RUNNING_PROJECT': ['The warrior is working on a project.', 'Shut down', '/api/stop'],
     'SWITCHING_PROJECT': ['The warrior will switch to a different project.', 'Shut down', '/api/stop'],
     'STARTING_PROJECT': ['The warrior is beginning work on a project.', 'Shut down', '/api/stop'],
-    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', '/api/keep_running'],
+    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', '/api/keep_running',
+                      'Stop immediately', '/api/stop_now'],
     'REBOOTING': ['The warrior is stopping and restarting.', 'Keep running', '/api/keep_running']
   };
 
@@ -194,12 +195,20 @@ $(function() {
       $('#warrior-status-description').text(s[0]);
       $('#warrior-status-form .button-link').text(s[1]);
       $('#warrior-status-form').attr('action', s[2]);
+      if (s[3]) {
+        $('#warrior-status-form-force').css('display', 'block');
+        $('#warrior-status-form-force .button-link').text(s[3]);
+        $('#warrior-status-form-force').attr('action', s[4]);
+      } else {
+        $('#warrior-status-form-force').css('display', 'none');
+      }
     }
   }
 
   var runnerStatus = {
     'running':  ['The runner is running.', 'Stop', '/api/stop'],
-    'stopping': ['The runner is stopping.', 'Keep running', '/api/keep_running']
+    'stopping': ['The runner is stopping.', 'Keep running', '/api/keep_running',
+                 'Stop immediately', '/api/stop_now']
   };
 
   function showRunnerStatus(status) {
@@ -209,6 +218,13 @@ $(function() {
         $('#warrior-status-description').text(s[0]);
         $('#warrior-status-form .button-link').text(s[1]);
         $('#warrior-status-form').attr('action', s[2]);
+        if (s[3]) {
+          $('#warrior-status-form-force').css('display', 'block');
+          $('#warrior-status-form-force .button-link').text(s[3]);
+          $('#warrior-status-form-force').attr('action', s[4]);
+        } else {
+          $('#warrior-status-form-force').css('display', 'none');
+        }
       }
     }
   }

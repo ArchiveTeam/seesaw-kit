@@ -130,6 +130,11 @@ class SimpleRunner(Runner):
   def _stop_ioloop(self, ignored):
     ioloop.IOLoop.instance().stop()
 
+  def forced_stop(self):
+    print "Stopping immediately..."
+    # TODO perhaps the subprocesses should be killed
+    ioloop.IOLoop.instance().stop()
+
   def _handle_create_item(self, ignored, item):
     item.on_output += self._handle_item_output
 

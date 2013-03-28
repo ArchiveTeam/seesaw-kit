@@ -110,6 +110,10 @@ a:hover, a:active {
   display: block;
   text-align: center;
 }
+#warrior-menu #warrior-status-form-force .button-link {
+  background-color: #A70B0B;
+  border-color: #A70B0B;
+}
 #warrior-menu table th,
 #warrior-menu table td {
   padding: 4px 0 4px 0;

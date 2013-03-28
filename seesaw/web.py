@@ -100,6 +100,12 @@ class ApiHandler(web.RequestHandler):
       else:
         self.runner.stop_gracefully()
       self.write("OK")
+    elif command == "stop_now":
+      if self.warrior:
+        self.warrior.forced_stop()
+      else:
+        self.runner.forced_stop()
+      self.write("OK")
     elif command == "keep_running":
       if self.warrior:
         self.warrior.keep_running()

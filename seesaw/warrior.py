@@ -619,6 +619,7 @@ class Warrior(object):
       self.forced_reboot_timeout = ioloop.IOLoop.instance().add_timeout(datetime.timedelta(days=2), self.forced_reboot)
 
   def forced_reboot(self):
+    print "Stopping immediately..."
     if self.real_shutdown:
       os.system("sudo shutdown -r now")
 
@@ -632,6 +633,11 @@ class Warrior(object):
       ioloop.IOLoop.instance().stop()
       if self.real_shutdown:
         os.system("sudo shutdown -h now")
+
+  def forced_stop(self):
+    ioloop.IOLoop.instance().stop()
+    if self.real_shutdown:
+      os.system("sudo shutdown -h now")
 
   def keep_running(self):
     self.shut_down_flag = False
