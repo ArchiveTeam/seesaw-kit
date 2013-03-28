@@ -1,4 +1,8 @@
+import contextlib
 import os
+import traceback
+
+import tornado.stack_context
 
 from seesaw.event import Event
 
@@ -24,14 +28,25 @@ class Pipeline(object):
   def enqueue(self, item):
     self.items_in_pipeline.add(item)
     self.on_start_item(self, item)
-    self.tasks[0].enqueue(item)
+    self._enqueue_with_except(self.tasks[0], item)
+
+  def _enqueue_with_except(self, task, item):
+    @contextlib.contextmanager
+    def handle_item_exception(e_type, e_value, tb):
+      item.log_output("Failed %s for %s\n" % (task, item.description()))
+      item.log_output("%s\n" % traceback.format_exc())
+      item.log_error(self, e_value)
+      task.fail_item(item)
+
+    with tornado.stack_context.ExceptionStackContext(handle_item_exception):
+      task.enqueue(item)
 
   def _task_complete_item(self, task, item):
     task_index = self.tasks.index(task) 
     if len(self.tasks) <= task_index + 1:
       self._complete_item(item)
     else:
-      self.tasks[task_index + 1].enqueue(item)
+      self._enqueue_with_except(self.tasks[task_index + 1], item)
 
   def _task_fail_item(self, task, item):
     self._fail_item(item)

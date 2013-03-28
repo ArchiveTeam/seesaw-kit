@@ -116,7 +116,7 @@ class Item(object):
       for e in err[1]:
         # TODO this isn't how exceptions work?
         if isinstance(e, Exception):
-          s += "%s\n" % traceback.format_exception(Exception, e)
+          s += "%s\n" % traceback.format_exception(Exception, e, None)
         else:
           s += "%s\n" % str(e)
       s += "\n  " + str(err)
