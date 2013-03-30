@@ -16,8 +16,6 @@ $(function() {
     div.id = 'connection-error';
     div.innerHTML = 'There is no connection with the warrior.';
     document.body.insertBefore(div, document.body.firstChild);
-
-    conn.socket.reconnect();
   });
 
   conn.on('instance_id', function(msg) {
@@ -30,16 +28,21 @@ $(function() {
   });
 
   conn.on('warrior.settings_update', function(msg) {
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     reloadSettingsTab();
   });
 
   conn.on('warrior.projects_loaded', function(msg) {
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     multiProject = true;
     $(document.body).removeClass('single-project');
     reloadProjectsTab();
   });
 
   conn.on('warrior.project_installing', function(msg) {
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     var projectLi = $('#project-' + msg.project.name);
     projectLi.addClass('installing');
     $('div.select', projectLi).append('<span class="installing">Preparing project...</span>');
@@ -47,6 +50,8 @@ $(function() {
   });
 
   conn.on('warrior.project_installed', function(msg) {
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     var projectLi = $('#project-' + msg.project.name);
     projectLi.removeClass('installing');
     $('div.select span.installing', projectLi).remove();
@@ -54,6 +59,8 @@ $(function() {
   });
 
   conn.on('warrior.project_installation_failed', function(msg) {
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     var projectLi = $('#project-' + msg.project.name);
     projectLi.removeClass('installing');
     $('div.select span.installing', projectLi).remove();
@@ -63,11 +70,14 @@ $(function() {
   });
 
   conn.on('warrior.project_selected', function(msg) { // project
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     reloadProjectsTab();
   });
 
   conn.on('project.refresh', function(msg) { // project, pipeline, items
     if (msg) {
+      if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
       for (var i=0; i<msg.items.length; i++) {
         addItem(msg.items[i], true);
       }
@@ -80,6 +90,8 @@ $(function() {
   var currentWarriorStatus = null;
 
   conn.on('warrior.status', function(msg) {
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     currentWarriorStatus = msg.status;
     showWarriorStatus(msg.status);
     if (msg.status == 'INVALID_SETTINGS') {
@@ -92,14 +104,18 @@ $(function() {
   });
 
   conn.on('runner.status', function(msg) { // project_id
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     showRunnerStatus(msg.status);
   });
 
   conn.on('pipeline.start_item', function(msg) { // pipeline_id, item
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     addItem(msg.item);
   });
 
   conn.on('item.output', function(msg) { // item_id, data
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     var itemLog = $('#item-' + msg.item_id + ' pre.log')[0];
     if (itemLog) {
       if (itemLog.data) {
@@ -116,6 +132,8 @@ $(function() {
   });
 
   conn.on('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     var itemTask = $('#item-' + msg.item_id + ' li.task-' + msg.task_id)[0];
     if (itemTask) {
       itemTask.className = 'task-' + msg.task_id + ' ' + msg.new_status;
@@ -127,22 +145,30 @@ $(function() {
   });
 
   conn.on('item.update_name', function(msg) { // item_id, new_name
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
   });
 
   conn.on('item.complete', function(msg) { // pipeline_id, item_id
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     $('#item-' + msg.item_id).addClass(itemStatusClassName['completed']);
     $('#item-' + msg.item_id + ' div.status').text(itemStatusTexts['completed']);
     scheduleDelete(msg.item_id);
   });
 
   conn.on('item.fail', function(msg) { // pipeline_id, item_id
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     $('#item-' + msg.item_id).addClass(itemStatusClassName['failed']);
     $('#item-' + msg.item_id + ' div.status').text(itemStatusTexts['failed']);
     scheduleDelete(msg.item_id);
   });
 
   conn.on('item.cancel', function(msg) { // pipeline_id, item_id
+    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+
     $('#item-' + msg.item_id).addClass(itemStatusClassName['canceled']);
     $('#item-' + msg.item_id + ' div.status').text(itemStatusTexts['canceled']);
     scheduleDelete(msg.item_id);
