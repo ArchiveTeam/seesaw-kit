@@ -48,7 +48,7 @@ class TrackerRequest(Task):
       self.process_body(response.body, item)
     else:
       if response.code == 420 or response.code == 429:
-        r = "Tracker rate limiting is in effect. "
+        r = "Tracker rate limiting is active. We don't want to overload the site we're archiving, so we've limited the number of downloads per minute. Please wait... "
       elif response.code == 404:
         r = "No item received. "
       elif response.code == 455:
