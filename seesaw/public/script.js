@@ -342,9 +342,14 @@ $(function() {
     var itemDiv, h3, div, ol, li, span, pre, name, briefTasks, briefLog,
         i, task;
 
+    var openOrClosed = 'open';
+    if (localStorage && localStorage.getItem("collapse-all") == "true") {
+      openOrClosed = 'closed';
+    }
+
     itemDiv = document.createElement('div');
     itemDiv.id = 'item-' + item.id;
-    itemDiv.className = 'item open ' + (itemStatusClassName[item.status] || '');
+    itemDiv.className = 'item ' + openOrClosed + ' ' + (itemStatusClassName[item.status] || '');
 
     h3 = document.createElement('h3');
     $(h3).append($("<span>", { "class": 'twisty' }),
