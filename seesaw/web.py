@@ -1,4 +1,6 @@
+import random
 import re
+import os
 import os.path
 import time
 
@@ -139,6 +141,8 @@ class ApiHandler(web.RequestHandler):
 
 
 class SeesawConnection(SocketConnection):
+  instance_id = ("%d-%f" % (os.getpid(), random.random()))
+
   clients = set()
   item_monitors = dict()
 
@@ -148,6 +152,7 @@ class SeesawConnection(SocketConnection):
 
   def on_open(self, info):
     self.clients.add(self)
+    self.emit("instance_id", self.instance_id)
 
     items = []
     for item_monitor in self.item_monitors.itervalues():

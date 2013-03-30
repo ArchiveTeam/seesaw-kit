@@ -1,6 +1,7 @@
 $(function() {
   var conn = new io.connect('http://' + window.location.host);
   var multiProject = false;
+  var instanceID = null;
 
   function processCarriageReturns(txt) {
     return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
@@ -17,6 +18,15 @@ $(function() {
     document.body.insertBefore(div, document.body.firstChild);
 
     conn.socket.reconnect();
+  });
+
+  conn.on('instance_id', function(msg) {
+    // we are connected to a different instance
+    if (instanceID && instanceID != msg) {
+      window.location.reload();
+    } else {
+      instanceID = msg;
+    }
   });
 
   conn.on('warrior.settings_update', function(msg) {
@@ -481,7 +491,6 @@ $(function() {
   };
 
   function showTab(view) {
-    console.log(currentWarriorStatus);
     if (currentWarriorStatus == 'INVALID_SETTINGS') {
       view = 'view-settings';
     }
