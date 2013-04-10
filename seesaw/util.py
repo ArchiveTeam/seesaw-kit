@@ -1,3 +1,4 @@
+import re
 import subprocess
 
 def test_executable(name, version, path):
@@ -8,12 +9,22 @@ def test_executable(name, version, path):
     if not process.returncode == 0:
       print "%s: Returned code %d" % (path, process.returncode)
       return False
-    if not version in result:
-      print "%s: Incorrect %s version (want %s)." % (path, name, version)
-      return False
-    else:
-      print "Found usable %s in %s" % (name, path)
-      return True
+
+    if isinstance(version, basestring):
+      if not version in result:
+        print "%s: Incorrect %s version (want %s)." % (path, name, version)
+        return False
+    elif hasattr(version, "search"):
+      if not version.search(result):
+        print "%s: Incorrect %s version." % (path, name)
+        return False
+    elif hasattr(version, "__iter__"):
+      if not any((v in result) for v in version):
+        print "%s: Incorrect %s version (want %s)." % (path, name, str(version))
+        return False
+
+    print "Found usable %s in %s" % (name, path)
+    return True
   except OSError as e:
     print "%s:" % path, e
     return False
