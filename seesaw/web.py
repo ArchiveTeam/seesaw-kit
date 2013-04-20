@@ -246,7 +246,8 @@ class SeesawConnection(SocketConnection):
   @classmethod
   def broadcast(cls, event, message):
     for client in cls.clients:
-      message["session_id"] = client.session.session_id
+      if message:
+        message["session_id"] = client.session.session_id
       client.emit(event, message)
 
   def on_message(self, message):
