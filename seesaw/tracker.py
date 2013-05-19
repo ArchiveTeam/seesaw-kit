@@ -18,7 +18,9 @@ class TrackerRequest(Task):
     self.http_client = AsyncHTTPClient()
     self.tracker_url = tracker_url
     self.tracker_command = tracker_command
-    self.retry_delay = 30
+    self.retry_delay_max = 3600
+    self.retry_delay_default = 30
+    self.retry_delay = self.retry_delay_default
     self._set_may_be_canceled = may_be_canceled
 
   def enqueue(self, item):
@@ -46,6 +48,7 @@ class TrackerRequest(Task):
   def handle_response(self, item, response):
     if response.code == 200:
       self.process_body(response.body, item)
+      self.retry_delay = self.retry_delay_default
     else:
       if response.code == 420 or response.code == 429:
         r = "Tracker rate limiting is active. We don't want to overload the site we're archiving, so we've limited the number of downloads per minute. Please wait... "
@@ -62,6 +65,7 @@ class TrackerRequest(Task):
   def schedule_retry(self, item, message=""):
     if self._set_may_be_canceled:
       item.may_be_canceled = True
+    self.retry_delay = min (self.retry_delay * 2, self.retry_delay_max)
     item.log_output("%sRetrying after %d seconds...\n" % (message, self.retry_delay))
     IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
         functools.partial(self.send_request, item))
