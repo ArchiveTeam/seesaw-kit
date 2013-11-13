@@ -57,13 +57,25 @@ def main():
                         metavar="PORT", type=int, default=8001)
     parser.add_argument("--http-username", dest="http_username",
                         help="username for the web interface (default: admin)",
-                        metavar="USERNAME", type=str),  # default is set in start_runner_server
+                        metavar="USERNAME", type=str)  # default is set in start_runner_server
     parser.add_argument("--http-password", dest="http_password",
                         help="password for the web interface",
-                        metavar="PASSWORD", type=str),
+                        metavar="PASSWORD", type=str)
+    parser.add_argument("--context-value", dest="context_values",
+                        help="additional pipeline global variables (name=text)",
+                        action='append', default=[], type=str)
     args = parser.parse_args()
 
-    (project, pipeline) = load_pipeline(args.pipeline, { "downloader": args.downloader })
+    context = {"downloader": args.downloader}
+
+    for context_value in args.context_values:
+        name, text_value = context_value.split("=", 1)
+        if name not in context:
+            context[name] = text_value
+        else:
+            raise Exception("Context value name %s already defined." % name)
+
+    (project, pipeline) = load_pipeline(args.pipeline, context)
 
     print "*" * 74
     print "*%-072s*" % " "
