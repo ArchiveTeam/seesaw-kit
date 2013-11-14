@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import sys
 import os.path
+import re
 from argparse import ArgumentParser
 
 import seesaw
@@ -28,12 +29,20 @@ def load_pipeline(pipeline_path, context):
         os.chdir(curdir)
     return (local_context["project"], local_context["pipeline"])
 
+
+def check_downloader_or_exit(value, regex="^[-_a-zA-Z0-9]{3,30}$"):
+    if not re.search(regex, value):
+        print('Please use a nickname containing only letters A-Z, '
+            'numbers, underscore, and hyphen-minus only.')
+        sys.exit(1)
+
+
 def main():
     parser = ArgumentParser(description="Run the pipeline")
     parser.add_argument("pipeline", metavar="PIPELINE", type=str,
                         help="the pipeline file")
     parser.add_argument("downloader", metavar="DOWNLOADER", type=str,
-                        help="your username")
+                        help="your nickname")
     parser.add_argument("--concurrent", dest="concurrent_items",
                         help="work on N items at a time (default: 1)",
                         metavar="N", type=int, default=1)
@@ -66,6 +75,8 @@ def main():
                         metavar='VALUE_PAIR',
                         action='append', default=[], type=str)
     args = parser.parse_args()
+
+    check_downloader_or_exit(args.downloader)
 
     context = {"downloader": args.downloader}
 
