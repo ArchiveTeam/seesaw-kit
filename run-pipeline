@@ -63,6 +63,7 @@ def main():
                         metavar="PASSWORD", type=str)
     parser.add_argument("--context-value", dest="context_values",
                         help="additional pipeline global variables (name=text)",
+                        metavar='VALUE_PAIR',
                         action='append', default=[], type=str)
     args = parser.parse_args()
 
