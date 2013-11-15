@@ -4,8 +4,8 @@ import os
 import os.path
 import time
 
-from tornado import web, ioloop, template
-from tornadio2 import SocketConnection, TornadioRouter, SocketServer, event
+from tornado import web, ioloop
+from tornadio2 import SocketConnection, TornadioRouter, SocketServer
 
 from seesaw.config import realize
 from seesaw.web_util import AuthenticatedApplication

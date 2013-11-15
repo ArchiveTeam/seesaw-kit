@@ -1,6 +1,5 @@
 import json
 import subprocess
-import functools
 import os
 import os.path
 import shutil
@@ -8,21 +7,18 @@ import sys
 import datetime
 import time
 import re
-import json
 from ordereddict import OrderedDict
 from distutils.version import StrictVersion
 
 from tornado import ioloop
 from tornado import gen
-from tornado.ioloop import PeriodicCallback
-from tornado.httpclient import AsyncHTTPClient, HTTPRequest
+from tornado.httpclient import AsyncHTTPClient
 
 import seesaw
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen
 from seesaw.runner import Runner
 from seesaw.config import realize
-from seesaw.web import SeesawConnection
 from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 
 

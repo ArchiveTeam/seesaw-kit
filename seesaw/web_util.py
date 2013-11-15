@@ -1,5 +1,4 @@
 import base64
-import functools
 import re
 
 import tornado

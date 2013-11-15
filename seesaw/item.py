@@ -1,5 +1,4 @@
 import traceback
-import re
 import os
 import os.path
 import shutil
