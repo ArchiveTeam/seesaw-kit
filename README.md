@@ -3,6 +3,8 @@ Seesaw toolkit
 
 An attempt to write a toolkit for making seesaw scripts in Python, with support for concurrent downloads, uploads etc.
 
+[![Build Status](https://secure.travis-ci.org/ArchiveTeam/seesaw-kit.png)](http://travis-ci.org/ArchiveTeam/seesaw-kit)
+
 How to try it out
 -----------------
 

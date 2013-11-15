@@ -1,10 +1,10 @@
 import subprocess
 
 
-def test_executable(name, version, path):
+def test_executable(name, version, path, version_arg="-V"):
     print "Looking for %s in %s" % (name, path)
     try:
-        process = subprocess.Popen([path, "-V"], stdout=subprocess.PIPE)
+        process = subprocess.Popen([path, version_arg], stdout=subprocess.PIPE)
         result = process.communicate()[0]
         if not process.returncode == 0:
             print "%s: Returned code %d" % (path, process.returncode)
@@ -30,8 +30,8 @@ def test_executable(name, version, path):
         return False
 
 
-def find_executable(name, version, paths):
+def find_executable(name, version, paths, version_arg="-V"):
     for path in paths:
-        if test_executable(name, version, path):
+        if test_executable(name, version, path, version_arg):
             return path
     return None
