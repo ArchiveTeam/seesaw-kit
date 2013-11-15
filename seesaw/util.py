@@ -4,8 +4,13 @@ import subprocess
 def test_executable(name, version, path, version_arg="-V"):
     print "Looking for %s in %s" % (name, path)
     try:
-        process = subprocess.Popen([path, version_arg], stdout=subprocess.PIPE)
-        result = process.communicate()[0]
+        process = subprocess.Popen(
+            [path, version_arg],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout_data, stderr_data = process.communicate()
+        result = stdout_data + stderr_data
         if not process.returncode == 0:
             print "%s: Returned code %d" % (path, process.returncode)
             return False
