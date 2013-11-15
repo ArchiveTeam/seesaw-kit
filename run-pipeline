@@ -74,6 +74,8 @@ def main():
                         help="additional pipeline global variables (name=text)",
                         metavar='VALUE_PAIR',
                         action='append', default=[], type=str)
+    parser.add_argument("--version", action="version",
+                        version=seesaw.__version__)
     args = parser.parse_args()
 
     check_downloader_or_exit(args.downloader)
