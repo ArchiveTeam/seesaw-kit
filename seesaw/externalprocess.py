@@ -32,12 +32,8 @@ class AsyncPopen(object):
         self.master_fd = master_fd
         self.master = os.fdopen(master_fd)
 
-        # check for process exit
-        self.wait_callback = PeriodicCallback(self._wait_for_end, 250)
-
         # listen to stdout, stderr
         self.ioloop.add_handler(master_fd, self._handle_subprocess_stdout, self.ioloop.READ)
-        self.wait_callback.start()
 
         slave = os.fdopen(slave_fd)
         self.kwargs["stdout"] = slave
@@ -46,6 +42,10 @@ class AsyncPopen(object):
         self.pipe = subprocess.Popen(*self.args, **self.kwargs)
 
         self.stdin = self.pipe.stdin
+
+        # check for process exit
+        self.wait_callback = PeriodicCallback(self._wait_for_end, 250)
+        self.wait_callback.start()
 
     def _handle_subprocess_stdout(self, fd, events):
         if not self.master.closed and (events & IOLoop._EPOLLIN) != 0:
