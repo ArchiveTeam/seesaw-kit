@@ -12,6 +12,7 @@ class ExternalProcessUser(ExternalProcess):
         self.output_buffer = cStringIO.StringIO()
         self.return_code = None
         self.exit_count = 0
+        self.retry_delay = 0.1
 
     def on_subprocess_stdout(self, pipe, item, data):
         ExternalProcess.on_subprocess_stdout(self, pipe, item, data)
@@ -44,7 +45,7 @@ class ExternalProcessTest(BaseTestCase):
         self.assertIOLoopOK()
 
     def test_proc_fail(self):
-        for max_tries in xrange(1, 5):
+        for max_tries in [1, 2, 20]:
             external_process = ExternalProcessUser(
                 "Quitter", ["python", "-c", "import sys;sys.exit(33)"],
                 max_tries=max_tries)
