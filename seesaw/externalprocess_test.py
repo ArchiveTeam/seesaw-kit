@@ -41,7 +41,7 @@ class ExternalProcessTest(BaseTestCase):
 
         output = external_process.output_buffer.getvalue()
         self.assertFalse(pipeline.has_failed)
-        self.assertIn('hello world!', output)
+        self.assertTrue('hello world!' in output)
         self.assertIOLoopOK()
 
     def test_proc_fail(self):
