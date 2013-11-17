@@ -76,7 +76,7 @@ class ExternalProcess(Task):
     def enqueue(self, item):
         self.start_item(item)
         item.log_output("Starting %s for %s\n" % (self, item.description()))
-        item["tries"] = 1
+        item["tries"] = 0
         self.process(item)
 
     def stdin_data(self, item):
