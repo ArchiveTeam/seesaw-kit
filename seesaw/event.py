@@ -1,7 +1,16 @@
+'''Actor model.'''
 # http://www.valuedlessons.com/2008/04/events-in-python.html
 
 
-class Event:
+class Event(object):
+    '''Lightweight event system.
+
+    Example::
+
+        my_event_system = Event()
+        my_event_system = my_listener_callback_function
+        my_event_system(my_event_data)
+    '''
     def __init__(self):
         self.handlers = set()
 

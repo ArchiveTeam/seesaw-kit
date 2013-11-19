@@ -1,3 +1,8 @@
+'''Contacting the work unit server.
+
+A Tracker refers to the Universal Tracker
+(https://github.com/ArchiveTeam/universal-tracker).
+'''
 import json
 import functools
 import datetime
@@ -14,6 +19,7 @@ from seesaw.externalprocess import RsyncUpload, CurlUpload
 
 
 class TrackerRequest(Task):
+    '''Represents a request to a Tracker.'''
     def __init__(self, name, tracker_url, tracker_command, may_be_canceled=False):
         Task.__init__(self, name)
         self.http_client = AsyncHTTPClient()
@@ -69,6 +75,7 @@ class TrackerRequest(Task):
 
 
 class GetItemFromTracker(TrackerRequest):
+    '''Get a single work unit information from the Tracker.'''
     def __init__(self, tracker_url, downloader, version=None):
         TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url, "request", may_be_canceled=True)
         self.downloader = downloader
@@ -93,6 +100,7 @@ class GetItemFromTracker(TrackerRequest):
 
 
 class SendDoneToTracker(TrackerRequest):
+    '''Inform the Tracker the work unit has been completed.'''
     def __init__(self, tracker_url, stats):
         TrackerRequest.__init__(self, "SendDoneToTracker", tracker_url, "done")
         self.stats = stats
@@ -110,6 +118,7 @@ class SendDoneToTracker(TrackerRequest):
 
 
 class PrepareStatsForTracker(SimpleTask):
+    '''Apply statistical values on the item.'''
     def __init__(self, defaults=None, file_groups=None, id_function=None):
         SimpleTask.__init__(self, "PrepareStatsForTracker")
         self.defaults = defaults or {}
@@ -133,6 +142,14 @@ class PrepareStatsForTracker(SimpleTask):
 
 
 class UploadWithTracker(TrackerRequest):
+    '''Upload work unit results.
+
+    One of the inner task is used depending on the Tracker's response
+    to where to upload:
+
+    * :class:`RsyncUpload`
+    * :class:`CurlUpload`
+    '''
     def __init__(self, tracker_url, downloader, files, version=None, rsync_target_source_path="./", rsync_bwlimit="0", rsync_extra_args=[], curl_connect_timeout="60", curl_speed_limit="1", curl_speed_time="900"):
         TrackerRequest.__init__(self, "Upload", tracker_url, "upload")
 

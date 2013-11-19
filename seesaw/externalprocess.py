@@ -1,3 +1,4 @@
+'''Running subprocesses asynchronously.'''
 import fcntl
 import os
 import os.path
@@ -15,6 +16,7 @@ from seesaw.config import realize
 
 
 class AsyncPopen(object):
+    '''Asynchronous version of :class:`subprocess.Popen`.'''
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -64,6 +66,7 @@ class AsyncPopen(object):
 
 
 class ExternalProcess(Task):
+    '''External subprocess runner.'''
     def __init__(self, name, args, max_tries=1, retry_delay=30, accept_on_exit_code=[0], retry_on_exit_code=None, env=None):
         Task.__init__(self, name)
         self.args = args
@@ -129,6 +132,7 @@ class ExternalProcess(Task):
 
 
 class WgetDownload(ExternalProcess):
+    '''Download with Wget process runner.'''
     def __init__(self, args, max_tries=1, accept_on_exit_code=[0], retry_on_exit_code=None, env=None, stdin_data_function=None):
         ExternalProcess.__init__(self, "WgetDownload",
             args=args, max_tries=max_tries,
@@ -145,6 +149,7 @@ class WgetDownload(ExternalProcess):
 
 
 class RsyncUpload(ExternalProcess):
+    '''Upload with Rsync process runner.'''
     def __init__(self, target, files, target_source_path="./", bwlimit="0", max_tries=None, extra_args=[]):
         args = [
           "rsync",
@@ -173,6 +178,7 @@ class RsyncUpload(ExternalProcess):
 
 
 class CurlUpload(ExternalProcess):
+    '''Upload with Curl process runner.'''
     def __init__(self, target, filename, connect_timeout="60", speed_limit="1", speed_time="900", max_tries=None):
         args = [
           "curl",

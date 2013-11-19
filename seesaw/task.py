@@ -1,3 +1,4 @@
+'''Managing steps in a work unit.'''
 import contextlib
 import os
 import traceback
@@ -8,6 +9,8 @@ from seesaw.config import realize
 
 
 class Task(object):
+    '''A step in the download process of an :class:`Item`.
+    '''
     def __init__(self, name):
         self.name = name
         self.cwd = os.getcwd()
@@ -47,6 +50,14 @@ class Task(object):
 
 
 class SimpleTask(Task):
+    '''A subclassable :class:`Task` that should do one small thing well.
+
+    Example::
+
+        class MyTask(SimpleTask):
+            def process(self, item):
+                item['my_message'] = 'hello world!'
+    '''
     def __init__(self, name):
         Task.__init__(self, name)
 
@@ -66,6 +77,8 @@ class SimpleTask(Task):
             self.complete_item(item)
 
     def process(self, item):
+        # TODO: should this raise NotImplemented or be decorated with
+        # abc.abstractmethod?
         pass
 
     def __str__(self):
@@ -73,6 +86,8 @@ class SimpleTask(Task):
 
 
 class LimitConcurrent(Task):
+    '''Restricts the number of tasks of the same type that can be run at once.
+    '''
     def __init__(self, concurrency, inner_task):
         Task.__init__(self, "LimitConcurrent")
         self.concurrency = concurrency
@@ -111,6 +126,7 @@ class LimitConcurrent(Task):
 
 
 class ConditionalTask(Task):
+    '''Runs a task optionally.'''
     def __init__(self, condition_function, inner_task):
         Task.__init__(self, "Conditional")
         self.condition_function = condition_function
@@ -139,6 +155,7 @@ class ConditionalTask(Task):
 
 
 class SetItemKey(SimpleTask):
+    '''Set a value onto a task.'''
     def __init__(self, key, value):
         SimpleTask.__init__(self, "SetItemKey")
         self.key = key
@@ -152,6 +169,7 @@ class SetItemKey(SimpleTask):
 
 
 class PrintItem(SimpleTask):
+    '''Output the name of the :class:`Item`.'''
     def __init__(self):
         SimpleTask.__init__(self, "PrintItem")
 

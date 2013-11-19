@@ -1,3 +1,4 @@
+'''Mocks Warrior HQ.'''
 import tornado.web
 
 

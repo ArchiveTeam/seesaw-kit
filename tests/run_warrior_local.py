@@ -1,4 +1,5 @@
 #!/usr/bin/python
+'''Runs the complete warrior system and the Mock HQ.'''
 import atexit
 import copy
 import os.path
