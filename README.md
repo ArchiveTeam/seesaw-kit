@@ -1,9 +1,20 @@
 Seesaw toolkit
 ==============
 
-An attempt to write a toolkit for making seesaw scripts in Python, with support for concurrent downloads, uploads etc.
+An asynchronous toolkit for distributed web processing. Written in Python and named after its behavior, it supports concurrent downloads, uploads, etc.
+
+This toolkit is well-known for [Archive Team projects](http://archiveteam.org). It also powers the [Archive Team warrior](http://archiveteam.org/index.php?title=Warrior).
 
 [![Build Status](https://secure.travis-ci.org/ArchiveTeam/seesaw-kit.png)](http://travis-ci.org/ArchiveTeam/seesaw-kit)
+
+
+Installation
+------------
+
+Requires Python 2.6 or 2.7. Python 3 is not yet supported.
+
+Needs the Tornado library for event-driven I/O. The complete list of Python modules needed are listed in requirements.txt.
+
 
 How to try it out
 -----------------
@@ -14,13 +25,11 @@ To run the example pipeline:
     ./run-pipeline --help
     ./run-pipeline examples/example-pipeline.py someone
 
-Point your browser to `http://127.0.0.1:8001/`
+Point your browser to `http://127.0.0.1:8001/`.
 
 
-Description
------------
-
-Needs the Tornado library for event-driven I/O.
+Overview
+--------
 
 General idea: a set of `Task`s that can be combined into a `Pipeline` that processes `Item`s:
 
@@ -33,4 +42,6 @@ A `Task` can work on multiple `Item`s at a time (e.g., multiple Wget downloads).
 The `Pipeline` needs to be fed empty `Item` objects; by controlling the number of active `Item`s you can limit the number of items. (For example, add a new item each time an item leaves the pipeline.)
 
 With the `ItemValue`, `ItemInterpolation` and `ConfigValue` classes it is possible to pass item-specific arguments to the `Task` objects. The value of these objects will be re-evaluated for each item. Examples: a path name that depends on the item name, a configurable bandwidth limit, the number of concurrent downloads.
+
+Consult [the wiki](https://github.com/ArchiveTeam/seesaw-kit/wiki) for more information.
 
