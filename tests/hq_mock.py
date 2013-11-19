@@ -26,14 +26,17 @@ class UpdateHandler(tornado.web.RedirectHandler):
                  "name": "testproject",
                  "title": "A test project",
                  "description": "Testing a project",
-                 "repository": "https://example.com/user/project",
-                 "logo": "http://example.com/example.png",
+                 "repository":
+                    "https://github.com/ArchiveTeam/example-seesaw-project",
+                 "logo":
+                    "https://raw.github.com/ArchiveTeam/warrior-preseed/master"
+                    "/splash/Archive_team-white.png",
                  "marker_html": "hi",
                  "lat_lng": [
                     0.0,
                     0.0
                  ],
-                 "leaderboard":"http://example.com/"
+                 "leaderboard": "http://example.com/"
               },
            ]
        })
