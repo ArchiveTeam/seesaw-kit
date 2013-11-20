@@ -30,7 +30,13 @@ def realize(v, item=None):
 
 
 class ConfigValue(object):
-    '''Configuration value validator.'''
+    '''Configuration value validator.
+
+    The collection methods are useful for providing user configurable
+    settings at run time. For example, when a pipeline file is executed
+    by the warrior, the additional config values are presented in the
+    warrior configuration panel.
+    '''
     collector = None
 
     @classmethod
