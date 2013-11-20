@@ -515,7 +515,10 @@ class Warrior(object):
 
         config_values = ConfigValue.stop_collecting()
 
-        return (local_context["project"], local_context["pipeline"], config_values)
+        project = local_context["project"]
+        pipeline = local_context["pipeline"]
+        pipeline.project = project
+        return (project, pipeline, config_values)
 
     @gen.engine
     def start_selected_project(self):
