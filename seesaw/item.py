@@ -1,3 +1,4 @@
+'''Managing work units.'''
 import traceback
 import os
 import os.path
@@ -7,6 +8,17 @@ from seesaw.event import Event
 
 
 class Item(object):
+    '''A thing, or work unit, that needs to be downloaded.
+
+    It has properties that are filled by the :class:`Task`.
+
+    An Item behaves like a mutable mapping.
+
+    .. note::
+        State belonging to a item should be stored on the actual item 
+        itself. That is, do not store variables onto a :class:`Task` unless
+        you know what you are doing.
+    '''
     def __init__(self, pipeline, item_id, item_number, properties=None, keep_data=False):
         self.pipeline = pipeline
         self.item_id = item_id
@@ -129,6 +141,7 @@ class Item(object):
 
 
 class ItemValue(object):
+    '''Get an item's value during :func:`realize`.'''
     def __init__(self, key):
         self.key = key
 
@@ -148,6 +161,7 @@ class ItemValue(object):
 
 
 class ItemInterpolation(object):
+    '''Formats a string using the percent operator during :func:`realize`.'''
     def __init__(self, s):
         self.s = s
 

@@ -1,7 +1,14 @@
+'''Project information.'''
 import time
 
 
 class Project(object):
+    '''Briefly describes a project metadata.
+
+    This class defines the title of the project, a short description with an
+    optional project logo and an optional deadline. The information will be
+    shown in the web interface when the project is running.
+    '''
     def __init__(self, title=None, project_html=None, utc_deadline=None):
         self.title = title
         self.project_html = project_html

@@ -8,6 +8,15 @@ from seesaw.event import Event
 
 
 class Pipeline(object):
+    '''The sequence of steps that complete a :class:`Task`.
+
+    Your pipeline will probably be something like this:
+
+    1. Request an assignment from the tracker.
+    2. Run Wget to download the file.
+    3. Upload the downloaded file with rsync.
+    4. Tell the tracker that the assignment is done.
+    '''
     def __init__(self, *tasks):
         self.cwd = os.getcwd()
         self.on_start_item = Event()

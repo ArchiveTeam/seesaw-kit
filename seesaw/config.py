@@ -1,7 +1,21 @@
+'''Configuration value manipulation.'''
 import re
 
 
 def realize(v, item=None):
+    '''Makes objects contain concrete values from an item.
+
+    A silly example::
+
+        class AddExpression(object):
+            def realize(self, item):
+                return = item['x'] + item['y']
+
+        pipeline = Pipeline(ComputeMath(AddExpression()))
+
+    In the example, we want to compute an addition expression. The values
+    are defined in the Item.
+    '''
     if isinstance(v, dict):
         realized_dict = {}
         for (key, value) in v.iteritems():
@@ -16,6 +30,13 @@ def realize(v, item=None):
 
 
 class ConfigValue(object):
+    '''Configuration value validator.
+
+    The collection methods are useful for providing user configurable
+    settings at run time. For example, when a pipeline file is executed
+    by the warrior, the additional config values are presented in the
+    warrior configuration panel.
+    '''
     collector = None
 
     @classmethod

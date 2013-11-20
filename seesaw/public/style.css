@@ -42,6 +42,15 @@ a:hover, a:active {
   color: #fff;
 }
 
+#no-js-message {
+  font-size: 1.2em;
+}
+
+#no-js-title {
+  font-weight: bold;
+  font-size: 1.5em;
+}
+
 #warrior-menu {
   position: fixed;
   left: 0;

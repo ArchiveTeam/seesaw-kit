@@ -1,3 +1,4 @@
+'''The warrior web interface.'''
 import random
 import re
 import os
@@ -15,11 +16,13 @@ TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__
 
 
 class IndexHandler(web.RequestHandler):
+    '''Shows the index.html.'''
     def get(self):
         self.render(os.path.join(PUBLIC_PATH, "index.html"), timestamp=time.time())
 
 
 class ItemMonitor(object):
+    '''Pushes item states and information to the client.'''
     def __init__(self, item):
         self.pipeline = item.pipeline
         self.item = item
@@ -89,6 +92,7 @@ class ItemMonitor(object):
 
 
 class ApiHandler(web.RequestHandler):
+    '''Processes API requests.'''
     def initialize(self, warrior=None, runner=None):
         self.warrior = warrior
         self.runner = runner
@@ -142,6 +146,7 @@ class ApiHandler(web.RequestHandler):
 
 
 class SeesawConnection(SocketConnection):
+    '''A WebSocket server that communicates the state of the warrior.'''
     instance_id = ("%d-%f" % (os.getpid(), random.random()))
 
     clients = set()
@@ -259,6 +264,11 @@ class SeesawConnection(SocketConnection):
 
 
 def start_runner_server(project, runner, bind_address="", port_number=8001, http_username=None, http_password=None):
+    '''Starts a web interface for a manually run pipeline.
+
+    Unlike :func:`start_warrior_server`, this UI does not contain an
+    configuration or project management panel.
+    '''
     if bind_address == "0.0.0.0":
         bind_address = ""
 
@@ -296,6 +306,7 @@ def start_runner_server(project, runner, bind_address="", port_number=8001, http
 
 
 def start_warrior_server(warrior, bind_address="", port_number=8001, http_username=None, http_password=None):
+    '''Starts the warrior web interface.'''
     SeesawConnection.warrior = warrior
 
     warrior.on_projects_loaded += SeesawConnection.handle_projects_loaded

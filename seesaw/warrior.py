@@ -1,3 +1,8 @@
+'''The warrior server.
+
+The warrior phones home to Warrior HQ
+(https://github.com/ArchiveTeam/warrior-hq).
+'''
 import json
 import subprocess
 import os
@@ -23,6 +28,7 @@ from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 
 
 class ConfigManager(object):
+    '''Manages the configuration.'''
     def __init__(self, config_file):
         self.config_file = config_file
         self.config_memory = {}
@@ -73,6 +79,7 @@ class ConfigManager(object):
 
 
 class BandwidthMonitor(object):
+    '''Extracts the bandwidth usage from the system stats.'''
     devre = re.compile(r"^\s*([a-z0-9]+):(.+)$")
 
     def __init__(self, device):
@@ -130,6 +137,7 @@ class BandwidthMonitor(object):
 
 
 class Warrior(object):
+    '''The warrior god object.'''
     def __init__(self, projects_dir, data_dir, warrior_hq_url, real_shutdown=False, keep_data=False):
         if not os.access(projects_dir, os.W_OK):
             raise Exception("Couldn't write to projects directory: %s" % projects_dir)

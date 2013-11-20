@@ -13,7 +13,7 @@ class RunPipelineTest(unittest.TestCase):
         subprocess.check_call([
             python_exe,
             './run-pipeline',
-            'example-pipeline.py',
+            './examples/example-pipeline.py',
             'testuser',
             '--max-items', '1',
             '--disable-web-server'
