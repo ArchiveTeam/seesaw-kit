@@ -109,10 +109,11 @@ class BandwidthMonitor(object):
         cur_stats = self._get_stats()
         if self.prev_stats != None and cur_stats != None:
             time_delta = cur_time - self.prev_time
-            self.bandwidth = [
-              (cur_stats[0] - self.prev_stats[0]) / time_delta,
-              (cur_stats[1] - self.prev_stats[1]) / time_delta,
-            ]
+            if time_delta:
+                self.bandwidth = [
+                  (cur_stats[0] - self.prev_stats[0]) / time_delta,
+                  (cur_stats[1] - self.prev_stats[1]) / time_delta,
+                ]
         self.prev_time = cur_time
         self.prev_stats = cur_stats
         return self.bandwidth
@@ -514,7 +515,10 @@ class Warrior(object):
 
         config_values = ConfigValue.stop_collecting()
 
-        return (local_context["project"], local_context["pipeline"], config_values)
+        project = local_context["project"]
+        pipeline = local_context["pipeline"]
+        pipeline.project = project
+        return (project, pipeline, config_values)
 
     @gen.engine
     def start_selected_project(self):

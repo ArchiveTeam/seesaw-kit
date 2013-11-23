@@ -27,7 +27,11 @@ def load_pipeline(pipeline_path, context):
         exec pipeline_str in local_context, global_context
     finally:
         os.chdir(curdir)
-    return (local_context["project"], local_context["pipeline"])
+
+    project = local_context["project"]
+    pipeline = local_context["pipeline"]
+    pipeline.project = project
+    return (project, pipeline)
 
 
 def check_downloader_or_exit(value, regex="^[-_a-zA-Z0-9]{3,30}$"):

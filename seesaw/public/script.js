@@ -353,7 +353,11 @@ $(function() {
 
     h3 = document.createElement('h3');
     $(h3).append($("<span>", { "class": 'twisty' }),
-                 $("<span>", { "class": 'name', text: item.name }),
+                 $("<span>", {
+                     "class": 'name',
+                     text: item.name,
+                     title: item.project,
+                 }),
                  $("<span>", { "class": 'status-line' }),
                  $("<span>", { "class": 'log-line' }));
     itemDiv.appendChild(h3);

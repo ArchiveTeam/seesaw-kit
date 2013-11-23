@@ -49,13 +49,18 @@ class ItemMonitor(object):
               "status": (item.task_status[task] if task in item.task_status else None)
             })
 
+        if self.pipeline.project:
+            project_name = self.pipeline.project.title
+        else:
+            project_name = None
         item_data = {
           "id": item.item_id,
           "name": ("Item %s" % item["item_name"] if "item_name" in item else "New item"),
           "number": item.item_number,
           "status": self.item_status(),
           "tasks": tasks,
-          "output": "".join(self.collected_data)
+          "output": "".join(self.collected_data),
+          "project": project_name
         }
 
         return item_data

@@ -24,6 +24,7 @@ class Pipeline(object):
         self.on_fail_item = Event()
         self.on_cancel_item = Event()
         self.on_finish_item = Event()
+        self.project = None
 
         self.items_in_pipeline = set()
         self.tasks = []
