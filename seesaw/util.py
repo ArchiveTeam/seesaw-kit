@@ -1,5 +1,8 @@
 '''Miscellaneous functions.'''
+import os
 import subprocess
+import time
+import base64
 
 
 def test_executable(name, version, path, version_arg="-V"):
@@ -46,3 +49,9 @@ def find_executable(name, version, paths, version_arg="-V"):
         if test_executable(name, version, path, version_arg):
             return path
     return None
+
+
+def unique_id_str():
+    '''Returns a unique string suitable for IDs.'''
+    rand_str = base64.b16encode(os.urandom(8)).lower()
+    return "{0}{1}".format(int(time.time()), rand_str)
