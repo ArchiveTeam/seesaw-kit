@@ -1,12 +1,13 @@
 '''Pipeline execution.'''
 import datetime
 import functools
-import sys
 import os.path
+import sys
 
+import seesaw.util
+from seesaw.config import realize
 from seesaw.event import Event
 from seesaw.item import Item
-from seesaw.config import realize
 
 from tornado import ioloop
 
@@ -94,8 +95,14 @@ class Runner(object):
             items_required = int(realize(self.concurrent_items))
             while len(self.active_items) < items_required:
                 self.item_count += 1
-                item_id = "%d-%d" % (id(self), self.item_count)
-                item = Item(pipeline=self.pipeline, item_id=item_id, item_number=self.item_count, keep_data=self.keep_data)
+                item_id = "{0}-{1}".format(
+                    seesaw.util.unique_id_str(), self.item_count)
+                item = Item(
+                    pipeline=self.pipeline,
+                    item_id=item_id,
+                    item_number=self.item_count,
+                    keep_data=self.keep_data
+                )
                 self.on_create_item(self, item)
                 self.active_items.add(item)
                 self.pipeline.enqueue(item)

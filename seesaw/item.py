@@ -46,7 +46,7 @@ class Item(object):
         self.prepare_data_directory()
 
     def prepare_data_directory(self):
-        dirname = os.path.join(self.pipeline.cwd, "data/%s" % self.item_id)
+        dirname = os.path.join(self.pipeline.data_dir, self.item_id)
         self["data_dir"] = dirname
         if os.path.isdir(dirname):
             shutil.rmtree(dirname)

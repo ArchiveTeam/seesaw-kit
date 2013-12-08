@@ -19,6 +19,7 @@ class Pipeline(object):
     '''
     def __init__(self, *tasks):
         self.cwd = os.getcwd()
+        self.data_dir = os.path.join(self.cwd, "data")
         self.on_start_item = Event()
         self.on_complete_item = Event()
         self.on_fail_item = Event()

@@ -1,5 +1,5 @@
 import unittest
-from seesaw.util import find_executable
+from seesaw.util import find_executable, unique_id_str
 import seesaw
 
 
@@ -19,3 +19,7 @@ class UtilTest(unittest.TestCase):
             ['./run-pipeline', '../run-pipeline'],
             version_arg='--version')
         )
+
+    def test_unique_id_str(self):
+        # check for no crash
+        self.assertTrue(unique_id_str())
