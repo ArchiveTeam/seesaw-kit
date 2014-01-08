@@ -14,7 +14,8 @@ from tornado import ioloop
 
 class Runner(object):
     '''Executes and manages the lifetime of :class:`Pipeline` instances.'''
-    def __init__(self, stop_file=None, concurrent_items=1, max_items=None, keep_data=False):
+    def __init__(self, stop_file=None, concurrent_items=1, max_items=None,
+    keep_data=False):
         self.pipeline = None
         self.concurrent_items = concurrent_items
         self.max_items = max_items
@@ -77,7 +78,8 @@ class Runner(object):
     def stop_file_changed(self):
         current_stop_file_mtime = self.stop_file_mtime()
         if current_stop_file_mtime:
-            return self.initial_stop_file_mtime == None or self.initial_stop_file_mtime < current_stop_file_mtime
+            return self.initial_stop_file_mtime == None \
+                or self.initial_stop_file_mtime < current_stop_file_mtime
         else:
             return False
 
@@ -89,11 +91,11 @@ class Runner(object):
 
     def add_items(self):
         if self.pipeline:
-            if self.max_items and self.max_items <= self.item_count:
-                return
-
             items_required = int(realize(self.concurrent_items))
             while len(self.active_items) < items_required:
+                if self.max_items and self.max_items <= self.item_count:
+                    return
+
                 self.item_count += 1
                 item_id = "{0}-{1}".format(
                     seesaw.util.unique_id_str(), self.item_count)
@@ -113,7 +115,11 @@ class Runner(object):
     def _item_finished(self, pipeline, item):
         if item.failed:
             item.log_output("Waiting 10 seconds...")
-            ioloop.IOLoop.instance().add_timeout(datetime.timedelta(seconds=10), functools.partial(self._item_finished_without_delay, pipeline, item))
+            ioloop.IOLoop.instance().add_timeout(
+                datetime.timedelta(seconds=10),
+                functools.partial(
+                    self._item_finished_without_delay, pipeline, item)
+            )
         else:
             self._item_finished_without_delay(pipeline, item)
 
@@ -121,15 +127,21 @@ class Runner(object):
         self.on_pipeline_finish_item(self, pipeline, item)
         self.active_items.remove(item)
         if not self.should_stop():
-            self.add_items()
+            ioloop.IOLoop.instance().add_timeout(
+                datetime.timedelta(),
+                self.add_items
+            )
         if len(self.active_items) == 0:
             self.on_finish(self)
 
 
 class SimpleRunner(Runner):
     '''Executes a single class:`Pipeline` instance.'''
-    def __init__(self, pipeline, stop_file=None, concurrent_items=1, max_items=None, keep_data=False):
-        Runner.__init__(self, stop_file=stop_file, concurrent_items=concurrent_items, max_items=max_items, keep_data=keep_data)
+    def __init__(self, pipeline, stop_file=None, concurrent_items=1,
+    max_items=None, keep_data=False):
+        Runner.__init__(self, stop_file=stop_file,
+            concurrent_items=concurrent_items, max_items=max_items,
+            keep_data=keep_data)
 
         self.set_current_pipeline(pipeline)
         self.on_create_item += self._handle_create_item
