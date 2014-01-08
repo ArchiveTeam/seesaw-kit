@@ -126,13 +126,18 @@ class Runner(object):
     def _item_finished_without_delay(self, pipeline, item):
         self.on_pipeline_finish_item(self, pipeline, item)
         self.active_items.remove(item)
-        if not self.should_stop():
-            ioloop.IOLoop.instance().add_timeout(
-                datetime.timedelta(),
-                self.add_items
-            )
-        if len(self.active_items) == 0:
-            self.on_finish(self)
+
+        def add_more_items():
+            if not self.should_stop():
+                self.add_items()
+
+            if len(self.active_items) == 0:
+                self.on_finish(self)
+
+        ioloop.IOLoop.instance().add_timeout(
+            datetime.timedelta(),
+            add_more_items
+        )
 
 
 class SimpleRunner(Runner):
