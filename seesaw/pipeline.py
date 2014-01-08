@@ -65,22 +65,38 @@ class Pipeline(object):
         self._fail_item(item)
 
     def _cancel_item(self, item):
-        item.cancel()
-        self.items_in_pipeline.remove(item)
-        self.on_cancel_item(self, item)
-        self.on_finish_item(self, item)
+        if item in self.items_in_pipeline:
+            item.cancel()
+            self.items_in_pipeline.remove(item)
+            self.on_cancel_item(self, item)
+            self.on_finish_item(self, item)
+        else:
+            # XXX: Reaching here indicates a programming problem.
+            # Refactoring is required.
+            item.log_output('Warning: Ignoring extra cancel event.\n' +
+                ''.join(traceback.format_stack()))
 
     def _complete_item(self, item):
-        item.complete()
-        self.items_in_pipeline.remove(item)
-        self.on_complete_item(self, item)
-        self.on_finish_item(self, item)
+        if item in self.items_in_pipeline:
+            item.complete()
+            self.items_in_pipeline.remove(item)
+            self.on_complete_item(self, item)
+            self.on_finish_item(self, item)
+        else:
+            # See comment above.
+            item.log_output('Warning: Ignoring extra complete event.\n' +
+                ''.join(traceback.format_stack()))
 
     def _fail_item(self, item):
-        item.fail()
-        self.items_in_pipeline.remove(item)
-        self.on_fail_item(self, item)
-        self.on_finish_item(self, item)
+        if item in self.items_in_pipeline:
+            item.fail()
+            self.items_in_pipeline.remove(item)
+            self.on_fail_item(self, item)
+            self.on_finish_item(self, item)
+        else:
+            # See comment above.
+            item.log_output('Warning: Ignoring extra fail event.\n' +
+                ''.join(traceback.format_stack()))
 
     def cancel_items(self):
         cancel_items = [item for item in self.items_in_pipeline if item.may_be_canceled]

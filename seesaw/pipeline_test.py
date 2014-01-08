@@ -1,7 +1,7 @@
 from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
-from seesaw.task import PrintItem
+from seesaw.task import PrintItem, SimpleTask
 from seesaw.test_base import BaseTestCase
 
 
@@ -71,4 +71,31 @@ class ExternalProcessTest(BaseTestCase):
 
         self.assertFalse(pipeline.has_failed)
         self.assertEqual(50, runner.item_count)
+        self.assertIOLoopOK()
+
+    def test_spurious_item_events(self):
+        class StupidTask(SimpleTask):
+            def __init__(self):
+                SimpleTask.__init__(self, "StupidTask")
+
+            def process(self, item):
+                item.log_output('Failing the item.')
+                self.fail_item(item)
+                item.log_output('Completing the item.')
+                self.complete_item(item)
+                item.log_output('Failing the item.')
+                self.fail_item(item)
+
+        pipeline = Pipeline(StupidTask())
+        pipeline.fail_count_test = 0
+
+        def fail_callback(task, item):
+            pipeline.fail_count_test += 1
+
+        pipeline.on_fail_item += fail_callback
+
+        runner = SimpleRunner(pipeline, max_items=1)
+        runner.start()
+
+        self.assertEqual(1, pipeline.fail_count_test)
         self.assertIOLoopOK()

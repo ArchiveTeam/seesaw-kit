@@ -81,6 +81,7 @@ class Item(object):
             self.on_task_status(self, task, status, old_status)
 
     def cancel(self):
+        assert not self.canceled
         self.clear_data_directory()
         self.canceled = True
         self.finished = True
@@ -88,6 +89,7 @@ class Item(object):
         self.on_finish(self)
 
     def complete(self):
+        assert not self.completed
         self.clear_data_directory()
         self.completed = True
         self.finished = True
@@ -95,6 +97,7 @@ class Item(object):
         self.on_finish(self)
 
     def fail(self):
+        assert not self.failed
         self.clear_data_directory()
         self.failed = True
         self.finished = True
