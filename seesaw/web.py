@@ -6,7 +6,7 @@ import os.path
 import time
 
 from tornado import web, ioloop
-from tornadio2 import SocketConnection, TornadioRouter, SocketServer
+from sockjs.tornado import SockJSConnection, SockJSRouter
 
 from seesaw.config import realize
 from seesaw.web_util import AuthenticatedApplication
@@ -150,7 +150,7 @@ class ApiHandler(web.RequestHandler):
             self.render("settings.html", warrior=self.warrior, posted_values={})
 
 
-class SeesawConnection(SocketConnection):
+class SeesawConnection(SockJSConnection):
     '''A WebSocket server that communicates the state of the warrior.'''
     instance_id = ("%d-%f" % (os.getpid(), random.random()))
 
@@ -284,7 +284,7 @@ def start_runner_server(project, runner, bind_address="", port_number=8001, http
     runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
     runner.on_status += SeesawConnection.handle_runner_status
 
-    router = TornadioRouter(SeesawConnection)
+    router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
       router.apply_routes([(r"/(.*\.(html|css|js|swf|png|ico))$",
@@ -307,7 +307,7 @@ def start_runner_server(project, runner, bind_address="", port_number=8001, http
       skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
     )
 
-    SocketServer(application, auto_start=False)
+    application.listen(port_number)
 
 
 def start_warrior_server(warrior, bind_address="", port_number=8001, http_username=None, http_password=None):
@@ -332,7 +332,7 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
 
     ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
 
-    router = TornadioRouter(SeesawConnection)
+    router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
       router.apply_routes([(r"/(.*\.(html|css|js|swf|png|ico))$",
@@ -354,4 +354,5 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
       auth_realm="ArchiveTeam Warrior",
       skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
     )
-    SocketServer(application, auto_start=False)
+
+    application.listen(port_number)
