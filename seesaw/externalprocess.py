@@ -83,7 +83,7 @@ class ExternalProcess(Task):
         self.process(item)
 
     def stdin_data(self, item):
-        return ""
+        return bytes("", "utf_8")
 
     def process(self, item):
         with self.task_cwd():
@@ -145,7 +145,7 @@ class WgetDownload(ExternalProcess):
         if self.stdin_data_function:
             return self.stdin_data_function(item)
         else:
-            return ""
+            return bytes("", "utf_8")
 
 
 class RsyncUpload(ExternalProcess):
@@ -174,7 +174,7 @@ class RsyncUpload(ExternalProcess):
         self.target_source_path = target_source_path
 
     def stdin_data(self, item):
-        return "".join(["%s\n" % os.path.relpath(realize(f, item), realize(self.target_source_path, item)) for f in self.files])
+        return bytes("".join(["%s\n" % os.path.relpath(realize(f, item), realize(self.target_source_path, item)) for f in self.files]), "utf_8")
 
 
 class CurlUpload(ExternalProcess):
