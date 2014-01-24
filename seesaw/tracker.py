@@ -90,7 +90,7 @@ class GetItemFromTracker(TrackerRequest):
     def process_body(self, body, item):
         data = json.loads(body)
         if "item_name" in data:
-            for (k, v) in data.iteritems():
+            for (k, v) in data.items():
                 item[k] = v
             item.log_output("Received item '%s' from tracker\n" % item["item_name"])
             self.complete_item(item)
@@ -127,7 +127,7 @@ class PrepareStatsForTracker(SimpleTask):
 
     def process(self, item):
         total_bytes = {}
-        for (group, files) in self.file_groups.iteritems():
+        for (group, files) in self.file_groups.items():
             total_bytes[group] = sum([os.path.getsize(realize(f, item)) for f in files])
 
         stats = {}

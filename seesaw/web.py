@@ -135,7 +135,7 @@ class ApiHandler(web.RequestHandler):
         elif command == "settings":
             success = True
             posted_values = {}
-            for (name, value) in self.request.arguments.iteritems():
+            for (name, value) in self.request.arguments.items():
                 if not self.warrior.config_manager.set_value(name, value[0]):
                     success = False
                     posted_values[name] = value[0]
@@ -166,7 +166,7 @@ class SeesawConnection(SockJSConnection):
         self.emit("instance_id", self.instance_id)
 
         items = []
-        for item_monitor in self.item_monitors.itervalues():
+        for item_monitor in self.item_monitors.values():
             items.append(item_monitor.item_for_broadcast())
 
         if self.project:
