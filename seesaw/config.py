@@ -18,7 +18,7 @@ def realize(v, item=None):
     '''
     if isinstance(v, dict):
         realized_dict = {}
-        for (key, value) in v.iteritems():
+        for (key, value) in v.items():
             realized_dict[key] = realize(value, item)
         return realized_dict
     elif isinstance(v, list):

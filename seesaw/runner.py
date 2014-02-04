@@ -56,14 +56,14 @@ class Runner(object):
         self.add_items()
 
     def stop_gracefully(self):
-        print "Stopping when current tasks are completed..."
+        print("Stopping when current tasks are completed...")
         self.stop_flag = True
         self.pipeline.cancel_items()
         self.initial_stop_file_mtime = self.stop_file_mtime()
         self.on_status(self, "stopping")
 
     def keep_running(self):
-        print "Keep running..."
+        print("Keep running...")
         self.stop_flag = False
         self.initial_stop_file_mtime = self.stop_file_mtime()
         self.on_status(self, "running")
@@ -160,7 +160,7 @@ class SimpleRunner(Runner):
         ioloop.IOLoop.instance().stop()
 
     def forced_stop(self):
-        print "Stopping immediately..."
+        print("Stopping immediately...")
         # TODO perhaps the subprocesses should be killed
         ioloop.IOLoop.instance().stop()
 

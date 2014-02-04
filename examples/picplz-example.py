@@ -6,9 +6,9 @@ VERSION = "20120603.01"
 
 downloader = "alard"
 
-execfile("picplz-example-pipeline.py")
+exec(compile(open("picplz-example-pipeline.py").read(), "picplz-example-pipeline.py", 'exec'))
 
-print pipeline
+print(pipeline)
 
 runner = SimpleRunner(pipeline, stop_file="STOP", concurrent_items=1)
 runner.start()
