@@ -1,16 +1,17 @@
 language: python
 python:
-  - "2.6"
-  - "2.7"
+#  - "2.6"
+#  - "2.7"
 # uncomment when python 3 is supported
-#  - "3.2"
-#  - "3.3"
+  - "3.2"
+  - "3.3"
 
 # command to install dependencies
 install: "pip install -r requirements.txt"
 
-before_script:
-  - "if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then 2to3 *.py run-pipeline run-warrior seesaw -n -w; fi"
+# Don't run automatically 2to3 on this branch because this branch is Python 3 only.
+#before_script:
+#  - "if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then 2to3 *.py run-pipeline run-#warrior seesaw -n -w; fi"
 
 # command to run tests
 script: nosetests
