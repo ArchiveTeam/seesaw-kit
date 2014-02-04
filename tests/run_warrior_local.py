@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 '''Runs the complete warrior system and the Mock HQ.'''
 import atexit
 import copy
