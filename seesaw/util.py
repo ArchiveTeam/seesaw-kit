@@ -21,7 +21,7 @@ def test_executable(name, version, path, version_arg="-V"):
             return False
 
         if isinstance(version, str):
-            if not version in result:
+            if not version.encode('utf-8') in result:
                 print("%s: Incorrect %s version (want %s)." % (path, name, version))
                 return False
         elif hasattr(version, "search"):

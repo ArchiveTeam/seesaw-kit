@@ -12,7 +12,7 @@ import sys
 import datetime
 import time
 import re
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from distutils.version import StrictVersion
 
 from tornado import ioloop
@@ -262,7 +262,7 @@ class Warrior(object):
                                       user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
                                       body=json.dumps({"warrior":{"version": seesaw.__version__}}))
             if response.code == 200:
-                data = json.loads(response.body)
+                data = json.loads(response.body.decode('utf-8'))
                 print("Received Warrior ID '%s'." % data["warrior_id"])
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
             else:
@@ -283,7 +283,7 @@ class Warrior(object):
                                     "selected_project": realize(self.selected_project_config_value)
                                   }}))
         if response.code == 200:
-            data = json.loads(response.body)
+            data = json.loads(response.body.decode('utf-8'))
 
             if StrictVersion(seesaw.__version__) < StrictVersion(data["warrior"]["seesaw_version"]):
                 # time for an update
