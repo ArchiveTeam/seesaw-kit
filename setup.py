@@ -39,8 +39,8 @@ package_data = {
 }
 
 scripts = [
-    'run-pipeline',
-    'run-warrior'
+    'run-pipeline3',
+    'run-warrior3'
 ]
 
 requires = [
