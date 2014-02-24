@@ -2,7 +2,6 @@ import cStringIO
 from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
-import unittest
 from seesaw.test_base import BaseTestCase
 
 

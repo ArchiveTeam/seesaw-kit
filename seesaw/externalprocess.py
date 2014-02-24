@@ -99,7 +99,14 @@ class ExternalProcess(Task):
 
             p.run()
 
-            p.stdin.write(self.stdin_data(item))
+            try:
+                p.stdin.write(self.stdin_data(item))
+            except IOError as error:
+                # FIXME: We need to properly propagate errors
+                # We're highly relying on the subprocess to return an error
+                # status code
+                item.log_output("Error writing to process: %s" % str(error))
+
             p.stdin.close()
 
     def on_subprocess_stdout(self, pipe, item, data):
