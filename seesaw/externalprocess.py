@@ -80,6 +80,7 @@ class ExternalProcess(Task):
         self.start_item(item)
         item.log_output("Starting %s for %s\n" % (self, item.description()))
         item["tries"] = 0
+        item["ExternalProcess.stdin_write_error"] = False
         self.process(item)
 
     def stdin_data(self, item):
@@ -99,14 +100,21 @@ class ExternalProcess(Task):
 
             p.run()
 
-            p.stdin.write(self.stdin_data(item))
+            try:
+                p.stdin.write(self.stdin_data(item))
+            except Exception as error:
+                # FIXME: We need to properly propagate errors
+                item.log_output("Error writing to process: %s" % str(error))
+                item["ExternalProcess.stdin_write_error"] = True
+
             p.stdin.close()
 
     def on_subprocess_stdout(self, pipe, item, data):
         item.log_output(data, full_line=False)
 
     def on_subprocess_end(self, item, returncode):
-        if returncode in self.accept_on_exit_code:
+        if returncode in self.accept_on_exit_code and \
+        not item["ExternalProcess.stdin_write_error"]:
             self.handle_process_result(returncode, item)
         else:
             self.handle_process_error(returncode, item)
@@ -118,13 +126,25 @@ class ExternalProcess(Task):
     def handle_process_error(self, exit_code, item):
         item["tries"] += 1
 
-        item.log_output("Process %s returned exit code %d for %s\n" % (self, exit_code, item.description()))
+        item.log_output("Process %s returned exit code %d for %s\n" %
+            (self, exit_code, item.description())
+        )
         item.log_error(self, exit_code)
 
-        if (self.max_tries == None or item["tries"] < self.max_tries) and (self.retry_on_exit_code == None or exit_code in self.retry_on_exit_code):
-            item.log_output("Retrying %s for %s after %d seconds...\n" % (self, item.description(), self.retry_delay))
-            IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
-                functools.partial(self.process, item))
+        retry_acceptable = self.max_tries == None or \
+            item["tries"] < self.max_tries
+        exit_status_indicates_retry = self.retry_on_exit_code == None or \
+            exit_code in self.retry_on_exit_code or \
+            item["ExternalProcess.stdin_write_error"]
+
+        if retry_acceptable and exit_status_indicates_retry:
+            item.log_output("Retrying %s for %s after %d seconds...\n" %
+                (self, item.description(), self.retry_delay)
+            )
+            IOLoop.instance().add_timeout(
+                datetime.timedelta(seconds=self.retry_delay),
+                functools.partial(self.process, item)
+            )
 
         else:
             item.log_output("Failed %s for %s\n" % (self, item.description()))

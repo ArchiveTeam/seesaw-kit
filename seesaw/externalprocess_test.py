@@ -2,7 +2,6 @@ import io
 from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
-import unittest
 from seesaw.test_base import BaseTestCase
 
 
@@ -27,7 +26,7 @@ class ExternalProcessUser(ExternalProcess):
 class ExternalProcessTest(BaseTestCase):
     def test_proc(self):
         external_process = ExternalProcessUser(
-            "Echo", ["python", "-c" "print('hello world!')"])
+            "Echo", ["python", "-c" "print('hello world!')"], max_tries=4)
         pipeline = Pipeline(external_process)
         pipeline.has_failed = None
 
@@ -80,3 +79,24 @@ class ExternalProcessTest(BaseTestCase):
         runner.start()
         self.assertTrue(pipeline.has_failed)
         self.assertIOLoopOK()
+
+    def test_proc_stdin_error(self):
+        external_process = ExternalProcessUser(
+            "Echo", ["python", "-c" "print('hello world!')"], max_tries=4)
+
+        external_process.stdin_data = lambda item: 123456
+
+        pipeline = Pipeline(external_process)
+        pipeline.has_failed = None
+
+        def fail_callback(task, item):
+            pipeline.has_failed = True
+
+        pipeline.on_fail_item += fail_callback
+
+        runner = SimpleRunner(pipeline, max_items=1)
+        runner.start()
+
+        self.assertTrue(pipeline.has_failed)
+        self.assertIOLoopOK()
+        self.assertEqual(4, external_process.exit_count)
