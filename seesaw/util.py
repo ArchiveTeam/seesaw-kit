@@ -53,5 +53,5 @@ def find_executable(name, version, paths, version_arg="-V"):
 
 def unique_id_str():
     '''Returns a unique string suitable for IDs.'''
-    rand_str = base64.b16encode(os.urandom(8)).lower()
+    rand_str = base64.b16encode(os.urandom(8)).decode('ascii').lower()
     return "{0}{1}".format(int(time.time()), rand_str)
