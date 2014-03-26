@@ -155,6 +155,7 @@ class SimpleRunner(Runner):
     def start(self):
         Runner.start(self)
         ioloop.IOLoop.instance().start()
+        self.pipeline.on_cleanup()
 
     def _stop_ioloop(self, ignored):
         ioloop.IOLoop.instance().stop()
