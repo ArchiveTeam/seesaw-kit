@@ -30,8 +30,8 @@ def main():
         '--projects-dir', temp_dir,
         '--data-dir', temp_dir,
         '--address', 'localhost',
-        '--port', '9081',
-        '--warrior-hq', 'http://localhost:8081/',
+        '--port', '8688',
+        '--warrior-hq', 'http://localhost:8681/',
         ],
         env=env
     )
