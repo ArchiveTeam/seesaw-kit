@@ -169,4 +169,7 @@ class SimpleRunner(Runner):
         item.on_output += self._handle_item_output
 
     def _handle_item_output(self, item, data):
-        sys.stdout.write(data)
+        try:
+            sys.stdout.write(data)
+        except UnicodeError:
+            sys.stdout.write(data.encode('ascii', 'replace'))
