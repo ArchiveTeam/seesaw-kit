@@ -76,10 +76,7 @@ class ItemMonitor(object):
             return "running"
 
     def handle_item_output(self, item, data):
-        text = data.decode('utf8', 'replace')
-
-        self.collected_data.append(text)
-        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": text})
+        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": data})
 
     def handle_item_task_status(self, item, task, new_status, old_status):
         SeesawConnection.broadcast("item.task_status", {"item_id": item.item_id, "task_id": id(task), "new_status": new_status, "old_status": old_status})
