@@ -104,7 +104,7 @@ class ExternalProcessTest(BaseTestCase):
 
     def test_proc_utf8(self):
         external_process = ExternalProcessUser(
-            "Echo", ["python", "-c", u"print(u'hello world!áßðfáßðf')"],
+            "Echo", ["python", "-c", "print(u'hello world!áßðfáßðf')"],
         )
 
         pipeline = Pipeline(external_process)
