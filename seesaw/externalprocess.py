@@ -74,7 +74,10 @@ class ExternalProcess(Task):
         self.retry_delay = retry_delay
         self.accept_on_exit_code = accept_on_exit_code
         self.retry_on_exit_code = retry_on_exit_code
-        self.env = env
+        self.env = env or {}
+
+        if 'PYTHONIOENCODING' not in self.env:
+            self.env['PYTHONIOENCODING'] = 'utf8:replace'
 
     def enqueue(self, item):
         self.start_item(item)

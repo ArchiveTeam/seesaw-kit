@@ -1,3 +1,4 @@
+# encoding=utf8
 import cStringIO
 from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
@@ -26,7 +27,7 @@ class ExternalProcessUser(ExternalProcess):
 class ExternalProcessTest(BaseTestCase):
     def test_proc(self):
         external_process = ExternalProcessUser(
-            "Echo", ["python", "-c" "print('hello world!')"], max_tries=4)
+            "Echo", ["python", "-c", "print('hello world!')"], max_tries=4)
         pipeline = Pipeline(external_process)
         pipeline.has_failed = None
 
@@ -100,3 +101,22 @@ class ExternalProcessTest(BaseTestCase):
         self.assertTrue(pipeline.has_failed)
         self.assertIOLoopOK()
         self.assertEqual(4, external_process.exit_count)
+
+    def test_proc_utf8(self):
+        external_process = ExternalProcessUser(
+            "Echo", ["python", "-c", u"print(u'hello world!áßðfáßðf')"],
+        )
+
+        pipeline = Pipeline(external_process)
+        pipeline.has_failed = None
+
+        def fail_callback(task, item):
+            pipeline.has_failed = True
+
+        pipeline.on_fail_item += fail_callback
+
+        runner = SimpleRunner(pipeline, max_items=1)
+        runner.start()
+
+        self.assertFalse(pipeline.has_failed)
+        self.assertIOLoopOK()
