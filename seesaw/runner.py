@@ -172,3 +172,4 @@ class SimpleRunner(Runner):
             sys.stdout.write(data)
         except UnicodeError:
             sys.stdout.write(data.encode('ascii', 'replace'))
+        sys.stdout.flush()
