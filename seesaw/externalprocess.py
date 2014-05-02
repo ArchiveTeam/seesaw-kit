@@ -173,7 +173,8 @@ class WgetDownload(ExternalProcess):
 
 class RsyncUpload(ExternalProcess):
     '''Upload with Rsync process runner.'''
-    def __init__(self, target, files, target_source_path="./", bwlimit="0", max_tries=None, extra_args=[]):
+    def __init__(self, target, files, target_source_path="./", bwlimit="0",
+    max_tries=None, extra_args=[]):
         args = [
           "rsync",
           "-avz",
@@ -197,7 +198,16 @@ class RsyncUpload(ExternalProcess):
         self.target_source_path = target_source_path
 
     def stdin_data(self, item):
-        return bytes("".join(["%s\n" % os.path.relpath(realize(f, item), realize(self.target_source_path, item)) for f in self.files]), "utf_8")
+        return bytes(
+            "".join([
+                "%s\n" % os.path.relpath(
+                    realize(f, item),
+                    realize(self.target_source_path, item)
+                )
+                for f in realize(self.files, item)
+            ]),
+            "utf_8"
+        )
 
 
 class CurlUpload(ExternalProcess):
