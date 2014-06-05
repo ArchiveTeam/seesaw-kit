@@ -409,7 +409,7 @@ table.time-left td span {
   white-space: pre-wrap;
 }
 
-#settings-header {
+#settings-header, #help-header {
   position: relative;
   height: 60px;
   background: #fff;
@@ -462,6 +462,16 @@ table.time-left td span {
 #settings #settings-saving {
   display: none;
   padding-left: 10px;
+}
+
+#help {
+  background: #fff;
+  border-radius: 5px;
+  margin: 10px;
+  padding: 5px;
+}
+#help li, #help p, #help h3, #help ul {
+  margin: 0.2em;
 }
 
 .button-link {

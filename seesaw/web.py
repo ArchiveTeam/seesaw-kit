@@ -148,6 +148,8 @@ class ApiHandler(web.RequestHandler):
             self.render("all-projects.html", warrior=self.warrior, realize=realize)
         elif command == "settings":
             self.render("settings.html", warrior=self.warrior, posted_values={})
+        elif command == "help":
+            self.render("help.html", warrior=self.warrior)
 
 
 class SeesawConnection(SockJSConnection):
