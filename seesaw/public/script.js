@@ -212,6 +212,10 @@ $(function() {
     $('#settings-list').load('/api/settings');
   }
 
+  function reloadHelpTab() {
+    $('#help').load('/api/help')
+  }
+
   var warriorStatus = {
     'NO_PROJECT': ['The warrior is idle. Select a project.', 'Shut down', '/api/stop'],
     'INVALID_SETTINGS': ['You must configure the warrior.', 'Shut down', '/api/stop'],
@@ -542,6 +546,8 @@ $(function() {
       reloadProjectsTab();
     else if (view=='view-settings')
       reloadSettingsTab();
+    else if (view=='view-help')
+      reloadHelpTab();
   }
 
   $('#tabs').click(function(e) {
