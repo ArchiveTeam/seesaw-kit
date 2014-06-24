@@ -469,6 +469,7 @@ table.time-left td span {
   border-radius: 5px;
   margin: 10px;
   padding: 5px;
+  font-size: 110%;
 }
 #help li, #help p, #help h3, #help ul {
   margin: 0.2em;
