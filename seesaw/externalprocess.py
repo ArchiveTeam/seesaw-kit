@@ -203,7 +203,7 @@ class RsyncUpload(ExternalProcess):
                 realize(f, item),
                 realize(self.target_source_path, item)
             )
-            for f in realize(self.files)
+            for f in realize(self.files, item)
         ])
 
 
