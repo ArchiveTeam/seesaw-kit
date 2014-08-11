@@ -185,14 +185,16 @@ class UploadWithTracker(TrackerRequest):
 
                 if len(self.files) != 1:
                     item.log_output("Curl expects to upload a single file.")
-                    self.fail_item(item)
+                    item.log_output("Contact a tracker admin!")
+                    self.schedule_retry(item)
                     return
 
                 inner_task = CurlUpload(data["upload_target"], self.files[0], self.curl_connect_timeout, self.curl_speed_limit, self.curl_speed_time, max_tries=1)
 
             else:
                 item.log_output("Received invalid upload type.")
-                self.fail_item(item)
+                item.log_output("Contact a tracker admin!")
+                self.schedule_retry(item)
                 return
 
             inner_task.on_complete_item += self._inner_task_complete_item
