@@ -1,15 +1,17 @@
 '''The warrior web interface.'''
-import random
-import re
+import json
 import os
 import os.path
+import random
+import re
 import time
 
-from tornado import web, ioloop
 from sockjs.tornado import SockJSConnection, SockJSRouter
+from tornado import web, ioloop
 
 from seesaw.config import realize
 from seesaw.web_util import AuthenticatedApplication
+
 
 PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
@@ -77,7 +79,7 @@ class ItemMonitor(object):
 
     def handle_item_output(self, item, data):
         self.collected_data.append(data)
-        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": text})
+        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": data})
 
     def handle_item_task_status(self, item, task, new_status, old_status):
         SeesawConnection.broadcast("item.task_status", {"item_id": item.item_id, "task_id": id(task), "new_status": new_status, "old_status": old_status})
@@ -136,6 +138,8 @@ class ApiHandler(web.RequestHandler):
             success = True
             posted_values = {}
             for (name, value) in self.request.arguments.items():
+                value[0] = value[0].decode('utf8', 'replace')
+
                 if not self.warrior.config_manager.set_value(name, value[0]):
                     success = False
                     posted_values[name] = value[0]
@@ -162,6 +166,10 @@ class SeesawConnection(SockJSConnection):
     warrior = None
     project = None
     runner = None
+
+    def emit(self, event_name, message):
+        '''tornadoio to sockjs adapter.'''
+        self.send(json.dumps({'event_name': event_name, 'message': message}))
 
     def on_open(self, info):
         self.clients.add(self)
