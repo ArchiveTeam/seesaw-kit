@@ -61,7 +61,7 @@ $(function() {
   });
 
   registerEvent('warrior.project_installed', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var projectLi = $('#project-' + msg.project.name);
     projectLi.removeClass('installing');

@@ -362,7 +362,7 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
             (realize(http_username) or "").strip() in ["", username]
           ),
       auth_realm="ArchiveTeam Warrior",
-      skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
+      skip_auth=[tornado_url[0] for tornado_url in router.urls]
     )
 
     application.listen(port_number)
