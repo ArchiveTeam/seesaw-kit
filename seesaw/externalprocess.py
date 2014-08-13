@@ -87,7 +87,7 @@ class ExternalProcess(Task):
         self.process(item)
 
     def stdin_data(self, item):
-        return bytes("", "utf_8")
+        return b""
 
     def process(self, item):
         with self.task_cwd():
@@ -168,7 +168,7 @@ class WgetDownload(ExternalProcess):
         if self.stdin_data_function:
             return self.stdin_data_function(item)
         else:
-            return bytes("", "utf_8")
+            return b""
 
 
 class RsyncUpload(ExternalProcess):

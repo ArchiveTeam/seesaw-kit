@@ -2,7 +2,12 @@ import base64
 import re
 
 import tornado
-import collections
+
+
+try:
+    callable
+except NameError:
+    from seesaw.six import callable
 
 
 class AuthenticationErrorHandler(tornado.web.RequestHandler):
@@ -24,7 +29,7 @@ class AuthenticatedApplication(tornado.web.Application):
         self.skip_auth = [re.compile(pattern) for pattern in kwargs.get("skip_auth", [])]
 
     def __call__(self, request):
-        if not self.auth_enabled or (isinstance(self.auth_enabled, collections.Callable) and not self.auth_enabled()):
+        if not self.auth_enabled or (callable(self.auth_enabled) and not self.auth_enabled()):
             return super(AuthenticatedApplication, self).__call__(request)
 
         for pattern in self.skip_auth:

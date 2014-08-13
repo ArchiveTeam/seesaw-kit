@@ -3,28 +3,40 @@
 The warrior phones home to Warrior HQ
 (https://github.com/ArchiveTeam/warrior-hq).
 '''
+import datetime
+from distutils.version import StrictVersion
 import json
-import subprocess
 import os
 import os.path
-import shutil
-import sys
-import datetime
-import time
 import re
-from collections import OrderedDict
-from distutils.version import StrictVersion
+import shutil
+import subprocess
+import sys
+import time
 
-from tornado import ioloop
 from tornado import gen
+from tornado import ioloop
 from tornado.httpclient import AsyncHTTPClient
 
 import seesaw
+from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
+from seesaw.config import realize
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen
 from seesaw.runner import Runner
-from seesaw.config import realize
-from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
+import seesaw.six
+
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
+
+if seesaw.six.PY2:
+    bigint = long  # @UndefinedVariable  pylint: disable=undefined-variable
+else:
+    bigint = int
 
 
 class ConfigManager(object):
@@ -125,8 +137,8 @@ class BandwidthMonitor(object):
             m = self.devre.match(line)
             if m and m.group(1) == self.device:
                 fields = m.group(2).split()
-                received = int(fields[0])
-                sent = int(fields[8])
+                received = bigint(fields[0])
+                sent = bigint(fields[8])
                 if self._prev_received > received:
                     self._overflow_received += 2 ** 32
                 self._prev_received = received

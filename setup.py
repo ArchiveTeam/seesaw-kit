@@ -45,6 +45,9 @@ requires = [
     'sockjs-tornado',
 ]
 
+if sys.version_info < (2, 7):
+    requires.append('ordereddict')
+
 setup(
     name='seesaw',
     version=seesaw.__version__,

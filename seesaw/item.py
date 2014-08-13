@@ -1,10 +1,11 @@
 '''Managing work units.'''
-import traceback
 import os
 import os.path
 import shutil
+import traceback
 
 from seesaw.event import Event
+import seesaw.six
 
 
 class Item(object):
@@ -59,6 +60,12 @@ class Item(object):
                 shutil.rmtree(dirname)
 
     def log_output(self, data, full_line=True):
+        if isinstance(data, seesaw.six.binary_type):
+            try:
+                data = data.decode('utf8', 'replace')
+            except UnicodeError:
+                data = data.decode('ascii', 'replace')
+
         if full_line and len(data) > 0:
             if data[0] != "\n" and len(self._last_output) > 0 and self._last_output[-1] != "\n":
                 data = "\n" + data
