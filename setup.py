@@ -12,12 +12,12 @@ except ImportError:
 
 
 packages = [
-    'seesaw'
+    'seesaw',
+    'seesaw.script',
 ]
 
 package_dir = {
     'seesaw': 'seesaw',
-    'seesaw.script': 'seesaw.script'
 }
 
 package_data = {
@@ -32,12 +32,14 @@ package_data = {
 if sys.version_info[0] == 3:
     scripts = [
         'run-pipeline3',
-        'run-warrior3'
+        'run-warrior3',
     ]
 else:
     scripts = [
         'run-pipeline',
-        'run-warrior'
+        'run-warrior',
+        'run-pipeline2',
+        'run-warrior2',
     ]
 
 requires = [
