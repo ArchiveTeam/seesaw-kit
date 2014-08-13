@@ -14,6 +14,3 @@ install: "pip install -r requirements.txt"
 script: PYTHONIOENCODING=ascii nosetests
 
 
-branches:
-  except:
-    - topic/six
