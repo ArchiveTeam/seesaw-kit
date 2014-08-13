@@ -492,7 +492,7 @@ class Warrior(object):
             args=["git", "log", "-1", "--pretty=%h"],
             cwd=project_path,
             stdout=subprocess.PIPE
-        ).communicate()[0].strip()
+        ).communicate()[0].strip().decode('ascii')
 
         project_versioned_path = os.path.join(self.data_dir, "projects", "%s-%s" % (project_name, version_string))
         if not os.path.exists(project_versioned_path):
