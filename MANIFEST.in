@@ -2,3 +2,4 @@ include README.md *.txt seesaw/public/index.html seesaw/public/*.js seesaw/publi
 recursive-include doc *.py *.rst Makefile *.bat
 recursive-include tests *.py
 recursive-include examples *.py
+recursive-include seesaw *.py
