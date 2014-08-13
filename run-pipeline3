@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys
 import os.path
 import re
@@ -24,7 +24,7 @@ def load_pipeline(pipeline_path, context):
     curdir = os.getcwd()
     try:
         os.chdir(dirname)
-        exec pipeline_str in local_context, global_context
+        exec(pipeline_str, local_context, global_context)
     finally:
         os.chdir(curdir)
 
@@ -95,18 +95,18 @@ def main():
 
     (project, pipeline) = load_pipeline(args.pipeline, context)
 
-    print "*" * 74
-    print "*%-072s*" % " "
-    print "*%-072s*" % ("   ArchiveTeam Seesaw kit - %s" % seesaw.__version__)
-    print "*%-072s*" % " "
-    print "*" * 74
-    print
-    print "Initializing pipeline for '%s'" % (project.title)
-    print
-    print pipeline
-    print
-    print "-" * 74
-    print
+    print("*" * 74)
+    print("*%-072s*" % " ")
+    print("*%-072s*" % ("   ArchiveTeam Seesaw kit - %s" % seesaw.__version__))
+    print("*%-072s*" % " ")
+    print("*" * 74)
+    print()
+    print("Initializing pipeline for '%s'" % (project.title))
+    print()
+    print(pipeline)
+    print()
+    print("-" * 74)
+    print()
 
     runner = SimpleRunner(
         pipeline,
@@ -116,18 +116,18 @@ def main():
         keep_data=args.keep_data)
 
     if args.enable_web_server:
-        print "Starting the web interface on %s:%d..." % (args.address, args.port_number)
-        print
-        print "-" * 74
-        print
+        print("Starting the web interface on %s:%d..." % (args.address, args.port_number))
+        print()
+        print("-" * 74)
+        print()
         start_runner_server(project, runner,
                             bind_address=args.address,
                             port_number=args.port_number,
                             http_username=args.http_username,
                             http_password=args.http_password)
 
-    print "Run 'touch %s' to stop downloading." % args.stop_file
-    print
+    print("Run 'touch %s' to stop downloading." % args.stop_file)
+    print()
     runner.start()
 
 

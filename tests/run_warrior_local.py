@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 '''Runs the complete warrior system and the Mock HQ.'''
 import atexit
 import copy
@@ -21,12 +21,12 @@ def main():
     atexit.register(cleanup)
 
     web_process = subprocess.Popen([
-        'python', os.path.join(this_dir, 'hq_mock.py'),
+        'python3', os.path.join(this_dir, 'hq_mock.py'),
         ],
     )
 
     subprocess.check_call([
-        os.path.join(root_dir, './run-warrior'),
+        os.path.join(root_dir, './run-warrior3'),
         '--projects-dir', temp_dir,
         '--data-dir', temp_dir,
         '--address', 'localhost',

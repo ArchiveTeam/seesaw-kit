@@ -8,7 +8,7 @@ class UtilTest(unittest.TestCase):
         self.assertTrue(find_executable(
             'pipeline runner',
             seesaw.__version__,
-            ['./run-pipeline', '../run-pipeline'],
+            ['./run-pipeline3', '../run-pipeline3'],
             version_arg='--version')
         )
 
@@ -16,7 +16,7 @@ class UtilTest(unittest.TestCase):
         self.assertFalse(find_executable(
             'pipeline runner',
             '123-notrealversion',
-            ['./run-pipeline', '../run-pipeline'],
+            ['./run-pipeline3', '../run-pipeline3'],
             version_arg='--version')
         )
 

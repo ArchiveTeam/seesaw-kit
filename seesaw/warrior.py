@@ -12,7 +12,7 @@ import sys
 import datetime
 import time
 import re
-from ordereddict import OrderedDict
+from collections import OrderedDict
 from distutils.version import StrictVersion
 
 from tornado import ioloop
@@ -64,7 +64,7 @@ class ConfigManager(object):
         try:
             with open(self.config_file) as f:
                 self.config_memory = json.load(f)
-        except Exception, e:
+        except Exception as e:
             self.config_memory = {}
 
     def save(self):
@@ -72,7 +72,7 @@ class ConfigManager(object):
             json.dump(self.config_memory, f)
 
     def __iter__(self):
-        return self.config_values.itervalues()
+        return iter(self.config_values.values())
 
     def editable_values(self):
         return [v for v in self if v.editable]
@@ -125,8 +125,8 @@ class BandwidthMonitor(object):
             m = self.devre.match(line)
             if m and m.group(1) == self.device:
                 fields = m.group(2).split()
-                received = long(fields[0])
-                sent = long(fields[8])
+                received = int(fields[0])
+                sent = int(fields[8])
                 if self._prev_received > received:
                     self._overflow_received += 2 ** 32
                 self._prev_received = received
@@ -152,7 +152,7 @@ class Warrior(object):
         self.keep_data = keep_data
 
         # disable the password prompts
-        self.gitenv = dict(os.environ.items() + { 'GIT_ASKPASS': 'echo', 'SSH_ASKPASS': 'echo' }.items())
+        self.gitenv = dict(list(os.environ.items()) + list({ 'GIT_ASKPASS': 'echo', 'SSH_ASKPASS': 'echo' }.items()))
 
         self.warrior_id = StringConfigValue(
           name="warrior_id",
@@ -262,14 +262,14 @@ class Warrior(object):
                                       user_agent=("ArchiveTeam Warrior/%s" % seesaw.__version__),
                                       body=json.dumps({"warrior":{"version": seesaw.__version__}}))
             if response.code == 200:
-                data = json.loads(response.body)
-                print "Received Warrior ID '%s'." % data["warrior_id"]
+                data = json.loads(response.body.decode('utf-8'))
+                print("Received Warrior ID '%s'." % data["warrior_id"])
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
             else:
-                print "HTTP error %s" % (response.code)
+                print("HTTP error %s" % (response.code))
                 return
         else:
-            print "Warrior ID '%s'." % realize(self.warrior_id)
+            print("Warrior ID '%s'." % realize(self.warrior_id))
 
         response = yield gen.Task(self.http_client.fetch,
                                   os.path.join(self.warrior_hq_url, "api/update.json"),
@@ -283,11 +283,11 @@ class Warrior(object):
                                     "selected_project": realize(self.selected_project_config_value)
                                   }}))
         if response.code == 200:
-            data = json.loads(response.body)
+            data = json.loads(response.body.decode('utf-8'))
 
             if StrictVersion(seesaw.__version__) < StrictVersion(data["warrior"]["seesaw_version"]):
                 # time for an update
-                print "Reboot for Seesaw update."
+                print("Reboot for Seesaw update.")
                 self.reboot_gracefully()
 
                 # schedule a forced reboot after two days
@@ -296,7 +296,7 @@ class Warrior(object):
 
             projects_list = data["projects"]
             self.projects = OrderedDict([ (project["name"], project) for project in projects_list ])
-            for project_data in self.projects.itervalues():
+            for project_data in self.projects.values():
                 if "deadline" in project_data:
                     project_data["deadline_int"] = time.mktime(time.strptime(project_data["deadline"], "%Y-%m-%dT%H:%M:%SZ"))
 
@@ -318,7 +318,7 @@ class Warrior(object):
             self.on_projects_loaded(self, self.projects)
 
         else:
-            print "HTTP error %s" % (response.code)
+            print("HTTP error %s" % (response.code))
 
     @gen.engine
     def install_project(self, project_name, callback=None):
@@ -509,7 +509,7 @@ class Warrior(object):
         curdir = os.getcwd()
         try:
             os.chdir(dirname)
-            exec pipeline_str in local_context, global_context
+            exec(pipeline_str, local_context, global_context)
         finally:
             os.chdir(curdir)
 
@@ -605,7 +605,7 @@ class Warrior(object):
     def max_age_reached(self):
         if self.real_shutdown:
             # time for an sanity reboot
-            print "Running for more than 7 days. Time to schedule a reboot."
+            print("Running for more than 7 days. Time to schedule a reboot.")
             self.reboot_gracefully()
 
             # schedule a forced reboot after two days
@@ -627,7 +627,7 @@ class Warrior(object):
             self.forced_reboot_timeout = ioloop.IOLoop.instance().add_timeout(datetime.timedelta(days=2), self.forced_reboot)
 
     def forced_reboot(self):
-        print "Stopping immediately..."
+        print("Stopping immediately...")
         if self.real_shutdown:
             os.system("sudo shutdown -r now")
 
