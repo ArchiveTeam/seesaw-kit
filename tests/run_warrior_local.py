@@ -21,7 +21,7 @@ def main():
     atexit.register(cleanup)
 
     web_process = subprocess.Popen([
-        'python3', os.path.join(this_dir, 'hq_mock.py'),
+        os.environ.get('PYTHON_BIN', 'python3'), os.path.join(this_dir, 'hq_mock.py'),
         ],
     )
 
