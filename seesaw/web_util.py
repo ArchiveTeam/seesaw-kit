@@ -4,6 +4,12 @@ import re
 import tornado
 
 
+try:
+    callable
+except NameError:
+    from seesaw.six import callable
+
+
 class AuthenticationErrorHandler(tornado.web.RequestHandler):
     def initialize(self, realm="Restricted"):
         self.realm = realm

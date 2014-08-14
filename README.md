@@ -11,7 +11,7 @@ This toolkit is well-known for [Archive Team projects](http://archiveteam.org). 
 Installation
 ------------
 
-Requires Python 2.6 or 2.7. Python 3 is not yet supported.
+Requires Python 3. Python 2 is not supported in this branch.
 
 Needs the Tornado library for event-driven I/O. The complete list of Python modules needed are listed in requirements.txt.
 
@@ -21,9 +21,9 @@ How to try it out
 
 To run the example pipeline:
 
-    sudo pip install -r requirements.txt
-    ./run-pipeline --help
-    ./run-pipeline examples/example-pipeline.py someone
+    sudo pip3 install -r requirements.txt
+    ./run-pipeline3 --help
+    ./run-pipeline3 examples/example-pipeline.py someone
 
 Point your browser to `http://127.0.0.1:8001/`.
 

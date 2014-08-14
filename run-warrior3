@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+import sys
+
+from seesaw.script.run_warrior import main
+import seesaw.six
+
+
+if __name__ == '__main__':
+    if not seesaw.six.PY3:
+        raise Exception('This script expected Python 3 but got {0}.'
+                        .format(sys.version))
+
+    main()

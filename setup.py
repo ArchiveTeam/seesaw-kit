@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-
-"""
-distutils/setuptools install script. See inline comments for packaging documentation.
-"""
-
-import os
 import sys
 
 import seesaw
@@ -12,21 +6,18 @@ import seesaw
 try:
     from setuptools import setup
     # hush pyflakes
-    setup
+    setup  # pylint: disable=pointless-statement
 except ImportError:
     from distutils.core import setup
 
-try:
-    from distutils.command.build_py import build_py_2to3 as build_py
-except ImportError:
-    from distutils.command.build_py import build_py
 
 packages = [
-    'seesaw'
+    'seesaw',
+    'seesaw.script',
 ]
 
 package_dir = {
-    'seesaw': 'seesaw'
+    'seesaw': 'seesaw',
 }
 
 package_data = {
@@ -38,17 +29,26 @@ package_data = {
     ]
 }
 
-scripts = [
-    'run-pipeline',
-    'run-warrior'
-]
+if sys.version_info[0] == 3:
+    scripts = [
+        'run-pipeline3',
+        'run-warrior3',
+    ]
+else:
+    scripts = [
+        'run-pipeline',
+        'run-warrior',
+        'run-pipeline2',
+        'run-warrior2',
+    ]
 
 requires = [
-    'argparse',
-    'ordereddict',
     'Tornado>=2.3',
-    'tornadio2>=0.0.3'
+    'sockjs-tornado',
 ]
+
+if sys.version_info < (2, 7):
+    requires.append('ordereddict')
 
 setup(
     name='seesaw',
@@ -56,7 +56,7 @@ setup(
     maintainer='ArchiveTeam',
     maintainer_email='warrior@archiveteam.org',
     description='ArchiveTeam seesaw kit',
-    long_description=open('README.md', 'rt').read(),
+    long_description=open('README.md', 'r').read(),
     url='http://www.archiveteam.org/',
     packages=packages,
     package_dir=package_dir,
@@ -64,5 +64,4 @@ setup(
     include_package_data=True,
     scripts=scripts,
     install_requires=requires,
-    cmdclass={'build_py': build_py}
 )

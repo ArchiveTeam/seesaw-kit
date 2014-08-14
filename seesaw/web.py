@@ -1,15 +1,17 @@
 '''The warrior web interface.'''
-import random
-import re
+import json
 import os
 import os.path
+import random
+import re
 import time
 
+from sockjs.tornado import SockJSConnection, SockJSRouter
 from tornado import web, ioloop
-from tornadio2 import SocketConnection, TornadioRouter, SocketServer
 
 from seesaw.config import realize
 from seesaw.web_util import AuthenticatedApplication
+
 
 PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
@@ -76,10 +78,8 @@ class ItemMonitor(object):
             return "running"
 
     def handle_item_output(self, item, data):
-        text = data.decode('utf8', 'replace')
-
-        self.collected_data.append(text)
-        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": text})
+        self.collected_data.append(data)
+        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": data})
 
     def handle_item_task_status(self, item, task, new_status, old_status):
         SeesawConnection.broadcast("item.task_status", {"item_id": item.item_id, "task_id": id(task), "new_status": new_status, "old_status": old_status})
@@ -137,7 +137,9 @@ class ApiHandler(web.RequestHandler):
         elif command == "settings":
             success = True
             posted_values = {}
-            for (name, value) in self.request.arguments.iteritems():
+            for (name, value) in self.request.arguments.items():
+                value[0] = value[0].decode('utf8', 'replace')
+
                 if not self.warrior.config_manager.set_value(name, value[0]):
                     success = False
                     posted_values[name] = value[0]
@@ -154,7 +156,7 @@ class ApiHandler(web.RequestHandler):
             self.render("help.html", warrior=self.warrior)
 
 
-class SeesawConnection(SocketConnection):
+class SeesawConnection(SockJSConnection):
     '''A WebSocket server that communicates the state of the warrior.'''
     instance_id = ("%d-%f" % (os.getpid(), random.random()))
 
@@ -165,12 +167,16 @@ class SeesawConnection(SocketConnection):
     project = None
     runner = None
 
+    def emit(self, event_name, message):
+        '''tornadoio to sockjs adapter.'''
+        self.send(json.dumps({'event_name': event_name, 'message': message}))
+
     def on_open(self, info):
         self.clients.add(self)
         self.emit("instance_id", self.instance_id)
 
         items = []
-        for item_monitor in self.item_monitors.itervalues():
+        for item_monitor in self.item_monitors.values():
             items.append(item_monitor.item_for_broadcast())
 
         if self.project:
@@ -288,7 +294,7 @@ def start_runner_server(project, runner, bind_address="", port_number=8001, http
     runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
     runner.on_status += SeesawConnection.handle_runner_status
 
-    router = TornadioRouter(SeesawConnection)
+    router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
       router.apply_routes([(r"/(.*\.(html|css|js|swf|png|ico))$",
@@ -311,7 +317,7 @@ def start_runner_server(project, runner, bind_address="", port_number=8001, http
       skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
     )
 
-    SocketServer(application, auto_start=False)
+    application.listen(port_number)
 
 
 def start_warrior_server(warrior, bind_address="", port_number=8001, http_username=None, http_password=None):
@@ -336,7 +342,7 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
 
     ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
 
-    router = TornadioRouter(SeesawConnection)
+    router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
       router.apply_routes([(r"/(.*\.(html|css|js|swf|png|ico))$",
@@ -356,6 +362,7 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
             (realize(http_username) or "").strip() in ["", username]
           ),
       auth_realm="ArchiveTeam Warrior",
-      skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
+      skip_auth=[tornado_url[0] for tornado_url in router.urls]
     )
-    SocketServer(application, auto_start=False)
+
+    application.listen(port_number)

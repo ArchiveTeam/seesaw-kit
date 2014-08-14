@@ -67,7 +67,7 @@ class SimpleTask(Task):
         try:
             with self.task_cwd():
                 self.process(item)
-        except Exception, e:
+        except Exception as e:
             item.log_output("Failed %s for %s\n" % (self, item.description()))
             item.log_output("%s\n" % traceback.format_exc())
             item.log_error(self, e)
