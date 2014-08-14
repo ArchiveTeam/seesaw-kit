@@ -115,7 +115,7 @@ class LimitConcurrent(Task):
         self._working -= 1
         if len(self._queue) > 0:
             self._working += 1
-            self.inner_task.enqueue(self.queue.pop(0))
+            self.inner_task.enqueue(self._queue.pop(0))
         self.fail_item(item)
 
     def fill_ui_task_list(self, task_list):

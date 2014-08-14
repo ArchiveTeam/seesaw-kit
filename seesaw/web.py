@@ -135,13 +135,11 @@ class ApiHandler(web.RequestHandler):
             self.warrior.select_project(None)
             self.write("OK")
         elif command == "settings":
-            success = True
             posted_values = {}
             for (name, value) in self.request.arguments.items():
                 value[0] = value[0].decode('utf8', 'replace')
 
                 if not self.warrior.config_manager.set_value(name, value[0]):
-                    success = False
                     posted_values[name] = value[0]
             if self.warrior.config_manager.all_valid():
                 self.warrior.fire_status()

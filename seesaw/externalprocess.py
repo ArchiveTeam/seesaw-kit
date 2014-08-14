@@ -58,7 +58,8 @@ class AsyncPopen(object):
 
     def _wait_for_end(self, events=0):
         self.pipe.poll()
-        if self.pipe.returncode != None or (events & tornado.ioloop.IOLoop._EPOLLHUP) > 0:
+        if self.pipe.returncode is not None or \
+                (events & tornado.ioloop.IOLoop._EPOLLHUP) > 0:
             self.wait_callback.stop()
             self.master.close()
             self.ioloop.remove_handler(self.master_fd)
@@ -67,12 +68,16 @@ class AsyncPopen(object):
 
 class ExternalProcess(Task):
     '''External subprocess runner.'''
-    def __init__(self, name, args, max_tries=1, retry_delay=30, accept_on_exit_code=[0], retry_on_exit_code=None, env=None):
+    def __init__(self, name, args, max_tries=1, retry_delay=30,
+                 accept_on_exit_code=None, retry_on_exit_code=None, env=None):
         Task.__init__(self, name)
         self.args = args
         self.max_tries = max_tries
         self.retry_delay = retry_delay
-        self.accept_on_exit_code = accept_on_exit_code
+        if accept_on_exit_code is not None:
+            self.accept_on_exit_code = accept_on_exit_code
+        else:
+            self.accept_on_exit_code = [0]
         self.retry_on_exit_code = retry_on_exit_code
         self.env = env or {}
 
@@ -134,9 +139,9 @@ class ExternalProcess(Task):
         )
         item.log_error(self, exit_code)
 
-        retry_acceptable = self.max_tries == None or \
+        retry_acceptable = self.max_tries is None or \
             item["tries"] < self.max_tries
-        exit_status_indicates_retry = self.retry_on_exit_code == None or \
+        exit_status_indicates_retry = self.retry_on_exit_code is None or \
             exit_code in self.retry_on_exit_code or \
             item["ExternalProcess.stdin_write_error"]
 
@@ -156,10 +161,13 @@ class ExternalProcess(Task):
 
 class WgetDownload(ExternalProcess):
     '''Download with Wget process runner.'''
-    def __init__(self, args, max_tries=1, accept_on_exit_code=[0], retry_on_exit_code=None, env=None, stdin_data_function=None):
-        ExternalProcess.__init__(self, "WgetDownload",
+    def __init__(self, args, max_tries=1, accept_on_exit_code=None,
+                 retry_on_exit_code=None, env=None, stdin_data_function=None):
+        ExternalProcess.__init__(
+            self, "WgetDownload",
             args=args, max_tries=max_tries,
-            accept_on_exit_code=accept_on_exit_code,
+            accept_on_exit_code=(accept_on_exit_code
+                                 if accept_on_exit_code is None else [0]),
             retry_on_exit_code=retry_on_exit_code,
             env=env)
         self.stdin_data_function = stdin_data_function
@@ -174,22 +182,22 @@ class WgetDownload(ExternalProcess):
 class RsyncUpload(ExternalProcess):
     '''Upload with Rsync process runner.'''
     def __init__(self, target, files, target_source_path="./", bwlimit="0",
-    max_tries=None, extra_args=[]):
+                 max_tries=None, extra_args=None):
         args = [
-          "rsync",
-          "-avz",
-          "--compress-level=9",
-          "--timeout=300",
-          "--contimeout=300",
-          "--progress",
-          "--bwlimit", bwlimit
+            "rsync",
+            "-avz",
+            "--compress-level=9",
+            "--timeout=300",
+            "--contimeout=300",
+            "--progress",
+            "--bwlimit", bwlimit
         ]
-        if extra_args:
+        if extra_args is not None:
             args.extend(extra_args)
         args.extend([
-          "--files-from=-",
-          target_source_path,
-          target
+            "--files-from=-",
+            target_source_path,
+            target
         ])
         ExternalProcess.__init__(self, "RsyncUpload",
             args=args,

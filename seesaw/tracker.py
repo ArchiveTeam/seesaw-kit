@@ -73,6 +73,9 @@ class TrackerRequest(Task):
         IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
             functools.partial(self.send_request, item))
 
+    def process_body(self, body, item):
+        raise NotImplementedError()
+
 
 class GetItemFromTracker(TrackerRequest):
     '''Get a single work unit information from the Tracker.'''

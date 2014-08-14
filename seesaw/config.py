@@ -58,15 +58,15 @@ class ConfigValue(object):
         self.editable = editable
         self.advanced = advanced
 
-        if ConfigValue.collector != None:
+        if ConfigValue.collector is not None:
             ConfigValue.collector.append(self)
 
-    def realize(self, ignored):
+    def realize(self, dummy):
         return self.value
 
     def set_value(self, value):
         self.error = self.check_value(value)
-        if self.error == None:
+        if self.error is None:
             self.value = self.convert_value(value)
             return True
         else:
@@ -79,7 +79,7 @@ class ConfigValue(object):
         return value
 
     def is_valid(self):
-        return self.value != None
+        return self.value is None
 
     def __str__(self):
         return "<" + self.name + ":" + str(self.value) + ">"
@@ -93,7 +93,7 @@ class StringConfigValue(ConfigValue):
         else:
             self.regex = None
 
-        ConfigValue.__init__(self, **kwargs)
+        ConfigValue.__init__(self, *args, **kwargs)
 
     def check_value(self, value):
         value = value.strip()
@@ -116,7 +116,7 @@ class NumberConfigValue(ConfigValue):
         else:
             self.max = None
 
-        ConfigValue.__init__(self, **kwargs)
+        ConfigValue.__init__(self, *args, **kwargs)
 
     def check_value(self, value):
         value = value.strip()

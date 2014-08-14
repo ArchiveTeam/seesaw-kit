@@ -78,7 +78,7 @@ class Runner(object):
     def stop_file_changed(self):
         current_stop_file_mtime = self.stop_file_mtime()
         if current_stop_file_mtime:
-            return self.initial_stop_file_mtime == None \
+            return self.initial_stop_file_mtime is None \
                 or self.initial_stop_file_mtime < current_stop_file_mtime
         else:
             return False
@@ -157,7 +157,7 @@ class SimpleRunner(Runner):
         ioloop.IOLoop.instance().start()
         self.pipeline.on_cleanup()
 
-    def _stop_ioloop(self, ignored):
+    def _stop_ioloop(self, dummy):
         ioloop.IOLoop.instance().stop()
 
     def forced_stop(self):
@@ -165,7 +165,7 @@ class SimpleRunner(Runner):
         # TODO perhaps the subprocesses should be killed
         ioloop.IOLoop.instance().stop()
 
-    def _handle_create_item(self, ignored, item):
+    def _handle_create_item(self, dummy, item):
         item.on_output += self._handle_item_output
 
     def _handle_item_output(self, item, data):

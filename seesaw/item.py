@@ -161,7 +161,7 @@ class ItemValue(object):
     def fill(self, item, value):
         if isinstance(self, ItemValue):
             item[self.key] = value
-        elif self == None:
+        elif self is None:
             pass
         else:
             raise Exception("Attempting to fill " + str(type(self)))

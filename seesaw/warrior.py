@@ -52,7 +52,7 @@ class ConfigManager(object):
         self.config_values[config_value.name] = config_value
         if config_value.name in self.config_memory:
             remembered_value = self.config_memory[config_value.name]
-            if config_value.check_value(remembered_value) == None:
+            if config_value.check_value(remembered_value) is None:
                 config_value.set_value(remembered_value)
         self.save()
 
@@ -76,7 +76,7 @@ class ConfigManager(object):
         try:
             with open(self.config_file) as f:
                 self.config_memory = json.load(f)
-        except Exception as e:
+        except Exception:
             self.config_memory = {}
 
     def save(self):
@@ -119,7 +119,7 @@ class BandwidthMonitor(object):
     def update(self):
         cur_time = time.time()
         cur_stats = self._get_stats()
-        if self.prev_stats != None and cur_stats != None:
+        if self.prev_stats is not None and cur_stats is not None:
             time_delta = cur_time - self.prev_time
             if time_delta:
                 self.bandwidth = [
@@ -251,6 +251,8 @@ class Warrior(object):
         self.lat_lng = None
         self.find_lat_lng()
 
+        self.install_output = None
+
     def find_lat_lng(self):
         # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
         pass
@@ -315,7 +317,8 @@ class Warrior(object):
 
             previous_project_choice = realize(self.selected_project_config_value)
 
-            if self.selected_project and not self.selected_project in self.projects:
+            if self.selected_project and \
+                    self.selected_project not in self.projects:
                 self.select_project(None)
             elif previous_project_choice in self.projects:
                 # select previous project
@@ -478,7 +481,7 @@ class Warrior(object):
             self.update_warrior_hq()
             return
 
-        if not project_name in self.projects:
+        if project_name not in self.projects:
             project_name = None
 
         if project_name != self.selected_project:
@@ -686,7 +689,8 @@ class Warrior(object):
             return Warrior.Status.REBOOTING
         elif not self.config_manager.all_valid():
             return Warrior.Status.INVALID_SETTINGS
-        elif self.selected_project == None and self.current_project_name == None:
+        elif self.selected_project is None and \
+                self.current_project_name is None:
             return Warrior.Status.NO_PROJECT
         elif self.selected_project:
             if self.selected_project == self.current_project_name:
