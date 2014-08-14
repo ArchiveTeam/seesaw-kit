@@ -80,7 +80,7 @@ class ConfigValue(object):
         return value
 
     def is_valid(self):
-        return self.value is None
+        return self.value is not None
 
     def __str__(self):
         return "<" + self.name + ":" + str(self.value) + ">"
