@@ -198,16 +198,14 @@ class RsyncUpload(ExternalProcess):
         self.target_source_path = target_source_path
 
     def stdin_data(self, item):
-        return bytes(
-            "".join([
+        return "".join(
+            [
                 "%s\n" % os.path.relpath(
                     realize(f, item),
                     realize(self.target_source_path, item)
                 )
                 for f in realize(self.files, item)
-            ]),
-            "utf_8"
-        )
+            ]).encode('utf-8')
 
 
 class CurlUpload(ExternalProcess):
