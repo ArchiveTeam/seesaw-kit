@@ -73,7 +73,8 @@ class SimpleTask(Task):
             item.log_error(self, e)
             self.fail_item(item)
         else:
-            item.log_output("Finished %s for %s\n" % (self, item.description()))
+            item.log_output("Finished %s for %s\n" % (self,
+                                                      item.description()))
             self.complete_item(item)
 
     def process(self, item):
@@ -122,7 +123,8 @@ class LimitConcurrent(Task):
         self.inner_task.fill_ui_task_list(task_list)
 
     def __str__(self):
-        return "LimitConcurrent(" + str(self.concurrency) + " x " + str(self.inner_task) + ")"
+        return "LimitConcurrent({0} x {1} )".format(
+            self.concurrency, self.inner_task)
 
 
 class ConditionalTask(Task):

@@ -19,5 +19,6 @@ class Project(object):
             "project_id": id(self),
             "title": self.title,
             "project_html": self.project_html,
-            "utc_deadline": (time.mktime(self.utc_deadline.timetuple()) if self.utc_deadline else None)
+            "utc_deadline": (time.mktime(self.utc_deadline.timetuple())
+                             if self.utc_deadline else None)
         }

@@ -15,7 +15,7 @@ from tornado import ioloop
 class Runner(object):
     '''Executes and manages the lifetime of :class:`Pipeline` instances.'''
     def __init__(self, stop_file=None, concurrent_items=1, max_items=None,
-    keep_data=False):
+                 keep_data=False):
         self.pipeline = None
         self.concurrent_items = concurrent_items
         self.max_items = max_items
@@ -143,8 +143,9 @@ class Runner(object):
 class SimpleRunner(Runner):
     '''Executes a single class:`Pipeline` instance.'''
     def __init__(self, pipeline, stop_file=None, concurrent_items=1,
-    max_items=None, keep_data=False):
-        Runner.__init__(self, stop_file=stop_file,
+                 max_items=None, keep_data=False):
+        Runner.__init__(
+            self, stop_file=stop_file,
             concurrent_items=concurrent_items, max_items=max_items,
             keep_data=keep_data)
 

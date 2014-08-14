@@ -52,7 +52,8 @@ class Pipeline(object):
             task.fail_item(item)
 
         with tornado.stack_context.NullContext():
-            with tornado.stack_context.ExceptionStackContext(handle_item_exception):
+            with tornado.stack_context.ExceptionStackContext(
+                    handle_item_exception):
                 task.enqueue(item)
 
     def _task_complete_item(self, task, item):
@@ -74,7 +75,8 @@ class Pipeline(object):
         else:
             # XXX: Reaching here indicates a programming problem.
             # Refactoring is required.
-            item.log_output('Warning: Ignoring extra cancel event.\n' +
+            item.log_output(
+                'Warning: Ignoring extra cancel event.\n' +
                 ''.join(traceback.format_stack()))
 
     def _complete_item(self, item):
@@ -85,7 +87,8 @@ class Pipeline(object):
             self.on_finish_item(self, item)
         else:
             # See comment above.
-            item.log_output('Warning: Ignoring extra complete event.\n' +
+            item.log_output(
+                'Warning: Ignoring extra complete event.\n' +
                 ''.join(traceback.format_stack()))
 
     def _fail_item(self, item):
@@ -96,11 +99,13 @@ class Pipeline(object):
             self.on_finish_item(self, item)
         else:
             # See comment above.
-            item.log_output('Warning: Ignoring extra fail event.\n' +
+            item.log_output(
+                'Warning: Ignoring extra fail event.\n' +
                 ''.join(traceback.format_stack()))
 
     def cancel_items(self):
-        cancel_items = [item for item in self.items_in_pipeline if item.may_be_canceled]
+        cancel_items = [item for item in self.items_in_pipeline
+                        if item.may_be_canceled]
 
         for item in cancel_items:
             self._cancel_item(item)

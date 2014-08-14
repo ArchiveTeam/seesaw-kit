@@ -22,7 +22,8 @@ def test_executable(name, version, path, version_arg="-V"):
 
         if isinstance(version, str):
             if not version.encode('utf-8') in result:
-                print("%s: Incorrect %s version (want %s)." % (path, name, version))
+                print("%s: Incorrect %s version (want %s)." % (path, name,
+                                                               version))
                 return False
         elif hasattr(version, "search"):
             if not version.search(result):
@@ -30,7 +31,8 @@ def test_executable(name, version, path, version_arg="-V"):
                 return False
         elif hasattr(version, "__iter__"):
             if not any((v in result) for v in version):
-                print("%s: Incorrect %s version (want %s)." % (path, name, str(version)))
+                print("%s: Incorrect %s version (want %s)." % (path, name,
+                                                               str(version)))
                 return False
 
         print("Found usable %s in %s" % (name, path))

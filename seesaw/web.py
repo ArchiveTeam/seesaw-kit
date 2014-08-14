@@ -13,14 +13,17 @@ from seesaw.config import realize
 from seesaw.web_util import AuthenticatedApplication
 
 
-PUBLIC_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
-TEMPLATES_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
+PUBLIC_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
+TEMPLATES_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
 
 
 class IndexHandler(web.RequestHandler):
     '''Shows the index.html.'''
     def get(self):
-        self.render(os.path.join(PUBLIC_PATH, "index.html"), timestamp=time.time())
+        self.render(os.path.join(PUBLIC_PATH, "index.html"),
+                    timestamp=time.time())
 
 
 class ItemMonitor(object):
@@ -38,7 +41,11 @@ class ItemMonitor(object):
 
         self.collected_data = []
 
-        SeesawConnection.broadcast("pipeline.start_item", {"pipeline_id": id(self.pipeline), "item": self.item_for_broadcast()})
+        SeesawConnection.broadcast(
+            "pipeline.start_item",
+            {"pipeline_id": id(self.pipeline),
+                "item": self.item_for_broadcast()}
+            )
 
     def item_for_broadcast(self):
         item = self.item
@@ -46,9 +53,10 @@ class ItemMonitor(object):
         tasks = []
         for (task, task_name) in self.pipeline.ui_task_list():
             tasks.append({
-              "id": id(task),
-              "name": task_name,
-              "status": (item.task_status[task] if task in item.task_status else None)
+                "id": id(task),
+                "name": task_name,
+                "status": (item.task_status[task]
+                           if task in item.task_status else None)
             })
 
         if self.pipeline.project:
@@ -56,13 +64,14 @@ class ItemMonitor(object):
         else:
             project_name = None
         item_data = {
-          "id": item.item_id,
-          "name": ("Item %s" % item["item_name"] if "item_name" in item else "New item"),
-          "number": item.item_number,
-          "status": self.item_status(),
-          "tasks": tasks,
-          "output": "".join(self.collected_data),
-          "project": project_name
+            "id": item.item_id,
+            "name": ("Item %s" % item["item_name"]
+                     if "item_name" in item else "New item"),
+            "number": item.item_number,
+            "status": self.item_status(),
+            "tasks": tasks,
+            "output": "".join(self.collected_data),
+            "project": project_name
         }
 
         return item_data
@@ -79,14 +88,25 @@ class ItemMonitor(object):
 
     def handle_item_output(self, item, data):
         self.collected_data.append(data)
-        SeesawConnection.broadcast("item.output", {"item_id": item.item_id, "data": data})
+        SeesawConnection.broadcast(
+            "item.output", {"item_id": item.item_id, "data": data})
 
     def handle_item_task_status(self, item, task, new_status, old_status):
-        SeesawConnection.broadcast("item.task_status", {"item_id": item.item_id, "task_id": id(task), "new_status": new_status, "old_status": old_status})
+        SeesawConnection.broadcast(
+            "item.task_status",
+            {
+                "item_id": item.item_id,
+                "task_id": id(task),
+                "new_status": new_status,
+                "old_status": old_status
+            }
+        )
 
     def handle_item_property(self, item, key, new_value, old_value):
         if key == "item_name":
-            SeesawConnection.broadcast("item.update_name", {"item_id": item.item_id, "new_name": "Item %s" % new_value})
+            SeesawConnection.broadcast(
+                "item.update_name",
+                {"item_id": item.item_id, "new_name": "Item %s" % new_value})
 
     def handle_item_complete(self, item):
         SeesawConnection.broadcast("item.complete", {"item_id": item.item_id})
@@ -127,7 +147,8 @@ class ApiHandler(web.RequestHandler):
                 self.runner.keep_running()
             self.write("OK")
         elif command == "select-project":
-            self.warrior.config_manager.set_value("selected_project", self.get_argument("project_name"))
+            self.warrior.config_manager.set_value(
+                "selected_project", self.get_argument("project_name"))
             self.warrior.select_project(self.get_argument("project_name"))
             self.write("OK")
         elif command == "deselect-project":
@@ -143,13 +164,16 @@ class ApiHandler(web.RequestHandler):
                     posted_values[name] = value[0]
             if self.warrior.config_manager.all_valid():
                 self.warrior.fire_status()
-            self.render("settings.html", warrior=self.warrior, posted_values=posted_values)
+            self.render("settings.html", warrior=self.warrior,
+                        posted_values=posted_values)
 
     def get(self, command):
         if command == "all-projects":
-            self.render("all-projects.html", warrior=self.warrior, realize=realize)
+            self.render("all-projects.html", warrior=self.warrior,
+                        realize=realize)
         elif command == "settings":
-            self.render("settings.html", warrior=self.warrior, posted_values={})
+            self.render("settings.html", warrior=self.warrior,
+                        posted_values={})
         elif command == "help":
             self.render("help.html", warrior=self.warrior)
 
@@ -179,18 +203,20 @@ class SeesawConnection(SockJSConnection):
 
         if self.project:
             self.emit("project.refresh", {
-              "project": self.project.data_for_json(),
-              "status": ("stopping" if self.runner.should_stop() else "running"),
-              "items": items
+                "project": self.project.data_for_json(),
+                "status": ("stopping"
+                           if self.runner.should_stop() else "running"),
+                "items": items
             })
         else:
             self.emit("project.refresh", None)
 
         if self.warrior:
             self.emit("warrior.projects_loaded", {
-              "projects": self.warrior.projects
+                "projects": self.warrior.projects
             })
-            self.emit("warrior.status", {"status": self.warrior.warrior_status()})
+            self.emit("warrior.status",
+                      {"status": self.warrior.warrior_status()})
 
     @classmethod
     def broadcast_bandwidth(cls):
@@ -210,7 +236,7 @@ class SeesawConnection(SockJSConnection):
     @classmethod
     def broadcast_projects(cls):
         cls.broadcast("warrior.projects_loaded", {
-          "projects": cls.warrior.projects
+            "projects": cls.warrior.projects
         })
 
     @classmethod
@@ -224,12 +250,14 @@ class SeesawConnection(SockJSConnection):
     @classmethod
     def handle_project_installed(cls, warrior, project, output):
         output = re.sub("\r\n?", "\n", output)
-        cls.broadcast("warrior.project_installed", {"project": project, "output": output})
+        cls.broadcast("warrior.project_installed",
+                      {"project": project, "output": output})
 
     @classmethod
     def handle_project_installation_failed(cls, warrior, project, output):
         output = re.sub("\r\n?", "\n", output)
-        cls.broadcast("warrior.project_installation_failed", {"project": project, "output": output})
+        cls.broadcast("warrior.project_installation_failed",
+                      {"project": project, "output": output})
 
     @classmethod
     def handle_project_refresh(cls, warrior, project, runner):
@@ -241,9 +269,10 @@ class SeesawConnection(SockJSConnection):
     def broadcast_project_refresh(cls):
         if cls.project:
             cls.broadcast("project.refresh", {
-              "project": cls.project.data_for_json(),
-              "status": ("stopping" if cls.runner.should_stop() else "running"),
-              "items": []
+                "project": cls.project.data_for_json(),
+                "status": ("stopping"
+                           if cls.runner.should_stop() else "running"),
+                "items": []
             })
         else:
             cls.broadcast("project.refresh", None)
@@ -251,7 +280,7 @@ class SeesawConnection(SockJSConnection):
     @classmethod
     def handle_runner_status(cls, runner, status):
         cls.broadcast("runner.status", {
-          "status": ("stopping" if runner.should_stop() else "running")
+            "status": ("stopping" if runner.should_stop() else "running")
         })
 
     @classmethod
@@ -276,7 +305,8 @@ class SeesawConnection(SockJSConnection):
         self.clients.remove(self)
 
 
-def start_runner_server(project, runner, bind_address="", port_number=8001, http_username=None, http_password=None):
+def start_runner_server(project, runner, bind_address="", port_number=8001,
+                        http_username=None, http_password=None):
     '''Starts a web interface for a manually run pipeline.
 
     Unlike :func:`start_warrior_server`, this UI does not contain an
@@ -295,30 +325,32 @@ def start_runner_server(project, runner, bind_address="", port_number=8001, http
     router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
-      router.apply_routes([(r"/(.*\.(html|css|js|swf|png|ico))$",
-                            web.StaticFileHandler, {"path": PUBLIC_PATH}),
-                           ("/", IndexHandler),
-                           ("/api/(.+)$", ApiHandler, {"runner": runner})]),
-  #   flash_policy_port = 843,
-  #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
-      socket_io_address=bind_address,
-      socket_io_port=port_number,
+        router.apply_routes([
+            (r"/(.*\.(html|css|js|swf|png|ico))$",
+                web.StaticFileHandler, {"path": PUBLIC_PATH}),
+            ("/", IndexHandler),
+            ("/api/(.+)$", ApiHandler, {"runner": runner})]),
+        #  flash_policy_port = 843,
+        #  flash_policy_file=os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
+        socket_io_address=bind_address,
+        socket_io_port=port_number,
 
-      # settings for AuthenticatedApplication
-      auth_enabled=(http_password or "").strip() != "",
-      check_auth=lambda r, username, password: \
-          (
-            password == http_password and \
-            (http_username or "").strip() in ["", username]
-          ),
-      auth_realm="ArchiveTeam Warrior",
-      skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
+        # settings for AuthenticatedApplication
+        auth_enabled=(http_password or "").strip() != "",
+        check_auth=lambda r, username, password:
+            (
+                password == http_password and
+                (http_username or "").strip() in ["", username]
+            ),
+        auth_realm="ArchiveTeam Warrior",
+        skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
     )
 
     application.listen(port_number)
 
 
-def start_warrior_server(warrior, bind_address="", port_number=8001, http_username=None, http_password=None):
+def start_warrior_server(warrior, bind_address="", port_number=8001,
+                         http_username=None, http_password=None):
     '''Starts the warrior web interface.'''
     SeesawConnection.warrior = warrior
 
@@ -326,11 +358,13 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
     warrior.on_project_refresh += SeesawConnection.handle_project_refresh
     warrior.on_project_installing += SeesawConnection.handle_project_installing
     warrior.on_project_installed += SeesawConnection.handle_project_installed
-    warrior.on_project_installation_failed += SeesawConnection.handle_project_installation_failed
+    warrior.on_project_installation_failed += \
+        SeesawConnection.handle_project_installation_failed
     warrior.on_project_selected += SeesawConnection.handle_project_selected
     warrior.on_status += SeesawConnection.handle_warrior_status
     warrior.runner.on_pipeline_start_item += SeesawConnection.handle_start_item
-    warrior.runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
+    warrior.runner.on_pipeline_finish_item += \
+        SeesawConnection.handle_finish_item
     warrior.runner.on_status += SeesawConnection.handle_runner_status
 
     if not http_username:
@@ -343,24 +377,25 @@ def start_warrior_server(warrior, bind_address="", port_number=8001, http_userna
     router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
-      router.apply_routes([(r"/(.*\.(html|css|js|swf|png|ico))$",
-                            web.StaticFileHandler, {"path": PUBLIC_PATH}),
-                           ("/", IndexHandler),
-                           ("/api/(.+)$", ApiHandler, {"warrior": warrior})]),
-  #   flash_policy_port = 843,
-  #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
-      socket_io_address=bind_address,
-      socket_io_port=port_number,
+        router.apply_routes([
+            (r"/(.*\.(html|css|js|swf|png|ico))$",
+                web.StaticFileHandler, {"path": PUBLIC_PATH}),
+            ("/", IndexHandler),
+            ("/api/(.+)$", ApiHandler, {"warrior": warrior})]),
+        #   flash_policy_port = 843,
+        #   flash_policy_file = os.path.join(PUBLIC_PATH, "flashpolicy.xml"),
+        socket_io_address=bind_address,
+        socket_io_port=port_number,
 
-      # settings for AuthenticatedApplication
-      auth_enabled=lambda: (realize(http_password) or "").strip() != "",
-      check_auth=lambda r, username, password: \
-          (
-            password == realize(http_password) and \
-            (realize(http_username) or "").strip() in ["", username]
-          ),
-      auth_realm="ArchiveTeam Warrior",
-      skip_auth=[tornado_url[0] for tornado_url in router.urls]
+        # settings for AuthenticatedApplication
+        auth_enabled=lambda: (realize(http_password) or "").strip() != "",
+        check_auth=lambda r, username, password:
+            (
+                password == realize(http_password) and
+                (realize(http_username) or "").strip() in ["", username]
+            ),
+        auth_realm="ArchiveTeam Warrior",
+        skip_auth=[tornado_url[0] for tornado_url in router.urls]
     )
 
     application.listen(port_number)

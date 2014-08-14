@@ -49,7 +49,8 @@ class ConfigValue(object):
         ConfigValue.collector = None
         return collected
 
-    def __init__(self, name, title="", description="", default=None, editable=True, advanced=True):
+    def __init__(self, name, title="", description="", default=None,
+                 editable=True, advanced=True):
         self.name = name
         self.title = title
         self.description = description

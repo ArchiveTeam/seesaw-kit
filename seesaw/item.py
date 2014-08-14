@@ -16,11 +16,12 @@ class Item(object):
     An Item behaves like a mutable mapping.
 
     .. note::
-        State belonging to a item should be stored on the actual item 
+        State belonging to a item should be stored on the actual item
         itself. That is, do not store variables onto a :class:`Task` unless
         you know what you are doing.
     '''
-    def __init__(self, pipeline, item_id, item_number, properties=None, keep_data=False):
+    def __init__(self, pipeline, item_id, item_number, properties=None,
+                 keep_data=False):
         self.pipeline = pipeline
         self.item_id = item_id
         self.item_number = item_number
@@ -67,7 +68,8 @@ class Item(object):
                 data = data.decode('ascii', 'replace')
 
         if full_line and len(data) > 0:
-            if data[0] != "\n" and len(self._last_output) > 0 and self._last_output[-1] != "\n":
+            if data[0] != "\n" and len(self._last_output) > 0 and \
+                    self._last_output[-1] != "\n":
                 data = "\n" + data
             if data[-1] != "\n":
                 data = data + "\n"
@@ -112,7 +114,8 @@ class Item(object):
         self.on_finish(self)
 
     def description(self):
-        return "Item %s" % (self.properties["item_name"] if "item_name" in self.properties else "")
+        return "Item %s" % (self.properties["item_name"]
+                            if "item_name" in self.properties else "")
 
     def __contains__(self, key):
         return key in self.properties
@@ -138,7 +141,8 @@ class Item(object):
             for e in err[1]:
                 # TODO this isn't how exceptions work?
                 if isinstance(e, Exception):
-                    s += "%s\n" % traceback.format_exception(Exception, e, None)
+                    s += "%s\n" % traceback.format_exception(Exception, e,
+                                                             None)
                 else:
                     s += "%s\n" % str(e)
             s += "\n  " + str(err)

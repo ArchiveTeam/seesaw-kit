@@ -29,13 +29,15 @@ class AsyncPopen(object):
         (master_fd, slave_fd) = pty.openpty()
 
         # make stdout, stderr non-blocking
-        fcntl.fcntl(master_fd, fcntl.F_SETFL, fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+        fcntl.fcntl(master_fd, fcntl.F_SETFL,
+                    fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
 
         self.master_fd = master_fd
         self.master = os.fdopen(master_fd)
 
         # listen to stdout, stderr
-        self.ioloop.add_handler(master_fd, self._handle_subprocess_stdout, self.ioloop.READ)
+        self.ioloop.add_handler(master_fd, self._handle_subprocess_stdout,
+                                self.ioloop.READ)
 
         slave = os.fdopen(slave_fd)
         self.kwargs["stdout"] = slave
@@ -103,7 +105,8 @@ class ExternalProcess(Task):
                 close_fds=True
             )
 
-            p.on_output += functools.partial(self.on_subprocess_stdout, p, item)
+            p.on_output += functools.partial(self.on_subprocess_stdout, p,
+                                             item)
             p.on_end += functools.partial(self.on_subprocess_end, item)
 
             p.run()
@@ -122,7 +125,7 @@ class ExternalProcess(Task):
 
     def on_subprocess_end(self, item, returncode):
         if returncode in self.accept_on_exit_code and \
-        not item["ExternalProcess.stdin_write_error"]:
+                not item["ExternalProcess.stdin_write_error"]:
             self.handle_process_result(returncode, item)
         else:
             self.handle_process_error(returncode, item)
@@ -134,7 +137,8 @@ class ExternalProcess(Task):
     def handle_process_error(self, exit_code, item):
         item["tries"] += 1
 
-        item.log_output("Process %s returned exit code %d for %s\n" %
+        item.log_output(
+            "Process %s returned exit code %d for %s\n" %
             (self, exit_code, item.description())
         )
         item.log_error(self, exit_code)
@@ -146,7 +150,8 @@ class ExternalProcess(Task):
             item["ExternalProcess.stdin_write_error"]
 
         if retry_acceptable and exit_status_indicates_retry:
-            item.log_output("Retrying %s for %s after %d seconds...\n" %
+            item.log_output(
+                "Retrying %s for %s after %d seconds...\n" %
                 (self, item.description(), self.retry_delay)
             )
             IOLoop.instance().add_timeout(
@@ -200,8 +205,8 @@ class RsyncUpload(ExternalProcess):
             target
         ])
         ExternalProcess.__init__(self, "RsyncUpload",
-            args=args,
-            max_tries=max_tries)
+                                 args=args,
+                                 max_tries=max_tries)
         self.files = files
         self.target_source_path = target_source_path
 
@@ -218,20 +223,23 @@ class RsyncUpload(ExternalProcess):
 
 class CurlUpload(ExternalProcess):
     '''Upload with Curl process runner.'''
-    def __init__(self, target, filename, connect_timeout="60", speed_limit="1", speed_time="900", max_tries=None):
+    def __init__(self, target, filename, connect_timeout="60", speed_limit="1",
+                 speed_time="900", max_tries=None):
         args = [
-          "curl",
-          "--fail",
-          "--output", "/dev/null",
-          "--connect-timeout", str(connect_timeout),
-          "--speed-limit", str(speed_limit),  # minimum upload speed 1B/s
-          "--speed-time", str(speed_time),  # stop if speed < speed-limit for 900 seconds
-          "--header", "X-Curl-Limits: inf,%s,%s" % (str(speed_limit), str(speed_time)),
-          "--write-out", "Upload server: %{url_effective}\\n",
-          "--location",
-          "--upload-file", filename,
-          target
+            "curl",
+            "--fail",
+            "--output", "/dev/null",
+            "--connect-timeout", str(connect_timeout),
+            "--speed-limit", str(speed_limit),  # minimum upload speed 1B/s
+            # stop if speed < speed-limit for 900 seconds
+            "--speed-time", str(speed_time),
+            "--header", "X-Curl-Limits: inf,%s,%s" % (str(speed_limit),
+                                                      str(speed_time)),
+            "--write-out", "Upload server: %{url_effective}\\n",
+            "--location",
+            "--upload-file", filename,
+            target
         ]
         ExternalProcess.__init__(self, "CurlUpload",
-            args=args,
-            max_tries=max_tries)
+                                 args=args,
+                                 max_tries=max_tries)
