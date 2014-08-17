@@ -172,7 +172,7 @@ class WgetDownload(ExternalProcess):
             self, "WgetDownload",
             args=args, max_tries=max_tries,
             accept_on_exit_code=(accept_on_exit_code
-                                 if accept_on_exit_code is None else [0]),
+                                 if accept_on_exit_code is not None else [0]),
             retry_on_exit_code=retry_on_exit_code,
             env=env)
         self.stdin_data_function = stdin_data_function
