@@ -1,3 +1,6 @@
+# encoding=utf-8
+from __future__ import unicode_literals
+
 import datetime
 import os
 import os.path
@@ -21,9 +24,22 @@ project = Project(
   utc_deadline = datetime.datetime(2013,1,1, 12,0,0)
 )
 
+class CustomTask(SimpleTask):
+    def __init__(self):
+        SimpleTask.__init__(self, 'CustomTask')
+
+    def process(self, item):
+        item.log_output('ÐÐ Hello !')
+
+        # Test binary output
+        item.log_output('ðbßf'.encode('utf-8'))
+        item.log_output(b'\xff\xff\xff')
+
+
 pipeline = Pipeline(
   SetItemKey("item_name", "1083030"),
   PrintItem(),
+  CustomTask(),
   ExternalProcess("Echo", [ "echo", "1234" ]),
   ExternalProcess("sleep", [ "sleep", "5" ]),
   ExternalProcess("pwd", [ "pwd" ]),

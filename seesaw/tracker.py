@@ -20,7 +20,8 @@ from seesaw.externalprocess import RsyncUpload, CurlUpload
 
 class TrackerRequest(Task):
     '''Represents a request to a Tracker.'''
-    def __init__(self, name, tracker_url, tracker_command, may_be_canceled=False):
+    def __init__(self, name, tracker_url, tracker_command,
+                 may_be_canceled=False):
         Task.__init__(self, name)
         self.http_client = AsyncHTTPClient()
         self.tracker_url = tracker_url
@@ -39,13 +40,17 @@ class TrackerRequest(Task):
 
         if self._set_may_be_canceled:
             item.may_be_canceled = False
-        self.http_client.fetch(HTTPRequest(
-            "%s/%s" % (self.tracker_url, self.tracker_command),
-            method="POST",
-            headers={"Content-Type": "application/json"},
-            user_agent=("ArchiveTeam Warrior/%s %s %s" % (seesaw.__version__, seesaw.runner_type, seesaw.warrior_build)).strip(),
-            body=json.dumps(self.data(item))
-          ), functools.partial(self.handle_response, item))
+        self.http_client.fetch(
+            HTTPRequest(
+                "%s/%s" % (self.tracker_url, self.tracker_command),
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                user_agent=("ArchiveTeam Warrior/%s %s %s" % (
+                    seesaw.__version__, seesaw.runner_type,
+                    seesaw.warrior_build)).strip(),
+                body=json.dumps(self.data(item))
+                ),
+            functools.partial(self.handle_response, item))
 
     def data(self, item):
         return {}
@@ -55,7 +60,10 @@ class TrackerRequest(Task):
             self.process_body(response.body, item)
         else:
             if response.code == 420 or response.code == 429:
-                r = "Tracker rate limiting is active. We don't want to overload the site we're archiving, so we've limited the number of downloads per minute. Please wait... "
+                r = ("Tracker rate limiting is active. "
+                     "We don't want to overload the site we're archiving, "
+                     "so we've limited the number of downloads per minute. "
+                     "Please wait... ")
             elif response.code == 404:
                 r = "No item received. "
             elif response.code == 455:
@@ -69,20 +77,29 @@ class TrackerRequest(Task):
     def schedule_retry(self, item, message=""):
         if self._set_may_be_canceled:
             item.may_be_canceled = True
-        item.log_output("%sRetrying after %d seconds...\n" % (message, self.retry_delay))
-        IOLoop.instance().add_timeout(datetime.timedelta(seconds=self.retry_delay),
+        item.log_output(
+            "%sRetrying after %d seconds...\n" % (message, self.retry_delay))
+        IOLoop.instance().add_timeout(
+            datetime.timedelta(seconds=self.retry_delay),
             functools.partial(self.send_request, item))
+
+    def process_body(self, body, item):
+        raise NotImplementedError()
 
 
 class GetItemFromTracker(TrackerRequest):
     '''Get a single work unit information from the Tracker.'''
     def __init__(self, tracker_url, downloader, version=None):
-        TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url, "request", may_be_canceled=True)
+        TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url,
+                                "request", may_be_canceled=True)
         self.downloader = downloader
         self.version = version
 
     def data(self, item):
-        data = {"downloader": realize(self.downloader, item), "api_version": "2"}
+        data = {
+            "downloader": realize(self.downloader, item),
+            "api_version": "2"
+        }
         if self.version:
             data["version"] = realize(self.version, item)
         return data
@@ -90,9 +107,10 @@ class GetItemFromTracker(TrackerRequest):
     def process_body(self, body, item):
         data = json.loads(body)
         if "item_name" in data:
-            for (k, v) in data.iteritems():
+            for (k, v) in data.items():
                 item[k] = v
-            item.log_output("Received item '%s' from tracker\n" % item["item_name"])
+            item.log_output(
+                "Received item '%s' from tracker\n" % item["item_name"])
             self.complete_item(item)
         else:
             item.log_output("Tracker responded with empty response.\n")
@@ -110,10 +128,12 @@ class SendDoneToTracker(TrackerRequest):
 
     def process_body(self, body, item):
         if body.strip() == "OK":
-            item.log_output("Tracker confirmed item '%s'.\n" % item["item_name"])
+            item.log_output(
+                "Tracker confirmed item '%s'.\n" % item["item_name"])
             self.complete_item(item)
         else:
-            item.log_output("Tracker responded with unexpected '%s'.\n" % body.strip())
+            item.log_output(
+                "Tracker responded with unexpected '%s'.\n" % body.strip())
             self.schedule_retry(item)
 
 
@@ -127,8 +147,10 @@ class PrepareStatsForTracker(SimpleTask):
 
     def process(self, item):
         total_bytes = {}
-        for (group, files) in self.file_groups.iteritems():
-            total_bytes[group] = sum([os.path.getsize(realize(f, item)) for f in files])
+        for (group, files) in self.file_groups.items():
+            total_bytes[group] = sum(
+                [os.path.getsize(realize(f, item)) for f in files]
+            )
 
         stats = {}
         stats.update(self.defaults)
@@ -150,7 +172,10 @@ class UploadWithTracker(TrackerRequest):
     * :class:`RsyncUpload`
     * :class:`CurlUpload`
     '''
-    def __init__(self, tracker_url, downloader, files, version=None, rsync_target_source_path="./", rsync_bwlimit="0", rsync_extra_args=[], curl_connect_timeout="60", curl_speed_limit="1", curl_speed_time="900"):
+    def __init__(self, tracker_url, downloader, files, version=None,
+                 rsync_target_source_path="./", rsync_bwlimit="0",
+                 rsync_extra_args=[], curl_connect_timeout="60",
+                 curl_speed_limit="1", curl_speed_time="900"):
         TrackerRequest.__init__(self, "Upload", tracker_url, "upload")
 
         self.downloader = downloader
@@ -177,7 +202,8 @@ class UploadWithTracker(TrackerRequest):
             inner_task = None
 
             if re.match(r"^rsync://.+/$", data["upload_target"]):
-                item.log_output("Uploading with Rsync to %s" % data["upload_target"])
+                item.log_output(
+                    "Uploading with Rsync to %s" % data["upload_target"])
                 inner_task = RsyncUpload(
                     data["upload_target"], self.files,
                     target_source_path=self.rsync_target_source_path,
@@ -186,7 +212,8 @@ class UploadWithTracker(TrackerRequest):
                     max_tries=1)
 
             elif re.match(r"^https?://.+/$", data["upload_target"]):
-                item.log_output("Uploading with Curl to %s" % data["upload_target"])
+                item.log_output(
+                    "Uploading with Curl to %s" % data["upload_target"])
 
                 if len(self.files) != 1:
                     item.log_output("Curl expects to upload a single file.")

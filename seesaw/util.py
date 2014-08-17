@@ -7,7 +7,7 @@ import base64
 
 def test_executable(name, version, path, version_arg="-V"):
     '''Try to run an executable and check its version.'''
-    print "Looking for %s in %s" % (name, path)
+    print("Looking for %s in %s" % (name, path))
     try:
         process = subprocess.Popen(
             [path, version_arg],
@@ -17,26 +17,28 @@ def test_executable(name, version, path, version_arg="-V"):
         stdout_data, stderr_data = process.communicate()
         result = stdout_data + stderr_data
         if not process.returncode == 0:
-            print "%s: Returned code %d" % (path, process.returncode)
+            print("%s: Returned code %d" % (path, process.returncode))
             return False
 
-        if isinstance(version, basestring):
-            if not version in result:
-                print "%s: Incorrect %s version (want %s)." % (path, name, version)
+        if isinstance(version, str):
+            if not version.encode('utf-8') in result:
+                print("%s: Incorrect %s version (want %s)." % (path, name,
+                                                               version))
                 return False
         elif hasattr(version, "search"):
             if not version.search(result):
-                print "%s: Incorrect %s version." % (path, name)
+                print("%s: Incorrect %s version." % (path, name))
                 return False
         elif hasattr(version, "__iter__"):
             if not any((v in result) for v in version):
-                print "%s: Incorrect %s version (want %s)." % (path, name, str(version))
+                print("%s: Incorrect %s version (want %s)." % (path, name,
+                                                               str(version)))
                 return False
 
-        print "Found usable %s in %s" % (name, path)
+        print("Found usable %s in %s" % (name, path))
         return True
     except OSError as e:
-        print "%s:" % path, e
+        print("%s:" % path, e)
         return False
 
 
@@ -53,5 +55,5 @@ def find_executable(name, version, paths, version_arg="-V"):
 
 def unique_id_str():
     '''Returns a unique string suitable for IDs.'''
-    rand_str = base64.b16encode(os.urandom(8)).lower()
+    rand_str = base64.b16encode(os.urandom(8)).decode('ascii').lower()
     return "{0}{1}".format(int(time.time()), rand_str)

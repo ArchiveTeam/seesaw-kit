@@ -1,15 +1,17 @@
 # encoding=utf8
-import cStringIO
+from __future__ import unicode_literals
+
 from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
+from seesaw.six import StringIO
 from seesaw.test_base import BaseTestCase
 
 
 class ExternalProcessUser(ExternalProcess):
     def __init__(self, *args, **kwargs):
         ExternalProcess.__init__(self, *args, **kwargs)
-        self.output_buffer = cStringIO.StringIO()
+        self.output_buffer = StringIO()
         self.return_code = None
         self.exit_count = 0
         self.retry_delay = 0.1
@@ -104,7 +106,7 @@ class ExternalProcessTest(BaseTestCase):
 
     def test_proc_utf8(self):
         external_process = ExternalProcessUser(
-            "Echo", ["python", "-c", u"print(u'hello world!áßðfáßðf')"],
+            "Echo", ["python", "-c", "print(u'hello world!áßðfáßðf')"],
         )
 
         pipeline = Pipeline(external_process)

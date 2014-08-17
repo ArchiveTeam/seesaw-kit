@@ -1,24 +1,35 @@
 $(function() {
-  var conn = new io.connect('http://' + window.location.host);
+  var conn = new SockJS('http://' + window.location.host);
   var multiProject = false;
   var instanceID = null;
+  var eventCallbacks = {};
 
   function processCarriageReturns(txt) {
     return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
   }
 
-  conn.on('connect', function() {
+  conn.onopen = function() {
     $('#connection-error').remove();
-  });
+  };
 
-  conn.on('disconnect', function() {
+  conn.onclose = function() {
     var div = document.createElement('div');
     div.id = 'connection-error';
     div.innerHTML = 'There is no connection with the warrior.';
     document.body.insertBefore(div, document.body.firstChild);
-  });
+  };
+  
+  conn.onmessage = function(event) {
+    var dataDoc = JSON.parse(event.data);
+    eventCallbacks[dataDoc.event_name](dataDoc.message);
+  }
+  
+  function registerEvent(event_name, func) {
+    // socket.io to sockjs adapter
+    eventCallbacks[event_name] = func;
+  }
 
-  conn.on('instance_id', function(msg) {
+  registerEvent('instance_id', function(msg) {
     // we are connected to a different instance
     if (instanceID && instanceID != msg) {
       window.location.reload();
@@ -27,21 +38,21 @@ $(function() {
     }
   });
 
-  conn.on('warrior.settings_update', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.settings_update', function(msg) {
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     reloadSettingsTab();
   });
 
-  conn.on('warrior.projects_loaded', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.projects_loaded', function(msg) {
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     multiProject = true;
     $(document.body).removeClass('single-project');
     reloadProjectsTab();
   });
 
-  conn.on('warrior.project_installing', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.project_installing', function(msg) {
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var projectLi = $('#project-' + msg.project.name);
     projectLi.addClass('installing');
@@ -49,8 +60,8 @@ $(function() {
     $('div.installation-failed', projectLi).remove();
   });
 
-  conn.on('warrior.project_installed', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.project_installed', function(msg) {
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var projectLi = $('#project-' + msg.project.name);
     projectLi.removeClass('installing');
@@ -58,8 +69,8 @@ $(function() {
     reloadProjectsTab();
   });
 
-  conn.on('warrior.project_installation_failed', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.project_installation_failed', function(msg) {
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var projectLi = $('#project-' + msg.project.name);
     projectLi.removeClass('installing');
@@ -69,14 +80,14 @@ $(function() {
     $('pre.log', projectLi).text(msg.output);
   });
 
-  conn.on('warrior.project_selected', function(msg) { // project
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.project_selected', function(msg) { // project
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     reloadProjectsTab();
   });
 
-  conn.on('project.refresh', function(msg) { // project, pipeline, items
+  registerEvent('project.refresh', function(msg) { // project, pipeline, items
     if (msg) {
-      if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+//      if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
       for (var i=0; i<msg.items.length; i++) {
         addItem(msg.items[i], true);
@@ -89,8 +100,8 @@ $(function() {
 
   var currentWarriorStatus = null;
 
-  conn.on('warrior.status', function(msg) {
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('warrior.status', function(msg) {
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     currentWarriorStatus = msg.status;
     showWarriorStatus(msg.status);
@@ -103,18 +114,18 @@ $(function() {
     }
   });
 
-  conn.on('runner.status', function(msg) { // project_id
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('runner.status', function(msg) { // project_id
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     showRunnerStatus(msg.status);
   });
 
-  conn.on('pipeline.start_item', function(msg) { // pipeline_id, item
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('pipeline.start_item', function(msg) { // pipeline_id, item
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
     addItem(msg.item);
   });
 
-  conn.on('item.output', function(msg) { // item_id, data
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('item.output', function(msg) { // item_id, data
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var itemLog = $('#item-' + msg.item_id + ' pre.log')[0];
     if (itemLog) {
@@ -131,8 +142,8 @@ $(function() {
     updateBriefLog(msg.item_id, msg.data);
   });
 
-  conn.on('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var itemTask = $('#item-' + msg.item_id + ' li.task-' + msg.task_id)[0];
     if (itemTask) {
@@ -144,30 +155,30 @@ $(function() {
     }
   });
 
-  conn.on('item.update_name', function(msg) { // item_id, new_name
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('item.update_name', function(msg) { // item_id, new_name
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
   });
 
-  conn.on('item.complete', function(msg) { // pipeline_id, item_id
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('item.complete', function(msg) { // pipeline_id, item_id
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     $('#item-' + msg.item_id).addClass(itemStatusClassName['completed']);
     $('#item-' + msg.item_id + ' div.status').text(itemStatusTexts['completed']);
     scheduleDelete(msg.item_id);
   });
 
-  conn.on('item.fail', function(msg) { // pipeline_id, item_id
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('item.fail', function(msg) { // pipeline_id, item_id
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     $('#item-' + msg.item_id).addClass(itemStatusClassName['failed']);
     $('#item-' + msg.item_id + ' div.status').text(itemStatusTexts['failed']);
     scheduleDelete(msg.item_id);
   });
 
-  conn.on('item.cancel', function(msg) { // pipeline_id, item_id
-    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
+  registerEvent('item.cancel', function(msg) { // pipeline_id, item_id
+//    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     $('#item-' + msg.item_id).addClass(itemStatusClassName['canceled']);
     $('#item-' + msg.item_id + ' div.status').text(itemStatusTexts['canceled']);
@@ -191,7 +202,7 @@ $(function() {
     }
   }
 
-  conn.on('bandwidth', function(msg) { // received, receiving, sent, sending
+  registerEvent('bandwidth', function(msg) { // received, receiving, sent, sending
     sending.append(new Date().getTime(), msg.sending / 1024);
     receiving.append(new Date().getTime(), msg.receiving / 1024);
     document.getElementById('bandwidth-sending').innerHTML = humanBytes(msg.sending) + '/s';

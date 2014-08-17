@@ -67,13 +67,14 @@ class SimpleTask(Task):
         try:
             with self.task_cwd():
                 self.process(item)
-        except Exception, e:
+        except Exception as e:
             item.log_output("Failed %s for %s\n" % (self, item.description()))
             item.log_output("%s\n" % traceback.format_exc())
             item.log_error(self, e)
             self.fail_item(item)
         else:
-            item.log_output("Finished %s for %s\n" % (self, item.description()))
+            item.log_output("Finished %s for %s\n" % (self,
+                                                      item.description()))
             self.complete_item(item)
 
     def process(self, item):
@@ -115,14 +116,15 @@ class LimitConcurrent(Task):
         self._working -= 1
         if len(self._queue) > 0:
             self._working += 1
-            self.inner_task.enqueue(self.queue.pop(0))
+            self.inner_task.enqueue(self._queue.pop(0))
         self.fail_item(item)
 
     def fill_ui_task_list(self, task_list):
         self.inner_task.fill_ui_task_list(task_list)
 
     def __str__(self):
-        return "LimitConcurrent(" + str(self.concurrency) + " x " + str(self.inner_task) + ")"
+        return "LimitConcurrent({0} x {1} )".format(
+            self.concurrency, self.inner_task)
 
 
 class ConditionalTask(Task):

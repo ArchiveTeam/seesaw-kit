@@ -15,7 +15,7 @@ from tornado import ioloop
 class Runner(object):
     '''Executes and manages the lifetime of :class:`Pipeline` instances.'''
     def __init__(self, stop_file=None, concurrent_items=1, max_items=None,
-    keep_data=False):
+                 keep_data=False):
         self.pipeline = None
         self.concurrent_items = concurrent_items
         self.max_items = max_items
@@ -56,14 +56,14 @@ class Runner(object):
         self.add_items()
 
     def stop_gracefully(self):
-        print "Stopping when current tasks are completed..."
+        print("Stopping when current tasks are completed...")
         self.stop_flag = True
         self.pipeline.cancel_items()
         self.initial_stop_file_mtime = self.stop_file_mtime()
         self.on_status(self, "stopping")
 
     def keep_running(self):
-        print "Keep running..."
+        print("Keep running...")
         self.stop_flag = False
         self.initial_stop_file_mtime = self.stop_file_mtime()
         self.on_status(self, "running")
@@ -78,7 +78,7 @@ class Runner(object):
     def stop_file_changed(self):
         current_stop_file_mtime = self.stop_file_mtime()
         if current_stop_file_mtime:
-            return self.initial_stop_file_mtime == None \
+            return self.initial_stop_file_mtime is None \
                 or self.initial_stop_file_mtime < current_stop_file_mtime
         else:
             return False
@@ -143,8 +143,9 @@ class Runner(object):
 class SimpleRunner(Runner):
     '''Executes a single class:`Pipeline` instance.'''
     def __init__(self, pipeline, stop_file=None, concurrent_items=1,
-    max_items=None, keep_data=False):
-        Runner.__init__(self, stop_file=stop_file,
+                 max_items=None, keep_data=False):
+        Runner.__init__(
+            self, stop_file=stop_file,
             concurrent_items=concurrent_items, max_items=max_items,
             keep_data=keep_data)
 
@@ -155,21 +156,22 @@ class SimpleRunner(Runner):
     def start(self):
         Runner.start(self)
         ioloop.IOLoop.instance().start()
+        self.pipeline.on_cleanup()
 
-    def _stop_ioloop(self, ignored):
+    def _stop_ioloop(self, dummy):
         ioloop.IOLoop.instance().stop()
 
     def forced_stop(self):
-        print "Stopping immediately..."
+        print("Stopping immediately...")
         # TODO perhaps the subprocesses should be killed
         ioloop.IOLoop.instance().stop()
 
-    def _handle_create_item(self, ignored, item):
+    def _handle_create_item(self, dummy, item):
         item.on_output += self._handle_item_output
 
     def _handle_item_output(self, item, data):
         try:
             sys.stdout.write(data)
         except UnicodeError:
-            sys.stdout.write(data.encode('ascii', 'replace'))
+            sys.stdout.write(data.encode('ascii', 'replace').decode('ascii'))
         sys.stdout.flush()
