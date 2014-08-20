@@ -117,6 +117,9 @@ class Item(object):
         return "Item %s" % (self.properties["item_name"]
                             if "item_name" in self.properties else "")
 
+    def get(self, key):
+        return self.properties.get(key)
+
     def __contains__(self, key):
         return key in self.properties
 
