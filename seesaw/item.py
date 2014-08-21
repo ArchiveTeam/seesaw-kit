@@ -21,7 +21,7 @@ class Item(object):
         you know what you are doing.
     '''
     def __init__(self, pipeline, item_id, item_number, properties=None,
-                 keep_data=False):
+                 keep_data=False, prepare_data_directory=True):
         self.pipeline = pipeline
         self.item_id = item_id
         self.item_number = item_number
@@ -45,7 +45,8 @@ class Item(object):
         self.on_fail = Event()
         self.on_finish = Event()
 
-        self.prepare_data_directory()
+        if prepare_data_directory:
+            self.prepare_data_directory()
 
     def prepare_data_directory(self):
         dirname = os.path.join(self.pipeline.data_dir, self.item_id)
@@ -116,6 +117,9 @@ class Item(object):
     def description(self):
         return "Item %s" % (self.properties["item_name"]
                             if "item_name" in self.properties else "")
+
+    def get(self, key):
+        return self.properties.get(key)
 
     def __contains__(self, key):
         return key in self.properties
