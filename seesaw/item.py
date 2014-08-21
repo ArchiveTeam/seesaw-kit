@@ -32,6 +32,7 @@ class Item(object):
         self.canceled = False
         self.completed = False
         self.failed = False
+        self.finished = False
         self._errors = []
         self._last_output = ""
         self.task_status = {}
