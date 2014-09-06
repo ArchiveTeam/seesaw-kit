@@ -3,6 +3,7 @@ import os
 import os.path
 import shutil
 import traceback
+import time
 
 from seesaw.event import Event
 import seesaw.six
@@ -27,6 +28,7 @@ class Item(object):
         self.item_number = item_number
         self.properties = properties or {}
         self.keep_data = keep_data
+        self.start_time = time.time()
 
         self.may_be_canceled = False
         self.canceled = False
