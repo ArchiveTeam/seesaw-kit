@@ -108,6 +108,7 @@ $(function() {
     if (msg.status == 'INVALID_SETTINGS') {
       showTab('view-settings');
     } else if (msg.status == 'NO_PROJECT') {
+      $('#task-summary ol.tasks').empty();
       showTab('view-all-projects');
     } else if (msg.status == 'STARTING_PROJECT') {
       showTab('view-current-project');
@@ -162,6 +163,12 @@ $(function() {
     }
     
     $('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').text(newTaskTotal);
+    
+    if (newTaskTotal) {
+      $('#task-summary ol.tasks li.task-' + msg.task_id).css('opacity', 1);
+    } else {
+      $('#task-summary ol.tasks li.task-' + msg.task_id).css('opacity', 0.5);
+    }
     
   });
 
@@ -414,7 +421,7 @@ $(function() {
       ol.appendChild(li);
       if($('#task-summary .task-' + task.id).length == 0) {
         //Add new item to master task list
-        $('#task-summary ol.tasks').append('<li class="task-' + task.id + '">' + task.name + ' <span class="s">0</span></li>');
+        $('#task-summary ol.tasks').append('<li class="task-' + task.id + '" style="opacity: 0.5">' + task.name + ' <span class="s">0</span></li>');
       }
       if (task.status == 'running') {
         currentTask = i+1;
