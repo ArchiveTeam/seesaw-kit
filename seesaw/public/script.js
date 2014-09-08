@@ -302,9 +302,10 @@ $(function() {
     $('#project-header').html(project.project_html);
 
     if (localStorage) {
-        $('#task-summary').append($("<input>", { id: "collapse-all",
-                                                   type: "checkbox",
-                                                   checked: localStorage.getItem("collapse-all") == "true" }),
+        $('#items-view-settings').empty()
+                                 .append($("<input>", { id: "collapse-all",
+                                                        type: "checkbox",
+                                                        checked: localStorage.getItem("collapse-all") == "true" }),
                                     $("<label>", { for: "collapse-all",
                                                    text: "Collapse all items" }));
         $("#collapse-all").on('change',

@@ -222,6 +222,9 @@ table.time-left td span {
 }
 
 
+#items-view-settings {
+  margin: 0 10px 0px 10px;
+}
 #items {
   position: relative;
   margin: 0 10px 40px 10px;
