@@ -153,6 +153,16 @@ $(function() {
                        $(itemTask).data('index'),
                        $('#item-' + msg.item_id + ' li').length);
     }
+    
+    //Re-calculate the totals for the main 'task summary' area
+    if(msg.new_status == "running") {
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').html()) + 1;
+    } else {
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').html()) - 1;
+    }
+    
+    $('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').text(newTaskTotal);
+    
   });
 
   registerEvent('item.update_name', function(msg) { // item_id, new_name
@@ -401,8 +411,14 @@ $(function() {
       span.appendChild(document.createTextNode(taskStatusChars[task.status] || ''));
       li.appendChild(span);
       ol.appendChild(li);
+      if($('#task-summary .task-' + task.id).length == 0) {
+        //Add new item to master task list
+        $('#task-summary ol.tasks').append('<li class="task-' + task.id + '">' + task.name + ' <span class="s">0</span></li>');
+      }
       if (task.status == 'running') {
         currentTask = i+1;
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + task.id + ' span.s').html()) + 1;
+        $('#task-summary ol.tasks li.task-' + task.id + ' span.s').text(newTaskTotal);
       }
     }
     itemDiv.appendChild(ol);
