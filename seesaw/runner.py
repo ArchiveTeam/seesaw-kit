@@ -59,12 +59,14 @@ class Runner(object):
         print("Stopping when current tasks are completed...")
         self.stop_flag = True
         self.pipeline.cancel_items()
+        self.pipeline.on_stop_requested()
         self.initial_stop_file_mtime = self.stop_file_mtime()
         self.on_status(self, "stopping")
 
     def keep_running(self):
         print("Keep running...")
         self.stop_flag = False
+        self.pipeline.on_stop_canceled()
         self.initial_stop_file_mtime = self.stop_file_mtime()
         self.on_status(self, "running")
 
