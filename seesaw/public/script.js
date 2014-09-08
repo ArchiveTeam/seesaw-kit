@@ -3,6 +3,7 @@ $(function() {
   var multiProject = false;
   var instanceID = null;
   var eventCallbacks = {};
+  var currentBroadcastMessageHash = null;
 
   function processCarriageReturns(txt) {
     return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
@@ -227,7 +228,29 @@ $(function() {
     document.getElementById('bandwidth-sent').innerHTML = humanBytes(msg.sent);
     document.getElementById('bandwidth-received').innerHTML = humanBytes(msg.received);
   });
-
+  
+  registerEvent('warrior.broadcast_message', function(msg) {
+    var oldContent = $('#broadcastMessage-contents').html();
+    var newContent = msg.message;
+    var broadcastMessageHash = msg.hash;
+    currentBroadcastMessageHash = broadcastMessageHash;
+    
+    if (newContent) {
+      $('#broadcastMessage-contents').html(newContent);
+    } else {
+      $('#broadcastMessage-contents').text('(There are no announcements at this time.)');
+    }
+    
+    if (oldContent != newContent && newContent) {
+      if (localStorage) {
+        if (localStorage.lastReadBroadcastMessageHash != broadcastMessageHash) {
+          $('#broadcastMessage-indicator').show();
+        }
+      } else {
+        $('#broadcastMessage-indicator').show();
+      }
+    }
+  });
 
   function reloadProjectsTab() {
     $('#projects').load('/api/all-projects', null, function() {
@@ -241,7 +264,12 @@ $(function() {
   }
 
   function reloadHelpTab() {
-    $('#help').load('/api/help')
+    $('#help').load('/api/help');
+    $('#broadcastMessage-indicator').hide();
+    
+    if (localStorage) {
+      localStorage.lastReadBroadcastMessageHash = currentBroadcastMessageHash; 
+    }
   }
 
   var warriorStatus = {

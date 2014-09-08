@@ -217,6 +217,11 @@ class SeesawConnection(SockJSConnection):
             })
             self.emit("warrior.status",
                       {"status": self.warrior.warrior_status()})
+            self.emit("warrior.broadcast_message",
+                      {
+                          "message": self.warrior.broadcast_message,
+                          "hash": hash(self.warrior.broadcast_message)
+                      })
 
     @classmethod
     def broadcast_bandwidth(cls):
@@ -264,6 +269,14 @@ class SeesawConnection(SockJSConnection):
         cls.project = project
         cls.runner = runner
         cls.broadcast_project_refresh()
+
+    @classmethod
+    def handle_broadcast_message(cls, warrior, message):
+        cls.broadcast("warrior.broadcast_message",
+                      {
+                          "message": message,
+                          "hash": hash(message)
+                      })
 
     @classmethod
     def broadcast_project_refresh(cls):
@@ -361,6 +374,7 @@ def start_warrior_server(warrior, bind_address="", port_number=8001,
     warrior.on_project_installation_failed += \
         SeesawConnection.handle_project_installation_failed
     warrior.on_project_selected += SeesawConnection.handle_project_selected
+    warrior.on_broadcast_message_received += SeesawConnection.handle_broadcast_message
     warrior.on_status += SeesawConnection.handle_warrior_status
     warrior.runner.on_pipeline_start_item += SeesawConnection.handle_start_item
     warrior.runner.on_pipeline_finish_item += \

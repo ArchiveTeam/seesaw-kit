@@ -253,6 +253,7 @@ class Warrior(object):
         self.on_project_refresh = Event()
         self.on_project_selected = Event()
         self.on_status = Event()
+        self.on_broadcast_message_received = Event()
 
         self.http_client = AsyncHTTPClient()
 
@@ -270,6 +271,7 @@ class Warrior(object):
         self.find_lat_lng()
 
         self.install_output = None
+        self.broadcast_message = None
 
     def find_lat_lng(self):
         # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
@@ -369,6 +371,9 @@ class Warrior(object):
 
             self.on_projects_loaded(self, self.projects)
 
+            self.broadcast_message = data.get('broadcast_message')
+            self.on_broadcast_message_received(
+                self, data.get('broadcast_message'))
         else:
             print("HTTP error %s" % (response.code))
 

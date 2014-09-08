@@ -497,7 +497,7 @@ table.time-left td span {
   padding-left: 15px;
 }
 
-#help {
+#help, #broadcastMessage {
   background: #fff;
   border-radius: 5px;
   margin: 10px;
@@ -506,6 +506,16 @@ table.time-left td span {
 }
 #help li, #help p, #help h3, #help ul {
   margin: 0.2em;
+}
+#broadcastMessage-contents {
+  margin: 5px;
+}
+#broadcastMessage-indicator {
+  background-color: purple;
+  color: white;
+  padding: 2px;
+  border-radius: 100%;
+  display: none;
 }
 
 .button-link {
