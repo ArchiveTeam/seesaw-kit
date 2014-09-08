@@ -490,6 +490,9 @@ table.time-left td span {
   display: none;
   padding-left: 10px;
 }
+.advanced-settings-field {
+  padding-left: 15px;
+}
 
 #help {
   background: #fff;

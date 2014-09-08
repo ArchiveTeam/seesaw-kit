@@ -302,7 +302,7 @@ $(function() {
     $('#project-header').html(project.project_html);
 
     if (localStorage) {
-        $('#project-header').append($("<input>", { id: "collapse-all",
+        $('#task-summary').append($("<input>", { id: "collapse-all",
                                                    type: "checkbox",
                                                    checked: localStorage.getItem("collapse-all") == "true" }),
                                     $("<label>", { for: "collapse-all",
