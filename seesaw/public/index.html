@@ -34,7 +34,9 @@
       <ul class="multi-project">
         <li id="tab-all-projects"><a href="#all" data-view="view-all-projects">Available projects</a></li>
         <li id="tab-settings"><a href="#settings" data-view="view-settings">Your settings</a></li>
-        <li id="tag-help"><a href="help" data-view="view-help">About</a>
+        <li id="tag-help"><a href="help" data-view="view-help">About 
+          <span id="broadcastMessage-indicator" title="New Announcement">&nbsp;✉&nbsp;</span></a>
+        </li>
       </ul>
     </div>
 
@@ -79,6 +81,11 @@
 
   <div class="content" id="view-current-project">
     <div id="project-header"></div>
+    <div id="task-summary">
+        <h3>Task Status Summary</h3>
+        <ol class="tasks"></ol>
+    </div>
+    <div id="items-view-settings"></div>
     <div id="items"></div>
   </div>
 
@@ -94,10 +101,10 @@
     <div id="settings-header">
       <h2>Your settings</h2>
       <p>Customize your warrior</p>
-      <p><label for="f-advanced-settings"><input type="checkbox" name="advanced_settings" value="1" id="f-advanced-settings">Show advanced settings</label></p>
     </div>
     <div id="settings">
       <form method="post" action="/api/settings" id="settings-form">
+        <p class="advanced-settings-field"><label for="f-advanced-settings"><input type="checkbox" name="advanced_settings" value="1" id="f-advanced-settings">Show advanced settings</label></p>
         <ul id="settings-list"></ul>
         <ul>
           <li>
@@ -113,6 +120,10 @@
     <div id="help-header">
       <h2>About</h2>
       <p>Information about your warrior</p>
+    </div>
+    <div id="broadcastMessage">
+    <h3>Announcements ✉</h3>
+    <div id="broadcastMessage-contents"></div>
     </div>
     <div id="help"></div>
   </div>

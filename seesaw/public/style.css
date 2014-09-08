@@ -199,6 +199,32 @@ table.time-left td span {
   border-radius: 5px;
 }
 
+
+#task-summary {
+  position: relative;
+  margin: 10px 5px 10px 5px;
+}
+#task-summary h3 {
+  font-size: 150%;
+  margin-left: 5px;
+  margin-bottom: 5px;
+}
+#task-summary ol.tasks {
+  width: 100% !important;
+  float: none !important;
+}
+#task-summary ol.tasks li {
+  display: inline-block;
+  margin-right: 10px !important;
+}
+#task-summary ol.tasks li span.s {
+  margin-left: 20px;
+}
+
+
+#items-view-settings {
+  margin: 0 10px 0px 10px;
+}
 #items {
   position: relative;
   margin: 0 10px 40px 10px;
@@ -266,7 +292,8 @@ table.time-left td span {
 .item.closed div.status {
   display: none;
 }
-.item ol.tasks {
+.item ol.tasks,
+#task-summary ol.tasks {
   display: block;
   float: left;
   margin: 0 3px 0 5px;
@@ -278,7 +305,8 @@ table.time-left td span {
 .item.closed ol.tasks {
   display: none;
 }
-.item ol.tasks li {
+.item ol.tasks li,
+#task-summary ol.tasks li {
   position: relative;
   background: #eff6ee;
   color: #94c58b;
@@ -287,11 +315,13 @@ table.time-left td span {
   vertical-align: middle;
   border-radius: 4px;
 }
-.item ol.tasks li.completed {
+.item ol.tasks li.completed,
+#task-summary ol.tasks li.completed {
   background: #a1cc99;
   color: #326827;
 }
-.item ol.tasks li.running {
+.item ol.tasks li.running,
+#task-summary ol.tasks li {
   background: #459B34;
   color: #fff;
 }
@@ -463,8 +493,11 @@ table.time-left td span {
   display: none;
   padding-left: 10px;
 }
+.advanced-settings-field {
+  padding-left: 15px;
+}
 
-#help {
+#help, #broadcastMessage {
   background: #fff;
   border-radius: 5px;
   margin: 10px;
@@ -473,6 +506,16 @@ table.time-left td span {
 }
 #help li, #help p, #help h3, #help ul {
   margin: 0.2em;
+}
+#broadcastMessage-contents {
+  margin: 5px;
+}
+#broadcastMessage-indicator {
+  background-color: purple;
+  color: white;
+  padding: 2px;
+  border-radius: 100%;
+  display: none;
 }
 
 .button-link {

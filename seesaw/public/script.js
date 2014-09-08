@@ -3,6 +3,7 @@ $(function() {
   var multiProject = false;
   var instanceID = null;
   var eventCallbacks = {};
+  var currentBroadcastMessageHash = null;
 
   function processCarriageReturns(txt) {
     return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
@@ -108,6 +109,7 @@ $(function() {
     if (msg.status == 'INVALID_SETTINGS') {
       showTab('view-settings');
     } else if (msg.status == 'NO_PROJECT') {
+      $('#task-summary ol.tasks').empty();
       showTab('view-all-projects');
     } else if (msg.status == 'STARTING_PROJECT') {
       showTab('view-current-project');
@@ -153,6 +155,22 @@ $(function() {
                        $(itemTask).data('index'),
                        $('#item-' + msg.item_id + ' li').length);
     }
+    
+    //Re-calculate the totals for the main 'task summary' area
+    if(msg.new_status == "running") {
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').html()) + 1;
+    } else {
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').html()) - 1;
+    }
+    
+    $('#task-summary ol.tasks li.task-' + msg.task_id + ' span.s').text(newTaskTotal);
+    
+    if (newTaskTotal) {
+      $('#task-summary ol.tasks li.task-' + msg.task_id).css('opacity', 1);
+    } else {
+      $('#task-summary ol.tasks li.task-' + msg.task_id).css('opacity', 0.5);
+    }
+    
   });
 
   registerEvent('item.update_name', function(msg) { // item_id, new_name
@@ -210,7 +228,29 @@ $(function() {
     document.getElementById('bandwidth-sent').innerHTML = humanBytes(msg.sent);
     document.getElementById('bandwidth-received').innerHTML = humanBytes(msg.received);
   });
-
+  
+  registerEvent('warrior.broadcast_message', function(msg) {
+    var oldContent = $('#broadcastMessage-contents').html();
+    var newContent = msg.message;
+    var broadcastMessageHash = msg.hash;
+    currentBroadcastMessageHash = broadcastMessageHash;
+    
+    if (newContent) {
+      $('#broadcastMessage-contents').html(newContent);
+    } else {
+      $('#broadcastMessage-contents').text('(There are no announcements at this time.)');
+    }
+    
+    if (oldContent != newContent && newContent) {
+      if (localStorage) {
+        if (localStorage.lastReadBroadcastMessageHash != broadcastMessageHash) {
+          $('#broadcastMessage-indicator').show();
+        }
+      } else {
+        $('#broadcastMessage-indicator').show();
+      }
+    }
+  });
 
   function reloadProjectsTab() {
     $('#projects').load('/api/all-projects', null, function() {
@@ -224,7 +264,12 @@ $(function() {
   }
 
   function reloadHelpTab() {
-    $('#help').load('/api/help')
+    $('#help').load('/api/help');
+    $('#broadcastMessage-indicator').hide();
+    
+    if (localStorage) {
+      localStorage.lastReadBroadcastMessageHash = currentBroadcastMessageHash; 
+    }
   }
 
   var warriorStatus = {
@@ -292,9 +337,10 @@ $(function() {
     $('#project-header').html(project.project_html);
 
     if (localStorage) {
-        $('#project-header').append($("<input>", { id: "collapse-all",
-                                                   type: "checkbox",
-                                                   checked: localStorage.getItem("collapse-all") == "true" }),
+        $('#items-view-settings').empty()
+                                 .append($("<input>", { id: "collapse-all",
+                                                        type: "checkbox",
+                                                        checked: localStorage.getItem("collapse-all") == "true" }),
                                     $("<label>", { for: "collapse-all",
                                                    text: "Collapse all items" }));
         $("#collapse-all").on('change',
@@ -401,8 +447,14 @@ $(function() {
       span.appendChild(document.createTextNode(taskStatusChars[task.status] || ''));
       li.appendChild(span);
       ol.appendChild(li);
+      if($('#task-summary .task-' + task.id).length == 0) {
+        //Add new item to master task list
+        $('#task-summary ol.tasks').append('<li class="task-' + task.id + '" style="opacity: 0.5">' + task.name + ' <span class="s">0</span></li>');
+      }
       if (task.status == 'running') {
         currentTask = i+1;
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + task.id + ' span.s').html()) + 1;
+        $('#task-summary ol.tasks li.task-' + task.id + ' span.s').text(newTaskTotal);
       }
     }
     itemDiv.appendChild(ol);

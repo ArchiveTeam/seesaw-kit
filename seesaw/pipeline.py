@@ -26,6 +26,8 @@ class Pipeline(object):
         self.on_cancel_item = Event()
         self.on_finish_item = Event()
         self.on_cleanup = Event()
+        self.on_stop_requested = Event()
+        self.on_stop_canceled = Event()
         self.project = None
 
         self.items_in_pipeline = set()

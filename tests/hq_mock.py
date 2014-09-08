@@ -21,6 +21,7 @@ class UpdateHandler(tornado.web.RedirectHandler):
             "warrior": {
               "seesaw_version": "0.0.15"
            },
+           "broadcast_message": "<i>Hello world</i>",
            "auto_project": "testproject",
            "projects": [
               {
