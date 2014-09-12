@@ -511,7 +511,7 @@ table.time-left td span {
   margin: 5px;
 }
 #broadcastMessage-indicator {
-  background-color: purple;
+  background-color: darkgoldenrod;
   color: white;
   padding: 2px;
   border-radius: 100%;
