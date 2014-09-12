@@ -351,6 +351,18 @@ table.time-left td span {
 .item.closed pre.log {
   display: none;
 }
+.item.closed .log-header {
+  display: none;
+}
+.log-header {
+  text-align: right;
+  margin: 5px;
+  color: #444444;
+}
+.item-project-name, .item-duration-counter {
+  font-size: 0.9em;
+  margin: 8px;
+}
 
 #projects-header {
   position: relative;

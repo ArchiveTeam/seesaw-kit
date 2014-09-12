@@ -266,7 +266,7 @@ $(function() {
        var result = (hours < 10 ? "0" + hours : hours) + "h " + (minutes < 10 ? "0" + minutes : minutes) + "m " + (seconds  < 10 ? "0" + seconds : seconds) + "s ";
        
        //Save the calculated duration back to the DOM
-       $(".duration-counter", obj).html(": Runtime " + result);
+       $(".item-duration-counter", obj).text('Elapsed: ' + result);
     });
   });
 
@@ -434,12 +434,10 @@ $(function() {
     $(h3).append($("<span>", { "class": 'twisty' }),
                  $("<span>", {
                      "class": 'name',
-                     text: item.name,
-                     title: item.project,
+                     text: item.name
                  }),
                  $("<span>", { "class": 'status-line' }),
-                 $("<span>", { "class": 'log-line' }),
-                 $("<span>", { "class": 'duration-counter' }));
+                 $("<span>", { "class": 'log-line' }));
     itemDiv.appendChild(h3);
 
     div = document.createElement('div');
@@ -487,6 +485,14 @@ $(function() {
     pre.data = processCarriageReturns(item.output);
     pre.appendChild(document.createTextNode(pre.data));
     itemDiv.appendChild(pre);
+    
+    var logHeaderElement = $("<div>", { "class": "log-header" });
+    var durationCounterElement = $("<span>", { "class": 'item-duration-counter' });
+    
+    $(logHeaderElement)
+      .append($("<span>", { "class": "item-project-name", "text": item.project }))
+      .append(durationCounterElement);
+    $(itemDiv).append(logHeaderElement);
 
     if (!skipAnimation) {
       itemDiv.style.display = 'none';
