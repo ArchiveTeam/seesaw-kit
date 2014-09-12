@@ -1,4 +1,5 @@
 '''The warrior web interface.'''
+import hashlib
 import json
 import os
 import os.path
@@ -220,7 +221,7 @@ class SeesawConnection(SockJSConnection):
             self.emit("warrior.broadcast_message",
                       {
                           "message": self.warrior.broadcast_message,
-                          "hash": hash(self.warrior.broadcast_message)
+                          "hash": hash_string(self.warrior.broadcast_message)
                       })
 
     @classmethod
@@ -275,7 +276,7 @@ class SeesawConnection(SockJSConnection):
         cls.broadcast("warrior.broadcast_message",
                       {
                           "message": message,
-                          "hash": hash(message)
+                          "hash": hash_string(message)
                       })
 
     @classmethod
@@ -316,6 +317,11 @@ class SeesawConnection(SockJSConnection):
 
     def on_close(self):
         self.clients.remove(self)
+
+
+def hash_string(text):
+    '''Generate a digest for broadcast message.'''
+    return hashlib.md5((text or '').encode('ascii', 'replace')).hexdigest()
 
 
 def start_runner_server(project, runner, bind_address="", port_number=8001,
