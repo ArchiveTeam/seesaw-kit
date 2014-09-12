@@ -250,6 +250,8 @@ $(function() {
         $('#broadcastMessage-indicator').show();
       }
     }
+  });
+
   registerEvent('timestamp', function(msg) { // timestamp
     //Loop through every item and update the running duration
     $('.item').each(function(i, obj) {
