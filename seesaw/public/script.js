@@ -250,6 +250,22 @@ $(function() {
         $('#broadcastMessage-indicator').show();
       }
     }
+  registerEvent('timestamp', function(msg) { // timestamp
+    //Loop through every item and update the running duration
+    $('.item').each(function(i, obj) {
+       //Calculate the difference between the current server time and the item start time
+       timeDiff = parseInt(msg.timestamp) - parseInt($(obj).attr('attr-start_time'));
+       
+       // Generate friendly time display
+       // http://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript
+       var hours = parseInt( timeDiff / 3600 ) % 24;
+       var minutes = parseInt( timeDiff / 60 ) % 60;
+       var seconds = timeDiff % 60;
+       var result = (hours < 10 ? "0" + hours : hours) + "h " + (minutes < 10 ? "0" + minutes : minutes) + "m " + (seconds  < 10 ? "0" + seconds : seconds) + "s ";
+       
+       //Save the calculated duration back to the DOM
+       $(".duration-counter", obj).html(": Runtime " + result);
+    });
   });
 
   function reloadProjectsTab() {
@@ -420,7 +436,8 @@ $(function() {
                      title: item.project,
                  }),
                  $("<span>", { "class": 'status-line' }),
-                 $("<span>", { "class": 'log-line' }));
+                 $("<span>", { "class": 'log-line' }),
+                 $("<span>", { "class": 'duration-counter' }));
     itemDiv.appendChild(h3);
 
     div = document.createElement('div');
@@ -458,7 +475,11 @@ $(function() {
       }
     }
     itemDiv.appendChild(ol);
-
+    
+    var att_starttime = document.createAttribute("attr-start_time");
+    att_starttime.value = item.start_time;
+    itemDiv.setAttributeNode(att_starttime);
+    
     pre = document.createElement('pre');
     pre.className = 'log';
     pre.data = processCarriageReturns(item.output);
