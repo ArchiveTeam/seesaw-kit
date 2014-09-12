@@ -153,9 +153,9 @@ body.single-project #bandwidth {
 
 #project-header {
   position: relative;
-  height: 60px;
+  height: 70px;
   background: #fff;
-  padding: 15px 150px 15px 15px;
+  padding: 10px 150px 10px 10px;
 }
 #project-header img.project-logo {
   float: left;
@@ -164,7 +164,7 @@ body.single-project #bandwidth {
 }
 #project-header h2 span.links {
   display: inline-block;
-  padding-left: 20px;
+  padding-left: 10px;
   font-weight: normal;
   font-size: 12px;
 }
@@ -516,6 +516,16 @@ table.time-left td span {
   padding: 2px;
   border-radius: 100%;
   display: none;
+}
+.projectBroadcastMessage {
+  background-color: aliceblue;
+  padding: 5px;
+  border-radius: 5px;
+  display: inline-block;
+  margin: 0px;
+}
+.projectBroadcastMessage:before {
+  content: ' ✉ ';
 }
 
 .button-link {
