@@ -1,4 +1,5 @@
 '''The warrior web interface.'''
+import hashlib
 import json
 import os
 import os.path
@@ -71,7 +72,8 @@ class ItemMonitor(object):
             "status": self.item_status(),
             "tasks": tasks,
             "output": "".join(self.collected_data),
-            "project": project_name
+            "project": project_name,
+            "start_time": item.start_time
         }
 
         return item_data
@@ -220,7 +222,7 @@ class SeesawConnection(SockJSConnection):
             self.emit("warrior.broadcast_message",
                       {
                           "message": self.warrior.broadcast_message,
-                          "hash": hash(self.warrior.broadcast_message)
+                          "hash": hash_string(self.warrior.broadcast_message)
                       })
 
     @classmethod
@@ -229,7 +231,12 @@ class SeesawConnection(SockJSConnection):
             bw_stats = cls.warrior.bandwidth_stats()
             if bw_stats:
                 cls.broadcast("bandwidth", bw_stats)
+    
+    @classmethod
+    def broadcast_timestamp(cls):
+        cls.broadcast("timestamp", {"timestamp": time.time()})
 
+    
     @classmethod
     def handle_warrior_status(cls, warrior, new_status):
         cls.broadcast("warrior.status", {"status": new_status})
@@ -275,7 +282,7 @@ class SeesawConnection(SockJSConnection):
         cls.broadcast("warrior.broadcast_message",
                       {
                           "message": message,
-                          "hash": hash(message)
+                          "hash": hash_string(message)
                       })
 
     @classmethod
@@ -318,6 +325,11 @@ class SeesawConnection(SockJSConnection):
         self.clients.remove(self)
 
 
+def hash_string(text):
+    '''Generate a digest for broadcast message.'''
+    return hashlib.md5((text or '').encode('ascii', 'replace')).hexdigest()
+
+
 def start_runner_server(project, runner, bind_address="", port_number=8001,
                         http_username=None, http_password=None):
     '''Starts a web interface for a manually run pipeline.
@@ -334,7 +346,9 @@ def start_runner_server(project, runner, bind_address="", port_number=8001,
     runner.on_pipeline_start_item += SeesawConnection.handle_start_item
     runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
     runner.on_status += SeesawConnection.handle_runner_status
-
+    
+    ioloop.PeriodicCallback(SeesawConnection.broadcast_timestamp, 1000).start()
+    
     router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(
@@ -387,7 +401,8 @@ def start_warrior_server(warrior, bind_address="", port_number=8001,
         http_password = warrior.http_password
 
     ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
-
+    ioloop.PeriodicCallback(SeesawConnection.broadcast_timestamp, 1000).start()
+    
     router = SockJSRouter(SeesawConnection)
 
     application = AuthenticatedApplication(

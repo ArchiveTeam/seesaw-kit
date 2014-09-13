@@ -20,6 +20,7 @@ project = Project(
     <img class="project-logo" alt="Project logo" src="http://archive.org/images/glogo.png" height="50px" />
     <h2>Example project <span class="links"><a href="http://example.com/">Example website</a> &middot; <a href="http://example.heroku.com/">Leaderboard</a></span></h2>
     <p>This is an example project. Under a logo and title there's some room for extra information.</p>
+    <p class="projectBroadcastMessage">Important project specific message goes here.</p>
   """,
   utc_deadline = datetime.datetime(2013,1,1, 12,0,0)
 )
