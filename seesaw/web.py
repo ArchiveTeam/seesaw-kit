@@ -427,4 +427,4 @@ def start_warrior_server(warrior, bind_address="", port_number=8001,
         skip_auth=[tornado_url[0] for tornado_url in router.urls]
     )
 
-    application.listen(port_number)
+    application.listen(port_number, bind_address)
