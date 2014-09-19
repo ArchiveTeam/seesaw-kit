@@ -330,15 +330,15 @@ def hash_string(text):
     return hashlib.md5((text or '').encode('ascii', 'replace')).hexdigest()
 
 
-def start_runner_server(project, runner, bind_address="", port_number=8001,
+def start_runner_server(project, runner, bind_address="localhost", port_number=8001,
                         http_username=None, http_password=None):
     '''Starts a web interface for a manually run pipeline.
 
     Unlike :func:`start_warrior_server`, this UI does not contain an
     configuration or project management panel.
     '''
-    if bind_address == "0.0.0.0":
-        bind_address = ""
+#     if bind_address == "0.0.0.0":
+#         bind_address = ""
 
     SeesawConnection.project = project
     SeesawConnection.runner = runner
@@ -373,10 +373,10 @@ def start_runner_server(project, runner, bind_address="", port_number=8001,
         skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
     )
 
-    application.listen(port_number)
+    application.listen(port_number, bind_address)
 
 
-def start_warrior_server(warrior, bind_address="", port_number=8001,
+def start_warrior_server(warrior, bind_address="localhost", port_number=8001,
                          http_username=None, http_password=None):
     '''Starts the warrior web interface.'''
     SeesawConnection.warrior = warrior
@@ -427,4 +427,4 @@ def start_warrior_server(warrior, bind_address="", port_number=8001,
         skip_auth=[tornado_url[0] for tornado_url in router.urls]
     )
 
-    application.listen(port_number)
+    application.listen(port_number, bind_address)

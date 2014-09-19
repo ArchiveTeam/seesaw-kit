@@ -83,8 +83,8 @@ def main():
                         action="store_true")
     parser.add_argument("--address", dest="address",
                         help="the IP address of the web interface "
-                             "(default: 0.0.0.0)",
-                        metavar="HOST", type=str, default="0.0.0.0")
+                             "(default: localhost)",
+                        metavar="HOST", type=str, default="localhost")
     parser.add_argument("--port", dest="port_number",
                         help="the port number for the web interface "
                              "(default: 8001)",

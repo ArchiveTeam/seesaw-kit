@@ -190,7 +190,7 @@ class RsyncUpload(ExternalProcess):
                  max_tries=None, extra_args=None):
         args = [
             "rsync",
-            "-avz",
+            "-rltvz",
             "--compress-level=9",
             "--timeout=300",
             "--contimeout=300",
