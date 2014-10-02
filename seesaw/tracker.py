@@ -62,16 +62,21 @@ class TrackerRequest(Task):
             if response.code == 420 or response.code == 429:
                 r = ("Tracker rate limiting is active. "
                      "We don't want to overload the site we're archiving, "
-                     "so we've limited the number of downloads per minute. "
-                     "Please wait... ")
+                     "so we've limited the number of downloads per minute. ")
             elif response.code == 404:
-                r = "No item received. "
+                r = ("No item received. There aren't any items available "
+                     "for this project at the moment. Try again later. ")
             elif response.code == 455:
-                r = "Project code is out of date and needs to be upgraded. "
+                r = ("Project code is out of date and needs to be upgraded. "
+                     "To remedy this problem immediately, you may reboot "
+                     "your warrior. ")
             elif response.code == 599:
-                r = "No HTTP response received from tracker. "
+                r = ("No HTTP response received from tracker. "
+                     "The tracker is probably overloaded. ")
             else:
-                r = "Tracker returned status code %d. \n" % (response.code)
+                r = ("Tracker returned status code %d. "
+                     "The tracker has probably malfunctioned. "
+                     ) % (response.code)
             self.schedule_retry(item, r)
 
     def schedule_retry(self, item, message=""):
