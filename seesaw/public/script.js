@@ -133,6 +133,7 @@ $(function() {
     if (itemLog) {
       if (itemLog.data) {
         itemLog.data = processCarriageReturns(itemLog.data + msg.data);
+        itemLog.data = itemLog.data.split('\n').slice(-500).join('\n')
         itemLog.firstChild.nodeValue = itemLog.data;
       } else {
         itemLog.data = processCarriageReturns(msg.data);
