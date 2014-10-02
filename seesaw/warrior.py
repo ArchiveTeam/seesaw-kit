@@ -272,6 +272,7 @@ class Warrior(object):
 
         self.install_output = None
         self.broadcast_message = None
+        self.contacting_hq_failed = False
 
     def find_lat_lng(self):
         # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
@@ -307,6 +308,7 @@ class Warrior(object):
                 data = json.loads(response.body.decode('utf-8'))
                 print("Received Warrior ID '%s'." % data["warrior_id"])
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
+                self.fire_status()
             else:
                 print("HTTP error %s" % (response.code))
                 self.fire_status()
@@ -370,6 +372,7 @@ class Warrior(object):
                 else:
                     self.select_project(None)
 
+            self.contacting_hq_failed = False
             self.on_projects_loaded(self, self.projects)
 
             self.broadcast_message = data.get('broadcast_message')
@@ -377,6 +380,15 @@ class Warrior(object):
                 self, data.get('broadcast_message'))
         else:
             print("HTTP error %s" % (response.code))
+            self.contacting_hq_failed = True
+
+            # We don't set projects to {} because it causes the
+            # "Stop Current" project button to disappear
+            for name in tuple(self.projects):
+                if name != self.selected_project:
+                    del self.projects[name]
+
+            self.on_projects_loaded(self, self.projects)
 
     @gen.engine
     def install_project(self, project_name, callback=None):
