@@ -309,6 +309,7 @@ class Warrior(object):
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
             else:
                 print("HTTP error %s" % (response.code))
+                self.fire_status()
                 return
         else:
             print("Warrior ID '%s'." % realize(self.warrior_id))
@@ -727,6 +728,7 @@ class Warrior(object):
         self.fire_status()
 
     class Status(object):
+        UNINITIALIZED = 'UNINITIALIZED'
         NO_PROJECT = "NO_PROJECT"
         INVALID_SETTINGS = "INVALID_SETTINGS"
         STOPPING_PROJECT = "STOPPING_PROJECT"
@@ -745,6 +747,8 @@ class Warrior(object):
             return Warrior.Status.SHUTTING_DOWN
         elif self.reboot_flag:
             return Warrior.Status.REBOOTING
+        elif realize(self.warrior_id) is None:
+            return Warrior.Status.UNINITIALIZED
         elif not self.config_manager.all_valid():
             return Warrior.Status.INVALID_SETTINGS
         elif self.selected_project is None and \
