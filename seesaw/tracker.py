@@ -20,13 +20,16 @@ from seesaw.externalprocess import RsyncUpload, CurlUpload
 
 class TrackerRequest(Task):
     '''Represents a request to a Tracker.'''
+
+    DEFAULT_RETRY_DELAY = 60
+
     def __init__(self, name, tracker_url, tracker_command,
                  may_be_canceled=False):
         Task.__init__(self, name)
         self.http_client = AsyncHTTPClient()
         self.tracker_url = tracker_url
         self.tracker_command = tracker_command
-        self.retry_delay = 30
+        self.retry_delay = self.DEFAULT_RETRY_DELAY
         self._set_may_be_canceled = may_be_canceled
 
     def enqueue(self, item):
@@ -57,6 +60,7 @@ class TrackerRequest(Task):
 
     def handle_response(self, item, response):
         if response.code == 200:
+            self.reset_retry_delay()
             self.process_body(response.body, item)
         else:
             if response.code == 420 or response.code == 429:
@@ -78,6 +82,7 @@ class TrackerRequest(Task):
                      "The tracker has probably malfunctioned. "
                      ) % (response.code)
             self.schedule_retry(item, r)
+            self.increment_retry_delay()
 
     def schedule_retry(self, item, message=""):
         if self._set_may_be_canceled:
@@ -90,6 +95,13 @@ class TrackerRequest(Task):
 
     def process_body(self, body, item):
         raise NotImplementedError()
+
+    def increment_retry_delay(self, max_delay=300):
+        self.retry_delay += 10
+        self.retry_delay = min(max_delay, self.retry_delay)
+
+    def reset_retry_delay(self):
+        self.retry_delay = self.DEFAULT_RETRY_DELAY
 
 
 class GetItemFromTracker(TrackerRequest):
