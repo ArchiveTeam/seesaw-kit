@@ -272,6 +272,7 @@ class Warrior(object):
 
         self.install_output = None
         self.broadcast_message = None
+        self.contacting_hq_failed = False
 
     def find_lat_lng(self):
         # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
@@ -307,8 +308,10 @@ class Warrior(object):
                 data = json.loads(response.body.decode('utf-8'))
                 print("Received Warrior ID '%s'." % data["warrior_id"])
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
+                self.fire_status()
             else:
                 print("HTTP error %s" % (response.code))
+                self.fire_status()
                 return
         else:
             print("Warrior ID '%s'." % realize(self.warrior_id))
@@ -369,6 +372,7 @@ class Warrior(object):
                 else:
                     self.select_project(None)
 
+            self.contacting_hq_failed = False
             self.on_projects_loaded(self, self.projects)
 
             self.broadcast_message = data.get('broadcast_message')
@@ -376,6 +380,15 @@ class Warrior(object):
                 self, data.get('broadcast_message'))
         else:
             print("HTTP error %s" % (response.code))
+            self.contacting_hq_failed = True
+
+            # We don't set projects to {} because it causes the
+            # "Stop Current" project button to disappear
+            for name in tuple(self.projects):
+                if name != self.selected_project:
+                    del self.projects[name]
+
+            self.on_projects_loaded(self, self.projects)
 
     @gen.engine
     def install_project(self, project_name, callback=None):
@@ -727,6 +740,7 @@ class Warrior(object):
         self.fire_status()
 
     class Status(object):
+        UNINITIALIZED = 'UNINITIALIZED'
         NO_PROJECT = "NO_PROJECT"
         INVALID_SETTINGS = "INVALID_SETTINGS"
         STOPPING_PROJECT = "STOPPING_PROJECT"
@@ -745,6 +759,8 @@ class Warrior(object):
             return Warrior.Status.SHUTTING_DOWN
         elif self.reboot_flag:
             return Warrior.Status.REBOOTING
+        elif realize(self.warrior_id) is None:
+            return Warrior.Status.UNINITIALIZED
         elif not self.config_manager.all_valid():
             return Warrior.Status.INVALID_SETTINGS
         elif self.selected_project is None and \

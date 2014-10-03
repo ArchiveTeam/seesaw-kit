@@ -1,4 +1,5 @@
 '''The warrior web interface.'''
+import collections
 import hashlib
 import json
 import os
@@ -40,7 +41,7 @@ class ItemMonitor(object):
         item.on_fail += self.handle_item_fail
         item.on_cancel += self.handle_item_cancel
 
-        self.collected_data = []
+        self.collected_data = collections.deque((), 500)
 
         SeesawConnection.broadcast(
             "pipeline.start_item",

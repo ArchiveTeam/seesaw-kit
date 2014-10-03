@@ -133,6 +133,7 @@ $(function() {
     if (itemLog) {
       if (itemLog.data) {
         itemLog.data = processCarriageReturns(itemLog.data + msg.data);
+        itemLog.data = itemLog.data.split('\n').slice(-500).join('\n')
         itemLog.firstChild.nodeValue = itemLog.data;
       } else {
         itemLog.data = processCarriageReturns(msg.data);
@@ -291,6 +292,7 @@ $(function() {
   }
 
   var warriorStatus = {
+    'UNINITIALIZED': ['The warrior could not contact HQ. Please reboot.', 'Shut down', '/api/stop'],
     'NO_PROJECT': ['The warrior is idle. Select a project.', 'Shut down', '/api/stop'],
     'INVALID_SETTINGS': ['You must configure the warrior.', 'Shut down', '/api/stop'],
     'STOPPING_PROJECT': ['The warrior is stopping the current project.', 'Shut down', '/api/stop'],
@@ -624,6 +626,8 @@ $(function() {
   function showTab(view) {
     if (currentWarriorStatus == 'INVALID_SETTINGS') {
       view = 'view-settings';
+    } else if (currentWarriorStatus == 'UNINITIALIZED') {
+      view = 'view-help';
     }
 
     var views = $('div.content');

@@ -56,7 +56,9 @@
       </li>
     {% end %}
   {% end %}
-  {% if not warrior.projects %}
+  {% if warrior.contacting_hq_failed %}
+    <p>Uh-oh! There was a problem contacting warrior headquarters. Retrying in a few minutes&hellip;</p>
+  {% elif not warrior.projects %}
     <p>Phooey&hellip; No warrior projects are available for participation yet!</p>
   {% end %}
 </ul>
