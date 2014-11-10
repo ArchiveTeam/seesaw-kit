@@ -1,16 +1,24 @@
 from __future__ import print_function
 
 from argparse import ArgumentParser
+import itertools
 import os.path
 import re
+import subprocess
 import sys
+import time
 
-import seesaw
 from seesaw.runner import SimpleRunner
 from seesaw.web import start_runner_server
+import seesaw
+import tornado.ioloop
 
 
 seesaw.runner_type = "Standalone"
+
+
+class GitCheckError(OSError):
+    pass
 
 
 def load_pipeline(pipeline_path, context):
@@ -60,6 +68,95 @@ def check_concurrency_or_exit(value):
         sys.exit(1)
 
 
+def get_output(command):
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    return proc.returncode, proc.communicate()[0]
+
+
+def check_git_repo_or_exit():
+    try:
+        get_git_hash()
+        get_remote_git_hash()
+    except GitCheckError:
+        print("@@@  Problem executing git!  @@@")
+        print("Is this a git repo?")
+        sys.exit(1)
+
+
+def update_repo():
+    try:
+        branch = get_git_branch()
+        subprocess.check_call(["git", "pull", "origin", branch])
+    except (GitCheckError, subprocess.CalledProcessError):
+        print("@@@  The repo could not be updated. Ignoring error.")
+
+
+def get_git_hash():
+    return_code, output = get_output(["git", "rev-parse", "HEAD"])
+
+    git_hash = output.decode('ascii').strip().lower()
+
+    if return_code or not git_hash:
+        raise GitCheckError('Could not get git hash.')
+
+    return git_hash
+
+
+def get_remote_git_hash():
+    branch = get_git_branch()
+
+    return_code, output = get_output(
+        ["git", "rev-parse", "origin/{0}".format(branch)])
+
+    git_hash = output.decode('ascii').strip().lower()
+
+    if return_code or not git_hash:
+        raise GitCheckError('Could not get remote git hash.')
+
+    return git_hash
+
+
+def get_git_branch():
+    return_code, output = get_output(['git', 'rev-parse',
+                                      '--abbrev-ref', 'HEAD'])
+
+    branch = output.decode('ascii').strip().lower()
+
+    if return_code or not branch:
+        raise GitCheckError('Could not get git branch name.')
+
+    return branch
+
+
+def attach_git_scheduler(runner):
+    nonlocal_dict = {}
+    nonlocal_dict['current_git_hash'] = get_git_hash()
+
+    def check_and_update():
+        if runner.stop_flag:
+            return
+
+        try:
+            remote_hash = get_remote_git_hash()
+        except GitCheckError:
+            print("@@@  Could not check latest repo version. Ignoring error.")
+        else:
+            if remote_hash != nonlocal_dict['current_git_hash']:
+                print('Old hash {0}. New hash {1}'
+                      .format(nonlocal_dict['current_git_hash'], remote_hash))
+
+                runner.is_git_update_needed = True
+
+                nonlocal_dict['timer'].stop()
+                runner.stop_gracefully()
+
+    timer = tornado.ioloop.PeriodicCallback(check_and_update, 3600 * 1000)
+
+    nonlocal_dict['timer'] = timer
+
+    timer.start()
+
+
 def main():
     parser = ArgumentParser(description="Run the pipeline")
     parser.add_argument("pipeline", metavar="PIPELINE", type=str,
@@ -103,11 +200,40 @@ def main():
                         action='append', default=[], type=str)
     parser.add_argument("--version", action="version",
                         version=seesaw.__version__)
+    parser.add_argument("--auto-update", action="store_true",
+                        help="attempt to update via git pull (experimental)")
     args = parser.parse_args()
 
     check_downloader_or_exit(args.downloader)
     check_concurrency_or_exit(args.concurrent_items)
 
+    if args.auto_update:
+        check_git_repo_or_exit()
+        trial_iterator = itertools.count(1)
+    else:
+        trial_iterator = [1]
+
+    for trial_num in trial_iterator:
+        runner = init_runner(args)
+
+        if args.auto_update:
+            runner.is_git_update_needed = False
+            attach_git_scheduler(runner)
+
+        runner.start()
+
+        if args.auto_update and runner.is_git_update_needed:
+            tornado.ioloop.IOLoop.instance().close(all_fds=True)
+            del tornado.ioloop.IOLoop._instance
+            print("+++  End of trial {0}. Time to update.  +++"
+                  .format(trial_num))
+            update_repo()
+            time.sleep(10)
+        else:
+            break
+
+
+def init_runner(args):
     context = {"downloader": args.downloader}
 
     for context_value in args.context_values:
@@ -153,7 +279,8 @@ def main():
 
     print("Run 'touch %s' to stop downloading." % args.stop_file)
     print()
-    runner.start()
+
+    return runner
 
 
 if __name__ == "__main__":
