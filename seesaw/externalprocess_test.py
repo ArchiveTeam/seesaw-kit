@@ -18,7 +18,7 @@ class ExternalProcessUser(ExternalProcess):
 
     def on_subprocess_stdout(self, pipe, item, data):
         ExternalProcess.on_subprocess_stdout(self, pipe, item, data)
-        self.output_buffer.write(data)
+        self.output_buffer.write(data.decode('utf8', 'replace'))
 
     def on_subprocess_end(self, item, returncode):
         ExternalProcess.on_subprocess_end(self, item, returncode)
