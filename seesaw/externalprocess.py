@@ -89,7 +89,6 @@ class AsyncPopen2(object):
         self.kwargs["stderr"] = tornado.process.Subprocess.STREAM
 
         self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
-        self.pipe.set_exit_callback(self._end_callback)
 
         self.pipe.stdout.read_until_close(
             callback=self._handle_subprocess_stdout,
@@ -97,6 +96,8 @@ class AsyncPopen2(object):
         self.pipe.stderr.read_until_close(
             callback=self._handle_subprocess_stdout,
             streaming_callback=self._handle_subprocess_stdout)
+
+        self.pipe.set_exit_callback(self._end_callback)
 
     def _handle_subprocess_stdout(self, data):
         self.on_output(data)
