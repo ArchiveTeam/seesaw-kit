@@ -9,6 +9,7 @@ import pty
 
 import tornado.ioloop
 from tornado.ioloop import IOLoop, PeriodicCallback
+import tornado.process
 
 from seesaw.event import Event
 from seesaw.task import Task
@@ -16,7 +17,10 @@ from seesaw.config import realize
 
 
 class AsyncPopen(object):
-    '''Asynchronous version of :class:`subprocess.Popen`.'''
+    '''Asynchronous version of :class:`subprocess.Popen`.
+
+    Deprecated.
+    '''
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
@@ -68,6 +72,44 @@ class AsyncPopen(object):
             self.on_end(self.pipe.returncode)
 
 
+class AsyncPopen2(object):
+    '''Adapter for the legacy AsyncPopen'''
+
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+        self.on_output = Event()
+        self.on_end = Event()
+
+        self.pipe = None
+
+    def run(self):
+        self.kwargs["stdout"] = tornado.process.Subprocess.STREAM
+        self.kwargs["stderr"] = tornado.process.Subprocess.STREAM
+
+        self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
+
+        self.pipe.stdout.read_until_close(
+            callback=self._handle_subprocess_stdout,
+            streaming_callback=self._handle_subprocess_stdout)
+        self.pipe.stderr.read_until_close(
+            callback=self._handle_subprocess_stdout,
+            streaming_callback=self._handle_subprocess_stdout)
+
+        self.pipe.set_exit_callback(self._end_callback)
+
+    def _handle_subprocess_stdout(self, data):
+        self.on_output(data)
+
+    def _end_callback(self, return_code):
+        self.on_end(return_code)
+
+    @property
+    def stdin(self):
+        return self.pipe.stdin
+
+
 class ExternalProcess(Task):
     '''External subprocess runner.'''
     def __init__(self, name, args, max_tries=1, retry_delay=30,
@@ -98,7 +140,7 @@ class ExternalProcess(Task):
 
     def process(self, item):
         with self.task_cwd():
-            p = AsyncPopen(
+            p = AsyncPopen2(
                 args=realize(self.args, item),
                 env=realize(self.env, item),
                 stdin=subprocess.PIPE,

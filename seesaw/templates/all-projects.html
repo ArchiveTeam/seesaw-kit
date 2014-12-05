@@ -8,7 +8,7 @@
         <h4>ArchiveTeam&#8217;s Choice</h4>
         <p>Your warrior will automatically work on the current ArchiveTeam project.</p>
         <form method="post" action="/api/deselect-project" class="js-api-form">
-          <div class="select"><input type="hidden" name="project_name" value="{{ escape(project_name) }}" /><input type="submit" value="Stop this project" /></div>
+          <div class="select"><input type="hidden" name="project_name" value="{{ project_name }}" /><input type="submit" value="Stop this project" /></div>
         </form>
       </li>
     </ul>
@@ -19,12 +19,12 @@
     <ul>
       <li>
         {% if "logo" in project_data %}
-          <img class="project-logo" alt="Logo" src="{{ escape(project_data["logo"]) }}" height="50px" />
+          <img class="project-logo" alt="Logo" src="{{ project_data["logo"] }}" height="50px" />
         {% end %}
-        <h4>{{ escape(project_data["title"]) }}</h4>
-        <p>{{ escape(project_data["description"]) }}</p>
+        <h4>{{ project_data["title"] }}</h4>
+        <p>{{ project_data["description"] }}</p>
         <form method="post" action="/api/deselect-project" class="js-api-form">
-          <div class="select"><input type="hidden" name="project_name" value="{{ escape(project_name) }}" /><input type="submit" value="Stop this project" /></div>
+          <div class="select"><input type="hidden" name="project_name" value="{{ project_name }}" /><input type="submit" value="Stop this project" /></div>
         </form>
       </li>
     </ul>
@@ -44,14 +44,14 @@
   {% end %}
   {% for (project_name, project_data) in warrior.projects.items() %}
     {% if project_name != realize(warrior.selected_project_config_value) %}
-      <li {% if "deadline_int" in project_data %} data-deadline="{{ escape(str(project_data["deadline_int"])) }}" {% end %} id="project-{{ escape(project_name) }}">
+      <li {% if "deadline_int" in project_data %} data-deadline="{{ str(project_data["deadline_int"]) }}" {% end %} id="project-{{ project_name }}">
         {% if "logo" in project_data %}
-          <img class="project-logo" alt="Logo" src="{{ escape(project_data["logo"]) }}" height="50px" />
+          <img class="project-logo" alt="Logo" src="{{ project_data["logo"] }}" height="50px" />
         {% end %}
-        <h4>{{ escape(project_data["title"]) }}</h4>
-        <p>{{ escape(project_data["description"]) }}</p>
+        <h4>{{ project_data["title"] }}</h4>
+        <p>{{ project_data["description"] }}</p>
         <form method="post" action="/api/select-project" class="js-api-form">
-          <div class="select"><input type="hidden" name="project_name" value="{{ escape(project_name) }}" /><input type="submit" value="Work on this project" /></div>
+          <div class="select"><input type="hidden" name="project_name" value="{{ project_name }}" /><input type="submit" value="Work on this project" /></div>
         </form>
       </li>
     {% end %}
