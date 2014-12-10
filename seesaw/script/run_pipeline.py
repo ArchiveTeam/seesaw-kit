@@ -150,7 +150,7 @@ def attach_git_scheduler(runner):
                 nonlocal_dict['timer'].stop()
                 runner.stop_gracefully()
 
-    timer = tornado.ioloop.PeriodicCallback(check_and_update, 3600 * 1000)
+    timer = tornado.ioloop.PeriodicCallback(check_and_update, 30 * 60 * 1000)
 
     nonlocal_dict['timer'] = timer
 

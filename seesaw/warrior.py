@@ -274,7 +274,7 @@ class Warrior(object):
         self.hq_updater = ioloop.PeriodicCallback(update_warror_callback,
                                                   10 * 60 * 1000)
         self.project_updater = ioloop.PeriodicCallback(update_project_callback,
-                                                       60 * 60 * 1000)
+                                                       30 * 60 * 1000)
         self.forced_reboot_timeout = None
 
         self.lat_lng = None
