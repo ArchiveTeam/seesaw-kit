@@ -527,7 +527,7 @@ class Warrior(object):
         if self.selected_project and \
                 (yield self.check_project_has_update(self.selected_project)):
             # restart project
-            yield self.start_selected_project()
+            yield self.start_selected_project(reinstall=True)
 
     @gen.coroutine
     def check_project_has_update(self, project_name):
@@ -659,13 +659,17 @@ class Warrior(object):
         return (project, pipeline, config_values)
 
     @gen.coroutine
-    def start_selected_project(self):
-        logger.debug('Start selected project %s', self.selected_project)
+    def start_selected_project(self, reinstall=False):
+        logger.debug(
+            'Start selected project %s (reinstall=%s)',
+            self.selected_project, reinstall
+        )
         project_name = self.selected_project
 
         if project_name in self.projects:
             # install or update project if necessary
             if project_name not in self.installed_projects or \
+                    reinstall or \
                     (yield self.check_project_has_update(project_name)):
                 result = yield self.install_project(project_name)
                 if not result:
