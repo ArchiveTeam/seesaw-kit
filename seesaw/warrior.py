@@ -538,7 +538,7 @@ class Warrior(object):
                 cwd=project_path,
                 stdout=subprocess.PIPE
             ).communicate()[0]
-            if output.strip() != "":
+            if output.strip():
                 raise gen.Return(True)
             else:
                 raise gen.Return(False)
