@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import time
+import logging
 
 from tornado import gen
 from tornado import ioloop
@@ -22,7 +23,7 @@ import seesaw
 from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 from seesaw.config import realize
 from seesaw.event import Event
-from seesaw.externalprocess import AsyncPopen
+from seesaw.externalprocess import AsyncPopen2
 from seesaw.runner import Runner
 import seesaw.six
 
@@ -37,6 +38,9 @@ if seesaw.six.PY2:
     bigint = long  # @UndefinedVariable  pylint: disable=undefined-variable
 else:
     bigint = int
+
+
+logger = logging.getLogger(__name__)
 
 
 class ConfigManager(object):
@@ -77,6 +81,7 @@ class ConfigManager(object):
             with open(self.config_file) as f:
                 self.config_memory = json.load(f)
         except Exception:
+            logger.exception('Error loading config.')
             self.config_memory = {}
 
     def save(self):
@@ -261,10 +266,20 @@ class Warrior(object):
         self.shut_down_flag = False
         self.reboot_flag = False
 
-        self.hq_updater = ioloop.PeriodicCallback(self.update_warrior_hq,
+        io_loop = ioloop.IOLoop.instance()
+
+        def update_warror_callback():
+            io_loop.add_future(
+                self.update_warrior_hq(), lambda fut: fut.result()
+            )
+
+        def update_project_callback():
+            io_loop.add_future(self.update_project(), lambda fut: fut.result())
+
+        self.hq_updater = ioloop.PeriodicCallback(update_warror_callback,
                                                   10 * 60 * 1000)
-        self.project_updater = ioloop.PeriodicCallback(self.update_project,
-                                                       60 * 60 * 1000)
+        self.project_updater = ioloop.PeriodicCallback(update_project_callback,
+                                                       30 * 60 * 1000)
         self.forced_reboot_timeout = None
 
         self.lat_lng = None
@@ -289,32 +304,36 @@ class Warrior(object):
         self.bandwidth_monitor.update()
         return self.bandwidth_monitor.current_stats()
 
-    @gen.engine
+    @gen.coroutine
     def update_warrior_hq(self):
+        logger.debug('Update warrior hq.')
+
         if realize(self.warrior_id) is None:
             headers = {"Content-Type": "application/json"}
             user_agent = "ArchiveTeam Warrior/%s" % seesaw.__version__
             body = json.dumps(
                 {"warrior": {"version": seesaw.__version__}}
             )
-            response = yield gen.Task(self.http_client.fetch,
-                                      os.path.join(self.warrior_hq_url,
-                                                   "api/register.json"),
-                                      method="POST",
-                                      headers=headers,
-                                      user_agent=user_agent,
-                                      body=body)
+            response = yield self.http_client.fetch(
+                os.path.join(self.warrior_hq_url,
+                             "api/register.json"),
+                method="POST",
+                headers=headers,
+                user_agent=user_agent,
+                body=body
+                )
+
             if response.code == 200:
                 data = json.loads(response.body.decode('utf-8'))
-                print("Received Warrior ID '%s'." % data["warrior_id"])
+                logger.info("Received Warrior ID '%s'." % data["warrior_id"])
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
                 self.fire_status()
             else:
-                print("HTTP error %s" % (response.code))
+                logger.error("HTTP error %s" % (response.code))
                 self.fire_status()
                 return
         else:
-            print("Warrior ID '%s'." % realize(self.warrior_id))
+            logger.debug("Warrior ID '%s'." % realize(self.warrior_id))
 
         headers = {"Content-Type": "application/json"}
         user_agent = "ArchiveTeam Warrior/%s %s" % (seesaw.__version__,
@@ -327,20 +346,22 @@ class Warrior(object):
                 "selected_project": realize(self.selected_project_config_value)
             }})
 
-        response = yield gen.Task(self.http_client.fetch,
-                                  os.path.join(self.warrior_hq_url,
-                                               "api/update.json"),
-                                  method="POST",
-                                  headers=headers,
-                                  user_agent=user_agent,
-                                  body=body)
+        response = yield self.http_client.fetch(
+            os.path.join(self.warrior_hq_url,
+                         "api/update.json"),
+            method="POST",
+            headers=headers,
+            user_agent=user_agent,
+            body=body
+        )
+
         if response.code == 200:
             data = json.loads(response.body.decode('utf-8'))
 
             if StrictVersion(seesaw.__version__) < \
                     StrictVersion(data["warrior"]["seesaw_version"]):
                 # time for an update
-                print("Reboot for Seesaw update.")
+                logger.info("Reboot for Seesaw update.")
                 self.reboot_gracefully()
 
                 # schedule a forced reboot after two days
@@ -361,16 +382,16 @@ class Warrior(object):
 
             if self.selected_project and \
                     self.selected_project not in self.projects:
-                self.select_project(None)
+                yield self.select_project(None)
             elif previous_project_choice in self.projects:
                 # select previous project
-                self.select_project(previous_project_choice)
+                yield self.select_project(previous_project_choice)
             elif previous_project_choice == "auto":
                 # ArchiveTeam's choice
                 if "auto_project" in data:
-                    self.select_project(data["auto_project"])
+                    yield self.select_project(data["auto_project"])
                 else:
-                    self.select_project(None)
+                    yield self.select_project(None)
 
             self.contacting_hq_failed = False
             self.on_projects_loaded(self, self.projects)
@@ -379,7 +400,7 @@ class Warrior(object):
             self.on_broadcast_message_received(
                 self, data.get('broadcast_message'))
         else:
-            print("HTTP error %s" % (response.code))
+            logger.error("HTTP error %s" % (response.code))
             self.contacting_hq_failed = True
 
             # We don't set projects to {} because it causes the
@@ -390,8 +411,10 @@ class Warrior(object):
 
             self.on_projects_loaded(self, self.projects)
 
-    @gen.engine
-    def install_project(self, project_name, callback=None):
+    @gen.coroutine
+    def install_project(self, project_name):
+        logger.debug('Install project %s', project_name)
+
         self.installed_projects.discard(project_name)
 
         if project_name in self.projects and not self.installing:
@@ -415,13 +438,15 @@ class Warrior(object):
                     cwd=project_path
                 ).communicate()
 
-                p = AsyncPopen(
+                logger.debug('git pull from %s', project["repository"])
+                p = AsyncPopen2(
                     args=["git", "pull"],
                     cwd=project_path,
                     env=self.gitenv
                 )
             else:
-                p = AsyncPopen(
+                logger.debug('git clone')
+                p = AsyncPopen2(
                     args=["git", "clone", project["repository"], project_path],
                     env=self.gitenv
                 )
@@ -432,19 +457,26 @@ class Warrior(object):
 
             if result != 0:
                 self.install_output.append("\ngit returned %d\n" % result)
+                logger.error(
+                    "Project failed to install: %s",
+                    "".join(self.install_output)
+                )
                 self.on_project_installation_failed(
                     self, project, "".join(self.install_output))
                 self.installing = None
                 self.failed_projects.add(project_name)
-                if callback:
-                    callback(False)
-                return
+
+                raise gen.Return(False)
+            else:
+                logger.debug(
+                    "git operation: %s", "".join(self.install_output)
+                )
 
             project_install_file = os.path.join(project_path,
                                                 "warrior-install.sh")
 
             if os.path.exists(project_install_file):
-                p = AsyncPopen(
+                p = AsyncPopen2(
                     args=[project_install_file],
                     cwd=project_path
                 )
@@ -456,13 +488,16 @@ class Warrior(object):
                 if result != 0:
                     self.install_output.append(
                         "\nCustom installer returned %d\n" % result)
+                    logger.error(
+                        "Custom installer failed to install: %s",
+                        "".join(self.install_output)
+                    )
                     self.on_project_installation_failed(
                         self, project, "".join(self.install_output))
                     self.installing = None
                     self.failed_projects.add(project_name)
-                    if callback:
-                        callback(False)
-                    return
+
+                    raise gen.Return(False)
 
             data_dir = os.path.join(self.data_dir, "data")
             if os.path.exists(data_dir):
@@ -477,22 +512,27 @@ class Warrior(object):
             os.symlink(data_dir, project_data_dir)
 
             self.installed_projects.add(project_name)
+            logger.debug('Install complete %s', "".join(self.install_output))
             self.on_project_installed(self, project,
                                       "".join(self.install_output))
 
             self.installing = None
-            if callback:
-                callback(True)
 
-    @gen.engine
+            raise gen.Return(True)
+
+    @gen.coroutine
     def update_project(self):
-        if self.selected_project and (yield gen.Task(
-                self.check_project_has_update, self.selected_project)):
-            # restart project
-            self.start_selected_project()
+        logger.debug('Update project.')
 
-    @gen.engine
-    def check_project_has_update(self, project_name, callback):
+        if self.selected_project and \
+                (yield self.check_project_has_update(self.selected_project)):
+            # restart project
+            yield self.start_selected_project(reinstall=True)
+
+    @gen.coroutine
+    def check_project_has_update(self, project_name):
+        logger.debug('Check project has update %s', project_name)
+
         if project_name in self.projects:
             project = self.projects[project_name]
             project_path = os.path.join(self.projects_dir, project_name)
@@ -500,8 +540,8 @@ class Warrior(object):
             self.install_output = []
 
             if not os.path.exists(project_path):
-                callback(True)
-                return
+                logger.debug("Project doesn't exist.")
+                raise gen.Return(True)
 
             subprocess.Popen(
                 args=["git", "config", "remote.origin.url",
@@ -509,7 +549,9 @@ class Warrior(object):
                 cwd=project_path
             ).communicate()
 
-            p = AsyncPopen(
+            logger.debug('git fetch')
+
+            p = AsyncPopen2(
                 args=["git", "fetch"],
                 cwd=project_path,
                 env=self.gitenv
@@ -520,45 +562,59 @@ class Warrior(object):
             result = yield gen.Wait("gitend")
 
             if result != 0:
-                callback(True)
-                return
+                logger.debug('Got return code %s', result)
+                raise gen.Return(True)
 
             output = subprocess.Popen(
-                args=["git", "rev-list", "HEAD..FETCH_HEAD"],
+                args=["git", "rev-list", "HEAD..origin/HEAD"],
                 cwd=project_path,
                 stdout=subprocess.PIPE
             ).communicate()[0]
-            if output.strip() != "":
-                callback(True)
+            if output.strip():
+                logger.debug('True')
+                raise gen.Return(True)
             else:
-                callback(False)
+                logger.debug('False')
+                raise gen.Return(False)
 
     def collect_install_output(self, data):
-        sys.stdout.write(data)
-        data = re.sub("[\x00-\x08\x0b\x0c]", "", data)
-        self.install_output.append(data)
+        if isinstance(data, seesaw.six.binary_type):
+            text = data.decode('ascii', 'replace')
+        else:
+            text = data
 
-    @gen.engine
+        sys.stdout.write(text)
+        text = re.sub("[\x00-\x08\x0b\x0c]", "", text)
+        self.install_output.append(text)
+
+    @gen.coroutine
     def select_project(self, project_name):
+        logger.debug('Select project %s', project_name)
+
         if project_name == "auto":
-            self.update_warrior_hq()
+            yield self.update_warrior_hq()
             return
 
         if project_name not in self.projects:
+            logger.debug("Project doesn't exist.")
             project_name = None
 
         if project_name != self.selected_project:
             # restart
             self.selected_project = project_name
             self.on_project_selected(self, project_name)
-            self.start_selected_project()
+            yield self.start_selected_project()
 
     def clone_project(self, project_name, project_path):
+        logger.debug('Clone project %s %s', project_name, project_path)
+
         version_string = subprocess.Popen(
             args=["git", "log", "-1", "--pretty=%h"],
             cwd=project_path,
             stdout=subprocess.PIPE
         ).communicate()[0].strip().decode('ascii')
+
+        logger.debug('Cloning version %s', version_string)
 
         project_versioned_path = os.path.join(
             self.data_dir, "projects",
@@ -575,6 +631,8 @@ class Warrior(object):
         return project_versioned_path
 
     def load_pipeline(self, pipeline_path, context):
+        logger.debug('Load pipeline %s', pipeline_path)
+
         dirname, basename = os.path.split(pipeline_path)
         if dirname == "":
             dirname = "."
@@ -600,17 +658,26 @@ class Warrior(object):
         pipeline.project = project
         return (project, pipeline, config_values)
 
-    @gen.engine
-    def start_selected_project(self):
+    @gen.coroutine
+    def start_selected_project(self, reinstall=False):
+        logger.debug(
+            'Start selected project %s (reinstall=%s)',
+            self.selected_project, reinstall
+        )
         project_name = self.selected_project
 
         if project_name in self.projects:
             # install or update project if necessary
             if project_name not in self.installed_projects or \
-                    (yield gen.Task(self.check_project_has_update,
-                                    project_name)):
-                result = yield gen.Task(self.install_project, project_name)
+                    reinstall or \
+                    (yield self.check_project_has_update(project_name)):
+                result = yield self.install_project(project_name)
                 if not result:
+                    logger.warning(
+                        "Project %s did not install correctly and "
+                        "we're ignoring this problem.",
+                        project_name
+                    )
                     return
 
             # remove the configuration variables from the previous project
@@ -653,10 +720,13 @@ class Warrior(object):
         else:
             # project_name not in self.projects,
             # stop the current project (if there is one)
+            logger.debug("Project does not exist.")
             self.runner.set_current_pipeline(None)
             self.fire_status()
 
     def handle_runner_finish(self, runner):
+        logger.info("Runner has finished.")
+
         if self.current_project:
             for config_value in self.current_project.config_values:
                 self.config_manager.remove(config_value.name)
@@ -677,20 +747,22 @@ class Warrior(object):
                     os.system("sudo shutdown -r now")
 
     def start(self):
+        io_loop = ioloop.IOLoop.instance()
+
         if self.real_shutdown:
             # schedule a reboot
-            ioloop.IOLoop.instance().add_timeout(datetime.timedelta(days=7),
-                                                 self.max_age_reached)
+            io_loop.add_timeout(datetime.timedelta(days=7),
+                                self.max_age_reached)
 
         self.hq_updater.start()
         self.project_updater.start()
-        self.update_warrior_hq()
-        ioloop.IOLoop.instance().start()
+        io_loop.add_future(self.update_warrior_hq(), lambda fut: fut.result())
+        io_loop.start()
 
     def max_age_reached(self):
         if self.real_shutdown:
             # time for an sanity reboot
-            print("Running for more than 7 days. Time to schedule a reboot.")
+            logger.info("Running for more than 7 days. Time to schedule a reboot.")
             self.reboot_gracefully()
 
             # schedule a forced reboot after two days
@@ -713,7 +785,7 @@ class Warrior(object):
                 datetime.timedelta(days=2), self.forced_reboot)
 
     def forced_reboot(self):
-        print("Stopping immediately...")
+        logger.info("Stopping immediately...")
         if self.real_shutdown:
             os.system("sudo shutdown -r now")
 
@@ -736,7 +808,9 @@ class Warrior(object):
     def keep_running(self):
         self.shut_down_flag = False
         self.reboot_flag = False
-        self.start_selected_project()
+        ioloop.IOLoop.instance().add_future(
+            self.start_selected_project(), lambda fut: fut.result()
+        )
         self.fire_status()
 
     class Status(object):

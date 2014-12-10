@@ -2,12 +2,45 @@ from __future__ import print_function
 
 import argparse
 from argparse import ArgumentParser
+import logging
+import logging.handlers
+import os
 
 import seesaw
 seesaw.runner_type = "Warrior"
 
 from seesaw.warrior import Warrior
 from seesaw.web import start_warrior_server
+
+
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+
+class LogFilter(object):
+    def filter(self, record):
+        if not record.name:
+            return True
+        if 'seesaw' in record.name or 'root' in record.name:
+            return True
+
+
+def setup_logging(log_dir):
+    logging.basicConfig(
+        format=LOG_FORMAT,
+        level=logging.DEBUG
+    )
+
+    path = os.path.join(log_dir, 'warrior.log')
+    handler = logging.handlers.TimedRotatingFileHandler(
+        path, when='D', backupCount=10
+    )
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
+    logging.getLogger().addHandler(handler)
+
+    for handler in logging.getLogger().handlers:
+        handler.addFilter(LogFilter())
+
+    logging.info('Logging to %s', path)
 
 
 def main():
@@ -48,6 +81,8 @@ def main():
     parser.add_argument("--warrior-build", dest="warrior_build",
                         help=argparse.SUPPRESS, type=str)
     args = parser.parse_args()
+
+    setup_logging(args.data_dir)
 
     if args.warrior_build:
         seesaw.warrior_build = args.warrior_build
