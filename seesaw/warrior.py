@@ -566,7 +566,7 @@ class Warrior(object):
                 raise gen.Return(True)
 
             output = subprocess.Popen(
-                args=["git", "rev-list", "HEAD..FETCH_HEAD"],
+                args=["git", "rev-list", "HEAD..origin/HEAD"],
                 cwd=project_path,
                 stdout=subprocess.PIPE
             ).communicate()[0]
