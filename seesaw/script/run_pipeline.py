@@ -52,20 +52,24 @@ def check_downloader_or_exit(value, regex="^[-_a-zA-Z0-9]{3,30}$"):
 
 
 def check_concurrency_or_exit(value):
+    if value > 20:
+        print()
+        print("I'm sorry, User. I'm afraid I can't do that.")
+        print('Please limit --concurrent to 20 or lower '
+              'to avoid exhausting resources or triggering bugs.'
+              )
+        sys.exit(1)
+
     if value > 6:
         print("!" * 74)
         print("!%-072s!" % " ")
         print("!%-072s!" % ('    Whoa! Your concurrency level is at {0}.'
                             .format(value)))
-        print("!%-072s!" % ('    Are you sure that is a good idea? I don\'t!'))
+        print("!%-072s!" % ('    Please check if this is what you wanted.'))
+        print("!%-072s!" % ('    Continuing anyway...'))
         print("!%-072s!" % " ")
         print("!" * 74)
         print()
-
-    if value > 20:
-        print()
-        print('Please limit --concurrent to 20 or lower.')
-        sys.exit(1)
 
 
 def get_output(command):
