@@ -49,7 +49,9 @@ class Pipeline(object):
         @contextlib.contextmanager
         def handle_item_exception(e_type, e_value, tb):
             item.log_output("Failed %s for %s\n" % (task, item.description()))
-            item.log_output("%s\n" % traceback.format_exc())
+            item.log_output(
+                "".join(traceback.format_exception(e_type, e_value, tb))
+            )
             item.log_error(self, e_value)
             task.fail_item(item)
 
