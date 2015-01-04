@@ -25,6 +25,7 @@ package_data = {
         'public/index.html',
         'public/*.js',
         'public/*.css',
+        'public/*.png',
         'templates/*.html'
     ]
 }
