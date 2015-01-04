@@ -1,5 +1,5 @@
 $(function() {
-  var conn = new SockJS('http://' + window.location.host);
+  var conn = new SockJS(window.location.protocol + '//' + window.location.host);
   var multiProject = false;
   var instanceID = null;
   var eventCallbacks = {};
