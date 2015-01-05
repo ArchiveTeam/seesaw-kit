@@ -1,4 +1,4 @@
-include README.md *.txt seesaw/public/index.html seesaw/public/*.js seesaw/public/*.css seesaw/templates/*.html
+include README.md *.txt seesaw/public/index.html seesaw/public/*.js seesaw/public/*.css seesaw/templates/*.html seesaw/public/*.png
 recursive-include doc *.py *.rst Makefile *.bat
 recursive-include tests *.py
 recursive-include examples *.py
