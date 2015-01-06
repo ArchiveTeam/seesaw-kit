@@ -1,5 +1,9 @@
 "[...] Generally, treat anything from Archive Team as being licenced under the WTFPL."---GLaDOS (http://badcheese.com/~steve/atlogs/?chan=warrior&day=2013-11-05)
 
+Copyright 2012-2015 Archive Team.
+
+
+
 
             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
                     Version 2, December 2004
