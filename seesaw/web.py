@@ -1,4 +1,5 @@
 '''The warrior web interface.'''
+import base64
 import collections
 import hashlib
 import json
@@ -57,6 +58,9 @@ class ItemMonitor(object):
             tasks.append({
                 "id": id(task),
                 "name": task_name,
+                "name_id":
+                    base64.b16encode(task_name.encode('ascii'))
+                    .decode('ascii'),
                 "status": (item.task_status[task]
                            if task in item.task_status else None)
             })

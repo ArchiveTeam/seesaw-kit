@@ -361,7 +361,7 @@ $(function() {
                                  .append($("<input>", { id: "collapse-all",
                                                         type: "checkbox",
                                                         checked: localStorage.getItem("collapse-all") == "true" }),
-                                    $("<label>", { for: "collapse-all",
+                                    $("<label>", { "for": "collapse-all",
                                                    text: "Collapse all items" }));
         $("#collapse-all").on('change',
                               function () {
@@ -455,10 +455,11 @@ $(function() {
     ol = document.createElement('ol');
     ol.className = 'tasks';
     var currentTask = 0;
+    console.log(item)
     for (i=0; i<item.tasks.length; i++) {
       task = item.tasks[i];
       li = document.createElement('li');
-      li.className = 'task-' + task.id + ' ' + (task.status || '');
+      li.className = 'task-' + task.name_id + ' ' + (task.status || '');
       li.appendChild(document.createTextNode(task.name + ' '));
       $(li).data('index', i + 1);
       span = document.createElement('span');
@@ -466,14 +467,14 @@ $(function() {
       span.appendChild(document.createTextNode(taskStatusChars[task.status] || ''));
       li.appendChild(span);
       ol.appendChild(li);
-      if($('#task-summary .task-' + task.id).length == 0) {
+      if($('#task-summary .task-' + task.name_id).length == 0) {
         //Add new item to master task list
-        $('#task-summary ol.tasks').append('<li class="task-' + task.id + '" style="opacity: 0.5">' + task.name + ' <span class="s">0</span></li>');
+        $('#task-summary ol.tasks').append('<li class="task-' + task.name_id + '" style="opacity: 0.5">' + task.name + ' <span class="s">0</span></li>');
       }
       if (task.status == 'running') {
         currentTask = i+1;
-        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + task.id + ' span.s').html()) + 1;
-        $('#task-summary ol.tasks li.task-' + task.id + ' span.s').text(newTaskTotal);
+        newTaskTotal = parseInt($('#task-summary ol.tasks li.task-' + task.name_id + ' span.s').html()) + 1;
+        $('#task-summary ol.tasks li.task-' + task.name_id + ' span.s').text(newTaskTotal);
       }
     }
     itemDiv.appendChild(ol);
