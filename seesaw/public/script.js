@@ -455,7 +455,6 @@ $(function() {
     ol = document.createElement('ol');
     ol.className = 'tasks';
     var currentTask = 0;
-    console.log(item)
     for (i=0; i<item.tasks.length; i++) {
       task = item.tasks[i];
       li = document.createElement('li');
