@@ -14,6 +14,7 @@ import tornado.process
 from seesaw.event import Event
 from seesaw.task import Task
 from seesaw.config import realize
+import signal
 
 
 class AsyncPopen(object):
@@ -24,6 +25,11 @@ class AsyncPopen(object):
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        self.ioloop = None
+        self.master_fd = None
+        self.master = None
+        self.pipe = None
+        self.stdin = None
 
         self.on_output = Event()
         self.on_end = Event()
@@ -47,6 +53,8 @@ class AsyncPopen(object):
         self.kwargs["stdout"] = slave
         self.kwargs["stderr"] = slave
         self.kwargs["close_fds"] = True
+        self.kwargs["preexec_fn"] = functools.partial(
+            signal.signal, signal.SIGINT, signal.SIG_IGN)
         self.pipe = subprocess.Popen(*self.args, **self.kwargs)
 
         self.stdin = self.pipe.stdin
@@ -87,6 +95,8 @@ class AsyncPopen2(object):
     def run(self):
         self.kwargs["stdout"] = tornado.process.Subprocess.STREAM
         self.kwargs["stderr"] = tornado.process.Subprocess.STREAM
+        self.kwargs["preexec_fn"] = functools.partial(
+            signal.signal, signal.SIGINT, signal.SIG_IGN)
 
         self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
 
