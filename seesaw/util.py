@@ -15,13 +15,15 @@ def test_executable(name, version, path, version_arg="-V"):
             stderr=subprocess.PIPE
         )
         stdout_data, stderr_data = process.communicate()
-        result = stdout_data + stderr_data
+        result = stdout_data.decode('utf-8', 'replace') + \
+            stderr_data.decode('utf-8', 'replace')
+
         if not process.returncode == 0:
             print("%s: Returned code %d" % (path, process.returncode))
             return False
 
         if isinstance(version, str):
-            if not version.encode('utf-8') in result:
+            if version not in result:
                 print("%s: Incorrect %s version (want %s)." % (path, name,
                                                                version))
                 return False
