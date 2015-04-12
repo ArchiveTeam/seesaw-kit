@@ -12,9 +12,11 @@ from seesaw.runner import SimpleRunner
 from seesaw.web import start_runner_server
 import seesaw
 import tornado.ioloop
+import signal
 
 
 seesaw.runner_type = "Standalone"
+graceful_stop_activate_time = None
 
 
 class GitCheckError(OSError):
@@ -281,10 +283,31 @@ def init_runner(args):
                             http_username=args.http_username,
                             http_password=args.http_password)
 
-    print("Run 'touch %s' to stop downloading." % args.stop_file)
+    print("Run 'touch %s' or interrupt (CTRL+C) to stop downloading."
+          % args.stop_file)
     print()
 
+    attach_ctrl_c_handler(args.stop_file)
+
     return runner
+
+
+def attach_ctrl_c_handler(stop_file):
+    def graceful_stop_callback(dummy1, dummy2):
+        global graceful_stop_activate_time
+
+        if not graceful_stop_activate_time:
+            open(stop_file, 'wb').close()
+            graceful_stop_activate_time = time.time()
+            print('Interrupt again (CTRL+C) to forcefully stop')
+        elif graceful_stop_activate_time and \
+                time.time() - graceful_stop_activate_time < 5:
+            sys.exit('Stopping immediately.')
+        else:
+            print('Interrupt again (CTRL+C) to forcefully stop')
+            graceful_stop_activate_time = time.time()
+
+    signal.signal(signal.SIGINT, graceful_stop_callback)
 
 
 if __name__ == "__main__":

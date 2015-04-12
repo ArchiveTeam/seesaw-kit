@@ -6,7 +6,7 @@ An asynchronous toolkit for distributed web processing. Written in Python and na
 This toolkit is well-known for [Archive Team projects](http://archiveteam.org). It also powers the [Archive Team warrior](http://archiveteam.org/index.php?title=Warrior).
 
 [![Build Status](https://secure.travis-ci.org/ArchiveTeam/seesaw-kit.png)](http://travis-ci.org/ArchiveTeam/seesaw-kit)
-
+[![Coverage Status](https://coveralls.io/repos/ArchiveTeam/seesaw-kit/badge.svg)](https://coveralls.io/r/ArchiveTeam/seesaw-kit)
 
 Installation
 ------------

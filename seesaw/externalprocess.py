@@ -1,4 +1,6 @@
 '''Running subprocesses asynchronously.'''
+from __future__ import print_function
+
 import fcntl
 import os
 import os.path
@@ -6,6 +8,8 @@ import subprocess
 import functools
 import datetime
 import pty
+import signal
+import atexit
 
 import tornado.ioloop
 from tornado.ioloop import IOLoop, PeriodicCallback
@@ -14,6 +18,37 @@ import tornado.process
 from seesaw.event import Event
 from seesaw.task import Task
 from seesaw.config import realize
+import time
+
+
+_all_procs = set()
+
+
+@atexit.register
+def cleanup():
+    if _all_procs:
+        print('Subprocess did not exit properly!')
+
+    for proc in _all_procs:
+        print('Killing', proc)
+
+        try:
+            if hasattr(proc, 'proc'):
+                proc.proc.terminate()
+            else:
+                proc.terminate()
+        except Exception as error:
+            print(error)
+
+        time.sleep(0.1)
+
+        try:
+            if hasattr(proc, 'proc'):
+                proc.proc.kill()
+            else:
+                proc.kill()
+        except Exception as error:
+            print(error)
 
 
 class AsyncPopen(object):
@@ -24,9 +59,20 @@ class AsyncPopen(object):
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        self.ioloop = None
+        self.master_fd = None
+        self.master = None
+        self.pipe = None
+        self.stdin = None
 
         self.on_output = Event()
         self.on_end = Event()
+
+    @classmethod
+    def ignore_sigint(cls):
+        # http://stackoverflow.com/q/5045771/1524507
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        os.setpgrp()
 
     def run(self):
         self.ioloop = IOLoop.instance()
@@ -47,6 +93,7 @@ class AsyncPopen(object):
         self.kwargs["stdout"] = slave
         self.kwargs["stderr"] = slave
         self.kwargs["close_fds"] = True
+        self.kwargs["preexec_fn"] = self.ignore_sigint
         self.pipe = subprocess.Popen(*self.args, **self.kwargs)
 
         self.stdin = self.pipe.stdin
@@ -54,6 +101,8 @@ class AsyncPopen(object):
         # check for process exit
         self.wait_callback = PeriodicCallback(self._wait_for_end, 250)
         self.wait_callback.start()
+
+        _all_procs.add(self.pipe)
 
     def _handle_subprocess_stdout(self, fd, events):
         if not self.master.closed and (events & IOLoop._EPOLLIN) != 0:
@@ -70,6 +119,7 @@ class AsyncPopen(object):
             self.master.close()
             self.ioloop.remove_handler(self.master_fd)
             self.on_end(self.pipe.returncode)
+            _all_procs.remove(self.pipe)
 
 
 class AsyncPopen2(object):
@@ -87,6 +137,7 @@ class AsyncPopen2(object):
     def run(self):
         self.kwargs["stdout"] = tornado.process.Subprocess.STREAM
         self.kwargs["stderr"] = tornado.process.Subprocess.STREAM
+        self.kwargs["preexec_fn"] = AsyncPopen.ignore_sigint
 
         self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
 
@@ -98,12 +149,14 @@ class AsyncPopen2(object):
             streaming_callback=self._handle_subprocess_stdout)
 
         self.pipe.set_exit_callback(self._end_callback)
+        _all_procs.add(self.pipe)
 
     def _handle_subprocess_stdout(self, data):
         self.on_output(data)
 
     def _end_callback(self, return_code):
         self.on_end(return_code)
+        _all_procs.remove(self.pipe)
 
     @property
     def stdin(self):

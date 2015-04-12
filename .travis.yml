@@ -1,16 +1,23 @@
+sudo: false
+
 language: python
 python:
   - "2.6"
   - "2.7"
   - "3.2"
   - "3.3"
+  - "3.4"
 
 # command to install dependencies
-install: "pip install -r requirements.txt"
-
+install: 
+  - travis_retry pip install -r requirements.txt
+  - travis_retry pip install -q coverage python-coveralls
 
 
 # command to run tests
-script: PYTHONIOENCODING=ascii nosetests
+script: PYTHONIOENCODING=ascii nosetests --with-coverage --cover-package=seesaw --cover-branches
 
+
+after_success:
+  - coveralls
 
