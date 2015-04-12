@@ -34,6 +34,12 @@ class AsyncPopen(object):
         self.on_output = Event()
         self.on_end = Event()
 
+    @classmethod
+    def ignore_sigint(cls):
+        # http://stackoverflow.com/q/5045771/1524507
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        os.setpgrp()
+
     def run(self):
         self.ioloop = IOLoop.instance()
         (master_fd, slave_fd) = pty.openpty()
@@ -53,8 +59,7 @@ class AsyncPopen(object):
         self.kwargs["stdout"] = slave
         self.kwargs["stderr"] = slave
         self.kwargs["close_fds"] = True
-        self.kwargs["preexec_fn"] = functools.partial(
-            signal.signal, signal.SIGINT, signal.SIG_IGN)
+        self.kwargs["preexec_fn"] = self.ignore_sigint
         self.pipe = subprocess.Popen(*self.args, **self.kwargs)
 
         self.stdin = self.pipe.stdin
@@ -95,8 +100,7 @@ class AsyncPopen2(object):
     def run(self):
         self.kwargs["stdout"] = tornado.process.Subprocess.STREAM
         self.kwargs["stderr"] = tornado.process.Subprocess.STREAM
-        self.kwargs["preexec_fn"] = functools.partial(
-            signal.signal, signal.SIGINT, signal.SIG_IGN)
+        self.kwargs["preexec_fn"] = AsyncPopen.ignore_sigint
 
         self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
 
