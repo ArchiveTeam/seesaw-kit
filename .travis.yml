@@ -15,7 +15,7 @@ install:
 
 
 # command to run tests
-script: PYTHONIOENCODING=ascii nosetests
+script: PYTHONIOENCODING=ascii nosetests --with-coverage --cover-package=seesaw --cover-branches
 
 
 after_success:
