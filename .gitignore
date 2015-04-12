@@ -3,3 +3,16 @@
 *.swp
 seesaw.egg-info
 dist
+build
+
+# ecllipse
+.settings
+.pydevproject
+.project
+
+# intellij idea
+.idea/
+*.iml
+
+*~
+*.orig
