@@ -16,6 +16,7 @@ import seesaw
 from seesaw.config import realize
 from seesaw.task import Task, SimpleTask
 from seesaw.externalprocess import RsyncUpload, CurlUpload
+from seesaw.util import check_update
 
 
 class TrackerRequest(Task):
@@ -74,6 +75,7 @@ class TrackerRequest(Task):
                 r = ("Project code is out of date and needs to be upgraded. "
                      "To remedy this problem immediately, you may reboot "
                      "your warrior. ")
+                update = 1
             elif response.code == 599:
                 r = ("No HTTP response received from tracker. "
                      "The tracker is probably overloaded. ")
@@ -83,6 +85,8 @@ class TrackerRequest(Task):
                      ) % (response.code)
             self.schedule_retry(item, r)
             self.increment_retry_delay()
+            if update == 1:
+                check_update(item)
 
     def schedule_retry(self, item, message=""):
         if self._set_may_be_canceled:
