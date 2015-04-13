@@ -44,6 +44,8 @@ def setup_logging(log_dir):
 
 
 def main():
+    global warrior
+    
     parser = ArgumentParser(description="Run the warrior web interface")
     parser.add_argument("--projects-dir", dest="projects_dir",
                         metavar="DIRECTORY", type=str,
@@ -114,6 +116,11 @@ def main():
 
     warrior.start()
 
+def warrior_update(item):
+    global warrior
+    item.log_output("Warrior will stop and reboot for updates.")
+    warrior.reboot_gracefully()
+    warrior.schedule_forced_reboot()
 
 if __name__ == "__main__":
     main()
