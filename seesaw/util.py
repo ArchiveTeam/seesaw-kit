@@ -59,3 +59,11 @@ def unique_id_str():
     '''Returns a unique string suitable for IDs.'''
     rand_str = base64.b16encode(os.urandom(8)).decode('ascii').lower()
     return "{0}{1}".format(int(time.time()), rand_str)
+
+def check_update(item):
+    if seesaw.runner_type == "Standalone" and os.getenv("WRAPPED_RUNNER") == "1":
+        seesaw.script.run_pipeline.runner_update(item)
+    elif seesaw.runner_type == "Warrior" and not os.getenv("DOCKER") == "1":
+        seesaw.script.run_warrior.warrior_update(item)
+    else:
+        pass
