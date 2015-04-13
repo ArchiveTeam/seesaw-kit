@@ -1,0 +1,17 @@
+#! /bin/bash
+
+export WRAPPED_RUNNER=1
+
+pull_run_pipeline()
+{
+rm UPDATE
+echo "Attempting pipeline update."
+git pull && run-pipeline $@
+}
+
+run-pipeline $@
+
+while [ -f UPDATE]
+do
+pull_run_pipeline $@
+done
