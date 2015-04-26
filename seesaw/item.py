@@ -26,15 +26,11 @@ class ItemData(collections.MutableMapping):
     def __init__(self, properties=None):
         super(ItemData, self).__init__()
         self._properties = properties or {}
-        self._on_property = Event()
+        self.on_property = Event()
 
     @property
     def properties(self):
         return self._properties
-
-    @property
-    def on_property(self):
-        return self._on_property
 
     def __getitem__(self, key):
         return self._properties[key]
@@ -45,7 +41,7 @@ class ItemData(collections.MutableMapping):
         self._properties[key] = value
 
         if old_value != value:
-            self._on_property(self, key, value, old_value)
+            self.on_property(self, key, value, old_value)
 
     def __delitem__(self, key):
         old_value = self.properties.get(key, None)
@@ -53,7 +49,7 @@ class ItemData(collections.MutableMapping):
         del self.properties[key]
 
         if old_value:
-            self._on_property(self, key, None, old_value)
+            self.on_property(self, key, None, old_value)
 
     def __len__(self):
         return len(self._properties)
