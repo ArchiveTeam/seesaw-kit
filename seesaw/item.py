@@ -4,12 +4,65 @@ import os.path
 import shutil
 import traceback
 import time
+import collections
 
 from seesaw.event import Event
 import seesaw.six
 
 
-class Item(object):
+class ItemData(collections.MutableMapping):
+    '''Base item data property container.
+
+    Args:
+        properties (dict): Original dict
+        on_property (Event): Fired whenever a property changes.
+            Callback accepts:
+
+            1. self
+            2. key
+            3. new value
+            4. old value
+    '''
+    def __init__(self, properties=None):
+        super(ItemData, self).__init__()
+        self._properties = properties or {}
+        self._on_property = Event()
+
+    @property
+    def properties(self):
+        return self._properties
+
+    @property
+    def on_property(self):
+        return self._on_property
+
+    def __getitem__(self, key):
+        return self._properties[key]
+
+    def __setitem__(self, key, value):
+        old_value = self._properties.get(key, None)
+
+        self._properties[key] = value
+
+        if old_value != value:
+            self._on_property(self, key, value, old_value)
+
+    def __delitem__(self, key):
+        old_value = self.properties.get(key, None)
+
+        del self.properties[key]
+
+        if old_value:
+            self._on_property(self, key, None, old_value)
+
+    def __len__(self):
+        return len(self._properties)
+
+    def __iter__(self):
+        return iter(self._properties)
+
+
+class Item(ItemData):
     '''A thing, or work unit, that needs to be downloaded.
 
     It has properties that are filled by the :class:`Task`.
@@ -21,12 +74,14 @@ class Item(object):
         itself. That is, do not store variables onto a :class:`Task` unless
         you know what you are doing.
     '''
-    def __init__(self, pipeline, item_id, item_number, properties=None,
-                 keep_data=False, prepare_data_directory=True):
+    def __init__(self, pipeline, item_id, item_number,
+                 keep_data=False, prepare_data_directory=True,
+                 **kwargs):
+        super(Item, self).__init__(**kwargs)
+
         self.pipeline = pipeline
         self.item_id = item_id
         self.item_number = item_number
-        self.properties = properties or {}
         self.keep_data = keep_data
         self.start_time = time.time()
 
@@ -42,7 +97,6 @@ class Item(object):
         self.on_output = Event()
         self.on_error = Event()
         self.on_task_status = Event()
-        self.on_property = Event()
         self.on_cancel = Event()
         self.on_complete = Event()
         self.on_fail = Event()
@@ -50,6 +104,9 @@ class Item(object):
 
         if prepare_data_directory:
             self.prepare_data_directory()
+
+    def __hash__(self):
+        return hash(self.item_id)
 
     def prepare_data_directory(self):
         dirname = os.path.join(self.pipeline.data_dir, self.item_id)
@@ -120,27 +177,6 @@ class Item(object):
     def description(self):
         return "Item %s" % (self.properties["item_name"]
                             if "item_name" in self.properties else "")
-
-    def get(self, key):
-        return self.properties.get(key)
-
-    def __contains__(self, key):
-        return key in self.properties
-
-    def __getitem__(self, key):
-        return self.properties[key]
-
-    def __setitem__(self, key, value):
-        old_value = self.properties[key] if key in self.properties else None
-        self.properties[key] = value
-        if old_value != value:
-            self.on_property(self, key, value, old_value)
-
-    def __delitem__(self, key):
-        old_value = self.properties[key] if key in self.properties else None
-        del self.properties[key]
-        if old_value:
-            self.on_property(self, key, None, old_value)
 
     def __str__(self):
         s = "Item " + ("FAILED " if self.failed else "") + str(self.properties)
