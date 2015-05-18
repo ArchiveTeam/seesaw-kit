@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from argparse import ArgumentParser
 import itertools
-import os.path
+import os
 import re
 import subprocess
 import sys
@@ -164,7 +164,12 @@ def attach_git_scheduler(runner):
 
 
 def main():
-    parser = ArgumentParser(description="Run the pipeline")
+    global runner
+    
+    if os.getenv("WRAPPED_RUNNER") == "1":
+        parser = ArgumentParser(prog="run-au-pipeline", description="Run the pipeline with automatic updates")
+    else:
+        parser = ArgumentParser(description="Run the pipeline")
     parser.add_argument("pipeline", metavar="PIPELINE", type=str,
                         help="the pipeline file")
     parser.add_argument("downloader", metavar="DOWNLOADER", type=str,
@@ -309,6 +314,11 @@ def attach_ctrl_c_handler(stop_file):
 
     signal.signal(signal.SIGINT, graceful_stop_callback)
 
+def runner_update(item):
+    global runner
+    open("UPDATE", "a").close
+    item.log_output("Pipeline will automatically update after stopping.")
+    runner.stop_gracefully()
 
 if __name__ == "__main__":
     main()
