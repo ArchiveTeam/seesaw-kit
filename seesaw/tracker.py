@@ -68,9 +68,11 @@ class TrackerRequest(Task):
                 r = ("Tracker rate limiting is active. "
                      "We don't want to overload the site we're archiving, "
                      "so we've limited the number of downloads per minute. ")
+                update = 0
             elif response.code == 404:
                 r = ("No item received. There aren't any items available "
                      "for this project at the moment. Try again later. ")
+                update = 0
             elif response.code == 455:
                 r = ("Project code is out of date and needs to be upgraded. "
                      "To remedy this problem immediately, you may reboot "
@@ -79,6 +81,7 @@ class TrackerRequest(Task):
             elif response.code == 599:
                 r = ("No HTTP response received from tracker. "
                      "The tracker is probably overloaded. ")
+                update = 0
             else:
                 r = ("Tracker returned status code %d. "
                      "The tracker has probably malfunctioned. "
