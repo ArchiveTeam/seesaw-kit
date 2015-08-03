@@ -15,8 +15,6 @@
 import sys
 import os
 
-# TODO: remove assert when python 3 ready
-assert sys.version_info[0] == 2
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import seesaw
 
