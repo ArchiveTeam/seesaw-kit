@@ -46,7 +46,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'ArchiveTeam Seesaw Kit'
-copyright = '2013, ArchiveTeam'
+copyright = '2013-2015, ArchiveTeam'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
