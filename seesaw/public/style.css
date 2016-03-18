@@ -299,7 +299,7 @@ table.time-left td span {
   margin: 0 3px 0 5px;
   padding-right: 2px;
   width: 200px;
-  max-height: 206px;
+  max-height: 208px;
   overflow-y: auto;
 }
 .item.closed ol.tasks {
