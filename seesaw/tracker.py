@@ -16,6 +16,7 @@ import seesaw
 from seesaw.config import realize
 from seesaw.task import Task, SimpleTask
 from seesaw.externalprocess import RsyncUpload, CurlUpload
+import seesaw.six
 
 
 class TrackerRequest(Task):
@@ -61,7 +62,10 @@ class TrackerRequest(Task):
     def handle_response(self, item, response):
         if response.code == 200:
             self.reset_retry_delay()
-            self.process_body(response.body, item)
+            if isinstance(response.body, seesaw.six.binary_type):
+                self.process_body(response.body.decode('utf-8'), item)
+            else:
+                self.process_body(response.body, item)
         else:
             if response.code == 420 or response.code == 429:
                 r = ("Tracker rate limiting is active. "

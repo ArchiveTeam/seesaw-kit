@@ -8,7 +8,7 @@ class Event(object):
     Example::
 
         my_event_system = Event()
-        my_event_system = my_listener_callback_function
+        my_event_system += my_listener_callback_function
         my_event_system(my_event_data)
     '''
     def __init__(self):
