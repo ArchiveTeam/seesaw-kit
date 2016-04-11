@@ -25,10 +25,12 @@ class BaseWebAdminHandler(tornado.web.RequestHandler):
             auth_decoded = base64.b64decode(auth_header[6:].encode('ascii')).decode('ascii')
             username, password = auth_decoded.split(':', 2)
             # request.basicauth_user, request.basicauth_pass = username, password
+        else:
+            username = ''
+            password = ''
 
-            if self.application.settings['check_auth'] and \
-                    self.application.settings['check_auth'](self.request, username, password):
-                return
+        if self.application.settings['check_auth'](self.request, username, password):
+            return
 
         self.set_status(401)
         self.set_header('WWW-Authenticate', 'Basic realm=' + self.application.settings['auth_realm'])
