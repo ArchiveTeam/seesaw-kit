@@ -44,7 +44,7 @@ else:
     ]
 
 requires = [
-    'Tornado>=3',
+    'Tornado>=4,<4.5',
     'sockjs-tornado',
 ]
 
