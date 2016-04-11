@@ -132,7 +132,7 @@ $(function() {
     var itemLog = $('#item-' + msg.item_id + ' pre.log')[0];
     if (itemLog) {
       if (itemLog.data) {
-        itemLog.data = processCarriageReturns(itemLog.data + msg.data);
+        itemLog.data += processCarriageReturns(msg.data);
         itemLog.data = itemLog.data.split('\n').slice(-500).join('\n')
         itemLog.firstChild.nodeValue = itemLog.data;
       } else {
