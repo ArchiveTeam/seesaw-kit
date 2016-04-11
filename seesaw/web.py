@@ -12,8 +12,7 @@ from sockjs.tornado import SockJSConnection, SockJSRouter
 from tornado import web, ioloop
 
 from seesaw.config import realize
-from seesaw.web_util import AuthenticatedApplication
-
+from seesaw.web_util import BaseWebAdminHandler
 
 PUBLIC_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
@@ -21,7 +20,7 @@ TEMPLATES_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
 
 
-class IndexHandler(web.RequestHandler):
+class IndexHandler(BaseWebAdminHandler):
     '''Shows the index.html.'''
     def get(self):
         self.render(os.path.join(PUBLIC_PATH, "index.html"),
@@ -121,7 +120,7 @@ class ItemMonitor(object):
         SeesawConnection.broadcast("item.cancel", {"item_id": item.item_id})
 
 
-class ApiHandler(web.RequestHandler):
+class ApiHandler(BaseWebAdminHandler):
     '''Processes API requests.'''
     def initialize(self, warrior=None, runner=None):
         self.warrior = warrior
@@ -352,7 +351,7 @@ def start_runner_server(project, runner, bind_address="localhost", port_number=8
     
     router = SockJSRouter(SeesawConnection)
 
-    application = AuthenticatedApplication(
+    application = web.Application(
         router.apply_routes([
             (r"/(.*\.(html|css|js|swf|png|ico))$",
                 web.StaticFileHandler, {"path": PUBLIC_PATH}),
@@ -371,7 +370,7 @@ def start_runner_server(project, runner, bind_address="localhost", port_number=8
                 (http_username or "").strip() in ["", username]
             ),
         auth_realm="ArchiveTeam Warrior",
-        skip_auth=[r"^/socket\.io/1/websocket/[a-z0-9]+$"]
+        skip_auth=[]
     )
 
     application.listen(port_number, bind_address)
@@ -406,7 +405,7 @@ def start_warrior_server(warrior, bind_address="localhost", port_number=8001,
     
     router = SockJSRouter(SeesawConnection)
 
-    application = AuthenticatedApplication(
+    application = web.Application(
         router.apply_routes([
             (r"/(.*\.(html|css|js|swf|png|ico))$",
                 web.StaticFileHandler, {"path": PUBLIC_PATH}),
@@ -425,7 +424,7 @@ def start_warrior_server(warrior, bind_address="localhost", port_number=8001,
                 (realize(http_username) or "").strip() in ["", username]
             ),
         auth_realm="ArchiveTeam Warrior",
-        skip_auth=[tornado_url[0] for tornado_url in router.urls]
+        skip_auth=[]
     )
 
     application.listen(port_number, bind_address)
