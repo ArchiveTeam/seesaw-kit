@@ -742,9 +742,9 @@ class Warrior(object):
 
             if self.real_shutdown:
                 if self.shut_down_flag:
-                    os.system("sudo shutdown -h now")
+                    system_shutdown()
                 elif self.reboot_flag:
-                    os.system("sudo shutdown -r now")
+                    system_reboot()
 
     def start(self):
         io_loop = ioloop.IOLoop.instance()
@@ -777,7 +777,7 @@ class Warrior(object):
         else:
             ioloop.IOLoop.instance().stop()
             if self.real_shutdown:
-                os.system("sudo shutdown -r now")
+                system_reboot()
 
     def schedule_forced_reboot(self):
         if self.real_shutdown and not self.forced_reboot_timeout:
@@ -787,7 +787,7 @@ class Warrior(object):
     def forced_reboot(self):
         logger.info("Stopping immediately...")
         if self.real_shutdown:
-            os.system("sudo shutdown -r now")
+            system_reboot()
 
     def stop_gracefully(self):
         self.shut_down_flag = True
@@ -798,12 +798,12 @@ class Warrior(object):
         else:
             ioloop.IOLoop.instance().stop()
             if self.real_shutdown:
-                os.system("sudo shutdown -h now")
+                system_shutdown()
 
     def forced_stop(self):
         ioloop.IOLoop.instance().stop()
         if self.real_shutdown:
-            os.system("sudo shutdown -h now")
+            system_shutdown()
 
     def keep_running(self):
         self.shut_down_flag = False
@@ -847,3 +847,20 @@ class Warrior(object):
                 return Warrior.Status.STARTING_PROJECT
         else:
             return Warrior.Status.STOPPING_PROJECT
+
+
+def system_shutdown():
+    # Sentinel to tell the host to reboot/shutdown if the warrior is in a
+    # Docker container. This will require the host to be monitoring the file
+    # of course.
+    with open('/tmp/warrior_poweroff_required', 'w') as file_obj:
+        file_obj.write(str(time.time()))
+
+    os.system("sudo shutdown -h now")
+
+
+def system_reboot():
+    with open('/tmp/warrior_reboot_required', 'w') as file_obj:
+        file_obj.write(str(time.time()))
+
+    os.system("sudo shutdown -r now")
