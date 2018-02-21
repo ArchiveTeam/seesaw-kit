@@ -365,7 +365,7 @@ $(function() {
                                                    text: "Collapse all items" }));
         $("#collapse-all").on('change',
                               function () {
-                                  var isCollapsed = !!$(this).attr("checked");
+                                  var isCollapsed = !!$(this).prop("checked");
                                   localStorage.setItem("collapse-all",
                                                        isCollapsed);
                                   if (isCollapsed)
@@ -656,12 +656,12 @@ $(function() {
 
   showTab('view-current-project');
 
-  $(".item.closed .twisty").live('click',
+  $(".item.closed .twisty").delegate('click',
                                  function () {
                                    $(this).parent().parent().removeClass('closed')
                                                             .addClass('open');
                                  });
-  $(".item.open .twisty").live('click',
+  $(".item.open .twisty").delegate('click',
                                function () {
                                  $(this).parent().parent().removeClass('open')
                                                           .addClass('closed');
