@@ -572,4 +572,11 @@ table.time-left td span {
   border: solid 1px #203E5F;
 }
 
-
+.debug_log {
+  max-height: 20em;
+  max-width: 100%;
+  overflow: auto;
+  white-space: pre;
+  font-family: monospace;
+  margin: 1em;
+}

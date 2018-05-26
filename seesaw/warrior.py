@@ -24,6 +24,7 @@ from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 from seesaw.config import realize
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen2
+from seesaw.log import InternalTempLogHandler
 from seesaw.runner import Runner
 import seesaw.six
 
@@ -288,6 +289,13 @@ class Warrior(object):
         self.install_output = None
         self.broadcast_message = None
         self.contacting_hq_failed = False
+
+        self.internal_log_handler = InternalTempLogHandler()
+        self.internal_log_handler.setFormatter(
+            logging.Formatter(seesaw.script.run_warrior.LOG_FORMAT))
+        self.internal_log_handler.addFilter(
+            seesaw.script.run_warrior.LogFilter())
+        logging.getLogger().addHandler(self.internal_log_handler)
 
     def find_lat_lng(self):
         # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
@@ -666,7 +674,7 @@ class Warrior(object):
         with open(pipeline_path) as f:
             pipeline_str = f.read()
 
-        logging.debug('Pipeline has been read. Begin ConfigValue collection')
+        logger.debug('Pipeline has been read. Begin ConfigValue collection')
         ConfigValue.start_collecting()
 
         local_context = context
@@ -674,13 +682,13 @@ class Warrior(object):
         curdir = os.getcwd()
         try:
             os.chdir(dirname)
-            logging.debug('Executing pipeline')
+            logger.debug('Executing pipeline')
             exec(pipeline_str, local_context, global_context)
         finally:
             os.chdir(curdir)
 
         config_values = ConfigValue.stop_collecting()
-        logging.debug('Stopped ConfigValue collecting')
+        logger.debug('Stopped ConfigValue collecting')
 
         project = local_context["project"]
         pipeline = local_context["pipeline"]
@@ -748,6 +756,7 @@ class Warrior(object):
             self.fire_status()
 
             if not self.shut_down_flag and not self.reboot_flag:
+                logger.info('Project %s installed', project_name)
                 self.runner.start()
 
         else:

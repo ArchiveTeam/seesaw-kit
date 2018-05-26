@@ -9,19 +9,9 @@ import os
 import seesaw
 seesaw.runner_type = "Warrior"
 
+from seesaw.log import LOG_FORMAT, LogFilter
 from seesaw.warrior import Warrior
 from seesaw.web import start_warrior_server
-
-
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-
-
-class LogFilter(object):
-    def filter(self, record):
-        if not record.name:
-            return True
-        if 'seesaw' in record.name or 'root' in record.name:
-            return True
 
 
 def setup_logging(log_dir):
