@@ -2,7 +2,6 @@ sudo: false
 
 language: python
 python:
-  - "2.6"
   - "2.7"
   - "3.3"
   - "3.4"
@@ -10,7 +9,7 @@ python:
   - "3.6"
 
 # command to install dependencies
-install: 
+install:
   - travis_retry pip install -r requirements.txt
   - travis_retry pip install -q coverage python-coveralls
 
@@ -21,4 +20,3 @@ script: PYTHONIOENCODING=ascii nosetests --with-coverage --cover-package=seesaw 
 
 after_success:
   - coveralls
-

@@ -13,3 +13,6 @@
 	<li>Seesaw version: {{ seesaw.__version__ }}</li>
 	<li>Python version: {{ sys.version }}</li>
 </ul>
+
+<h3>Debug log</h3>
+<div class="debug_log">{{ '\n'.join(warrior.internal_log_handler.get_str_list()) }}</div>

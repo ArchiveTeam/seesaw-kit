@@ -231,12 +231,12 @@ class SeesawConnection(SockJSConnection):
             bw_stats = cls.warrior.bandwidth_stats()
             if bw_stats:
                 cls.broadcast("bandwidth", bw_stats)
-    
+
     @classmethod
     def broadcast_timestamp(cls):
         cls.broadcast("timestamp", {"timestamp": time.time()})
 
-    
+
     @classmethod
     def handle_warrior_status(cls, warrior, new_status):
         cls.broadcast("warrior.status", {"status": new_status})
@@ -346,9 +346,9 @@ def start_runner_server(project, runner, bind_address="localhost", port_number=8
     runner.on_pipeline_start_item += SeesawConnection.handle_start_item
     runner.on_pipeline_finish_item += SeesawConnection.handle_finish_item
     runner.on_status += SeesawConnection.handle_runner_status
-    
+
     ioloop.PeriodicCallback(SeesawConnection.broadcast_timestamp, 1000).start()
-    
+
     router = SockJSRouter(SeesawConnection)
 
     application = web.Application(
@@ -402,7 +402,7 @@ def start_warrior_server(warrior, bind_address="localhost", port_number=8001,
 
     ioloop.PeriodicCallback(SeesawConnection.broadcast_bandwidth, 1000).start()
     ioloop.PeriodicCallback(SeesawConnection.broadcast_timestamp, 1000).start()
-    
+
     router = SockJSRouter(SeesawConnection)
 
     application = web.Application(

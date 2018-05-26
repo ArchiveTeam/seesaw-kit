@@ -24,6 +24,7 @@ from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 from seesaw.config import realize
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen2
+from seesaw.log import InternalTempLogHandler
 from seesaw.runner import Runner
 import seesaw.six
 
@@ -289,6 +290,13 @@ class Warrior(object):
         self.broadcast_message = None
         self.contacting_hq_failed = False
 
+        self.internal_log_handler = InternalTempLogHandler()
+        self.internal_log_handler.setFormatter(
+            logging.Formatter(seesaw.script.run_warrior.LOG_FORMAT))
+        self.internal_log_handler.addFilter(
+            seesaw.script.run_warrior.LogFilter())
+        logging.getLogger().addHandler(self.internal_log_handler)
+
     def find_lat_lng(self):
         # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
         pass
@@ -452,8 +460,15 @@ class Warrior(object):
                 )
             p.on_output += self.collect_install_output
             p.on_end += yield gen.Callback("gitend")
-            p.run()
-            result = yield gen.Wait("gitend")
+
+            try:
+                p.run()
+            except OSError as error:
+                logger.exception("Install command error")
+                result = 9999
+                self.install_output.append(str(error))
+            else:
+                result = yield gen.Wait("gitend")
 
             if result != 0:
                 self.install_output.append("\ngit returned %d\n" % result)
@@ -476,14 +491,26 @@ class Warrior(object):
                                                 "warrior-install.sh")
 
             if os.path.exists(project_install_file):
+                if not is_executable(project_install_file):
+                    logger.warning('File %s is not executable. '
+                        'Automatically changing it to be executable!',
+                        project_install_file)
+                    set_file_executable(project_install_file)
+
                 p = AsyncPopen2(
                     args=[project_install_file],
                     cwd=project_path
                 )
                 p.on_output += self.collect_install_output
                 p.on_end += yield gen.Callback("installend")
-                p.run()
-                result = yield gen.Wait("installend")
+                try:
+                    p.run()
+                except OSError as error:
+                    logger.exception("Custom project install file error")
+                    result = 9999
+                    self.install_output.append(str(error))
+                else:
+                    result = yield gen.Wait("installend")
 
                 if result != 0:
                     self.install_output.append(
@@ -498,6 +525,8 @@ class Warrior(object):
                     self.failed_projects.add(project_name)
 
                     raise gen.Return(False)
+                else:
+                    logger.debug('Project install file result: %s', result)
 
             data_dir = os.path.join(self.data_dir, "data")
             if os.path.exists(data_dir):
@@ -519,6 +548,11 @@ class Warrior(object):
             self.installing = None
 
             raise gen.Return(True)
+
+        else:
+            logger.warning('Not installing project %s because it is not a '
+                'known project or an install is already in progress',
+                project_name)
 
     @gen.coroutine
     def update_project(self):
@@ -640,6 +674,7 @@ class Warrior(object):
         with open(pipeline_path) as f:
             pipeline_str = f.read()
 
+        logger.debug('Pipeline has been read. Begin ConfigValue collection')
         ConfigValue.start_collecting()
 
         local_context = context
@@ -647,11 +682,13 @@ class Warrior(object):
         curdir = os.getcwd()
         try:
             os.chdir(dirname)
+            logger.debug('Executing pipeline')
             exec(pipeline_str, local_context, global_context)
         finally:
             os.chdir(curdir)
 
         config_values = ConfigValue.stop_collecting()
+        logger.debug('Stopped ConfigValue collecting')
 
         project = local_context["project"]
         pipeline = local_context["pipeline"]
@@ -672,12 +709,10 @@ class Warrior(object):
                     reinstall or \
                     (yield self.check_project_has_update(project_name)):
                 result = yield self.install_project(project_name)
+                logger.debug('Result of the install process: %s', result)
+
                 if not result:
-                    logger.warning(
-                        "Project %s did not install correctly and "
-                        "we're ignoring this problem.",
-                        project_name
-                    )
+                    self._fail_starting_project(project_name)
                     return
 
             # remove the configuration variables from the previous project
@@ -696,8 +731,14 @@ class Warrior(object):
 
             # load the pipeline from the versioned directory
             pipeline_path = os.path.join(project_versioned_path, "pipeline.py")
-            (project, pipeline, config_values) = self.load_pipeline(
-                pipeline_path, {"downloader": self.downloader})
+
+            try:
+                (project, pipeline, config_values) = self.load_pipeline(
+                    pipeline_path, {"downloader": self.downloader})
+            except Exception:
+                logger.exception('Error loading pipeline')
+                self._fail_starting_project(project_name)
+                return
 
             # add the configuration values to the config manager
             for config_value in config_values:
@@ -715,6 +756,7 @@ class Warrior(object):
             self.fire_status()
 
             if not self.shut_down_flag and not self.reboot_flag:
+                logger.info('Project %s installed', project_name)
                 self.runner.start()
 
         else:
@@ -723,6 +765,15 @@ class Warrior(object):
             logger.debug("Project does not exist.")
             self.runner.set_current_pipeline(None)
             self.fire_status()
+
+    def _fail_starting_project(self, project_name):
+        logger.warning(
+            "Project %s did not install correctly and "
+            "we're ignoring this problem.",
+            project_name
+        )
+        self.runner.set_current_pipeline(None)
+        self.fire_status()
 
     def handle_runner_finish(self, runner):
         logger.info("Runner has finished.")
@@ -864,3 +915,13 @@ def system_reboot():
         file_obj.write(str(time.time()))
 
     os.system("sudo shutdown -r now")
+
+
+def is_executable(path):
+    return bool(os.stat(path).st_mode & 0o100)
+
+
+def set_file_executable(path):
+    assert os.path.isfile(path)
+
+    os.chmod(path, os.stat(path).st_mode | 0o100)
