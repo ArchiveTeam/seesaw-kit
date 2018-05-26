@@ -666,6 +666,7 @@ class Warrior(object):
         with open(pipeline_path) as f:
             pipeline_str = f.read()
 
+        logging.debug('Pipeline has been read. Begin ConfigValue collection')
         ConfigValue.start_collecting()
 
         local_context = context
@@ -673,11 +674,13 @@ class Warrior(object):
         curdir = os.getcwd()
         try:
             os.chdir(dirname)
+            logging.debug('Executing pipeline')
             exec(pipeline_str, local_context, global_context)
         finally:
             os.chdir(curdir)
 
         config_values = ConfigValue.stop_collecting()
+        logging.debug('Stopped ConfigValue collecting')
 
         project = local_context["project"]
         pipeline = local_context["pipeline"]
@@ -701,11 +704,7 @@ class Warrior(object):
                 logger.debug('Result of the install process: %s', result)
 
                 if not result:
-                    logger.warning(
-                        "Project %s did not install correctly and "
-                        "we're ignoring this problem.",
-                        project_name
-                    )
+                    self._fail_starting_project(project_name)
                     return
 
             # remove the configuration variables from the previous project
@@ -724,8 +723,14 @@ class Warrior(object):
 
             # load the pipeline from the versioned directory
             pipeline_path = os.path.join(project_versioned_path, "pipeline.py")
-            (project, pipeline, config_values) = self.load_pipeline(
-                pipeline_path, {"downloader": self.downloader})
+
+            try:
+                (project, pipeline, config_values) = self.load_pipeline(
+                    pipeline_path, {"downloader": self.downloader})
+            except Exception:
+                logger.exception('Error loading pipeline')
+                self._fail_starting_project(project_name)
+                return
 
             # add the configuration values to the config manager
             for config_value in config_values:
@@ -751,6 +756,15 @@ class Warrior(object):
             logger.debug("Project does not exist.")
             self.runner.set_current_pipeline(None)
             self.fire_status()
+
+    def _fail_starting_project(self, project_name):
+        logger.warning(
+            "Project %s did not install correctly and "
+            "we're ignoring this problem.",
+            project_name
+        )
+        self.runner.set_current_pipeline(None)
+        self.fire_status()
 
     def handle_runner_finish(self, runner):
         logger.info("Runner has finished.")
