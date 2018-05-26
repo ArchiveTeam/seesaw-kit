@@ -483,6 +483,12 @@ class Warrior(object):
                                                 "warrior-install.sh")
 
             if os.path.exists(project_install_file):
+                if not is_executable(project_install_file):
+                    logger.warning('File %s is not executable. '
+                        'Automatically changing it to be executable!',
+                        project_install_file)
+                    set_file_executable(project_install_file)
+
                 p = AsyncPopen2(
                     args=[project_install_file],
                     cwd=project_path
@@ -886,3 +892,13 @@ def system_reboot():
         file_obj.write(str(time.time()))
 
     os.system("sudo shutdown -r now")
+
+
+def is_executable(path):
+    return bool(os.stat(path).st_mode & 0o100)
+
+
+def set_file_executable(path):
+    assert os.path.isfile(path)
+
+    os.chmod(path, os.stat(path).st_mode | 0o100)
