@@ -452,8 +452,15 @@ class Warrior(object):
                 )
             p.on_output += self.collect_install_output
             p.on_end += yield gen.Callback("gitend")
-            p.run()
-            result = yield gen.Wait("gitend")
+
+            try:
+                p.run()
+            except OSError as error:
+                logger.exception("Install command error")
+                result = 9999
+                self.install_output.append(str(error))
+            else:
+                result = yield gen.Wait("gitend")
 
             if result != 0:
                 self.install_output.append("\ngit returned %d\n" % result)
@@ -482,8 +489,14 @@ class Warrior(object):
                 )
                 p.on_output += self.collect_install_output
                 p.on_end += yield gen.Callback("installend")
-                p.run()
-                result = yield gen.Wait("installend")
+                try:
+                    p.run()
+                except OSError as error:
+                    logger.exception("Custom project install file error")
+                    result = 9999
+                    self.install_output.append(str(error))
+                else:
+                    result = yield gen.Wait("installend")
 
                 if result != 0:
                     self.install_output.append(
@@ -498,6 +511,8 @@ class Warrior(object):
                     self.failed_projects.add(project_name)
 
                     raise gen.Return(False)
+                else:
+                    logger.debug('Project install file result: %s', result)
 
             data_dir = os.path.join(self.data_dir, "data")
             if os.path.exists(data_dir):
@@ -519,6 +534,11 @@ class Warrior(object):
             self.installing = None
 
             raise gen.Return(True)
+
+        else:
+            logger.warning('Not installing project %s because it is not a '
+                'known project or an install is already in progress',
+                project_name)
 
     @gen.coroutine
     def update_project(self):
@@ -672,6 +692,8 @@ class Warrior(object):
                     reinstall or \
                     (yield self.check_project_has_update(project_name)):
                 result = yield self.install_project(project_name)
+                logger.debug('Result of the install process: %s', result)
+
                 if not result:
                     logger.warning(
                         "Project %s did not install correctly and "
