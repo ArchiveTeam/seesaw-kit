@@ -261,10 +261,11 @@ $(function() {
        
        // Generate friendly time display
        // http://stackoverflow.com/questions/1322732/convert-seconds-to-hh-mm-ss-with-javascript
+       var days = parseInt( timeDiff / 86400 ) % 31;
        var hours = parseInt( timeDiff / 3600 ) % 24;
        var minutes = parseInt( timeDiff / 60 ) % 60;
        var seconds = timeDiff % 60;
-       var result = (hours < 10 ? "0" + hours : hours) + "h " + (minutes < 10 ? "0" + minutes : minutes) + "m " + (seconds  < 10 ? "0" + seconds : seconds) + "s ";
+       var result = (days < 10 ? "0" + days : days) + "d " + (hours < 10 ? "0" + hours : hours) + "h " + (minutes < 10 ? "0" + minutes : minutes) + "m " + (seconds  < 10 ? "0" + seconds : seconds) + "s ";
        
        //Save the calculated duration back to the DOM
        $(".item-duration-counter", obj).text('Elapsed: ' + result);

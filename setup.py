@@ -58,6 +58,7 @@ setup(
     maintainer_email='warrior@archiveteam.org',
     description='ArchiveTeam seesaw kit',
     long_description=open('README.md', 'r').read(),
+    long_description_content_type='text/markdown',
     url='http://www.archiveteam.org/',
     packages=packages,
     package_dir=package_dir,
