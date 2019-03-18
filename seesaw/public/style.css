@@ -238,6 +238,8 @@ table.time-left td span {
 }
 .item.closed {
   padding-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .item h3 {
   margin: 0 0 5px 0;
