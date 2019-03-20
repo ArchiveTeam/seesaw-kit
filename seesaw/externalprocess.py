@@ -165,7 +165,7 @@ class AsyncPopen2(object):
 
 class ExternalProcess(Task):
     '''External subprocess runner.'''
-    def __init__(self, name, args, max_tries=1, retry_delay=30,
+    def __init__(self, name, args, max_tries=1, retry_delay=2,
                  accept_on_exit_code=None, retry_on_exit_code=None, env=None):
         Task.__init__(self, name)
         self.args = args
