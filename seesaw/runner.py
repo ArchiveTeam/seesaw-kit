@@ -1,6 +1,7 @@
 '''Pipeline execution.'''
 import datetime
 import functools
+import os
 import os.path
 import sys
 
@@ -172,8 +173,16 @@ class SimpleRunner(Runner):
         item.on_output += self._handle_item_output
 
     def _handle_item_output(self, item, data):
-        try:
-            sys.stdout.write(data)
-        except UnicodeError:
-            sys.stdout.write(data.encode('ascii', 'replace').decode('ascii'))
-        sys.stdout.flush()
+        while True:
+            try:
+                try:
+                    sys.stdout.write(data)
+                except UnicodeError:
+                    sys.stdout.write(data.encode('ascii', 'replace').decode('ascii'))
+                sys.stdout.flush()
+                return
+            except IOError as e:
+                # Ignore EINTR errors (which are spurious errors caused by signals) and retry the operation.
+                # Allow other errors to propagate up the call stack as normal.
+                if e.errno != os.errno.EINTR:
+                    raise

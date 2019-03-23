@@ -256,7 +256,7 @@ class UploadWithTracker(TrackerRequest):
 
             inner_task.on_complete_item += self._inner_task_complete_item
             inner_task.on_fail_item += self._inner_task_fail_item
-            inner_task.enqueue(item)
+            self._enqueue_inner_task_with_except(inner_task, item)
 
         else:
             item.log_output("Tracker did not provide an upload target.")
