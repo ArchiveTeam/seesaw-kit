@@ -186,6 +186,7 @@ class ExternalProcess(Task):
         item.log_output("Starting %s for %s\n" % (self, item.description()))
         item["tries"] = 0
         item["ExternalProcess.stdin_write_error"] = False
+        item["ExternalProcess.running"] = False
         self.process(item)
 
     def stdin_data(self, item):
@@ -205,6 +206,7 @@ class ExternalProcess(Task):
             p.on_end += functools.partial(self.on_subprocess_end, item)
 
             p.run()
+            item["ExternalProcess.running"] = True
 
             try:
                 p.stdin.write(self.stdin_data(item))
@@ -215,10 +217,17 @@ class ExternalProcess(Task):
 
             p.stdin.close()
 
+    def fail_item(self, item):
+        # Don't allow the item to fail until the external process completes
+        if item["ExternalProcess.running"]:
+            return
+        Task.fail_item(self, item)
+
     def on_subprocess_stdout(self, pipe, item, data):
         item.log_output(data, full_line=False)
 
     def on_subprocess_end(self, item, returncode):
+        item["ExternalProcess.running"] = False
         if returncode in self.accept_on_exit_code and \
                 not item["ExternalProcess.stdin_write_error"]:
             self.handle_process_result(returncode, item)
