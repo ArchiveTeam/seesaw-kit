@@ -3,6 +3,8 @@ import contextlib
 import os
 import traceback
 
+import tornado.stack_context
+
 from seesaw.event import Event
 from seesaw.item import Item
 from seesaw.config import realize
@@ -47,6 +49,23 @@ class Task(object):
 
     def __str__(self):
         return self.name
+
+    # Helper to run "inner" tasks while still calling the correct tasks's item failure
+    # handler on exceptions.
+    def _enqueue_inner_task_with_except(self, inner_task, item):
+        @contextlib.contextmanager
+        def handle_item_exception(e_type, e_value, tb):
+            item.log_output("Failed %s for %s\n" % (inner_task, item.description()))
+            item.log_output(
+                "".join(traceback.format_exception(e_type, e_value, tb))
+            )
+            item.log_error(self, e_value)
+            inner_task.fail_item(item)
+
+        with tornado.stack_context.NullContext():
+            with tornado.stack_context.ExceptionStackContext(
+                    handle_item_exception):
+                inner_task.enqueue(item)
 
 
 class SimpleTask(Task):
@@ -101,7 +120,7 @@ class LimitConcurrent(Task):
     def enqueue(self, item):
         if self._working < realize(self.concurrency, item):
             self._working += 1
-            self.inner_task.enqueue(item)
+            self._enqueue_inner_task_with_except(self.inner_task, item)
         else:
             self._queue.append(item)
 
@@ -109,14 +128,14 @@ class LimitConcurrent(Task):
         self._working -= 1
         if len(self._queue) > 0:
             self._working += 1
-            self.inner_task.enqueue(self._queue.pop(0))
+            self._enqueue_inner_task_with_except(self.inner_task, self._queue.pop(0))
         self.complete_item(item)
 
     def _inner_task_fail_item(self, task, item):
         self._working -= 1
         if len(self._queue) > 0:
             self._working += 1
-            self.inner_task.enqueue(self._queue.pop(0))
+            self._enqueue_inner_task_with_except(self.inner_task, self._queue.pop(0))
         self.fail_item(item)
 
     def fill_ui_task_list(self, task_list):
@@ -138,7 +157,7 @@ class ConditionalTask(Task):
 
     def enqueue(self, item):
         if self.condition_function(item):
-            self.inner_task.enqueue(item)
+            self._enqueue_inner_task_with_except(self.inner_task, item)
         else:
             item.log_output("Skipping tasks for this item.")
             self.complete_item(item)
