@@ -177,6 +177,8 @@ class ExternalProcess(Task):
             self.accept_on_exit_code = [0]
         if kill_pipeline_on_error is True:
            self.hard_exit = True
+        else:
+            self.hard_exit = False
         self.retry_on_exit_code = retry_on_exit_code
         self.env = env or {}
 
