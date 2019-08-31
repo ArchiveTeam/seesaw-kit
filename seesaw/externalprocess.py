@@ -166,7 +166,7 @@ class AsyncPopen2(object):
 class ExternalProcess(Task):
     '''External subprocess runner.'''
     def __init__(self, name, args, max_tries=1, retry_delay=2,
-                 accept_on_exit_code=None, retry_on_exit_code=None, env=None):
+                 kill_pipeline_on_error=False, accept_on_exit_code=None, retry_on_exit_code=None, env=None):
         Task.__init__(self, name)
         self.args = args
         self.max_tries = max_tries
@@ -175,6 +175,8 @@ class ExternalProcess(Task):
             self.accept_on_exit_code = accept_on_exit_code
         else:
             self.accept_on_exit_code = [0]
+        if kill_pipeline_on_error is True:
+           self.hard_exit = True
         self.retry_on_exit_code = retry_on_exit_code
         self.env = env or {}
 
@@ -221,7 +223,10 @@ class ExternalProcess(Task):
         # Don't allow the item to fail until the external process completes
         if item["ExternalProcess.running"]:
             return
-        Task.fail_item(self, item)
+        if self.hard_exit == True:
+            Task.hard_fail_item(self, item)
+        else:
+            Task.fail_item(self, item)
 
     def on_subprocess_stdout(self, pipe, item, data):
         item.log_output(data, full_line=False)
@@ -271,13 +276,14 @@ class ExternalProcess(Task):
 class WgetDownload(ExternalProcess):
     '''Download with Wget process runner.'''
     def __init__(self, args, max_tries=1, accept_on_exit_code=None,
-                 retry_on_exit_code=None, env=None, stdin_data_function=None):
+                 kill_pipeline_on_error=False, retry_on_exit_code=None, env=None, stdin_data_function=None):
         ExternalProcess.__init__(
             self, "WgetDownload",
             args=args, max_tries=max_tries,
             accept_on_exit_code=(accept_on_exit_code
                                  if accept_on_exit_code is not None else [0]),
             retry_on_exit_code=retry_on_exit_code,
+            kill_pipeline_on_error=kill_pipeline_on_error,
             env=env)
         self.stdin_data_function = stdin_data_function
 
