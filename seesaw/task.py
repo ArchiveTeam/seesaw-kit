@@ -2,6 +2,7 @@
 import contextlib
 import os
 import traceback
+import sys
 
 import tornado.stack_context
 
@@ -29,6 +30,13 @@ class Task(object):
         item.set_task_status(self, Item.TaskStatus.failed)
         self.on_fail_item(self, item)
         self.on_finish_item(self, item)
+
+    def hard_fail_item(self, item):
+        item.set_task_status(self, Item.TaskStatus.failed)
+        self.on_fail_item(self, item)
+        self.on_finish_item(self, item)
+        print("Killing pipeline\n")
+        os._exit(1)
 
     def complete_item(self, item):
         item.set_task_status(self, Item.TaskStatus.completed)
