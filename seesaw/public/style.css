@@ -254,6 +254,12 @@ table.time-left td span {
 .item-failed h3 strong {
   background: #A70B0B;
 }
+.item-completed h3 {
+  background: #326827;
+}
+.item-completed h3 strong {
+  background: #326827;
+}
 .item.open .status-line {
   display: none;
 }
@@ -268,8 +274,9 @@ table.time-left td span {
   display: inline-block;
   width: 1em;
   padding-right: 3px;
-  background: #190A06;
+  background: inherit;
   border-radius: 3px;
+  cursor: pointer;
 }
 .item.open .twisty:before {
   content: "▼";

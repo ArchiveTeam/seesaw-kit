@@ -657,16 +657,14 @@ $(function() {
 
   showTab('view-current-project');
 
-  $(".item.closed .twisty").delegate('click',
-                                 function () {
-                                   $(this).parent().parent().removeClass('closed')
-                                                            .addClass('open');
-                                 });
-  $(".item.open .twisty").delegate('click',
-                               function () {
-                                 $(this).parent().parent().removeClass('open')
-                                                          .addClass('closed');
-                               });
+  $(document).on("click", ".item.closed .twisty", function () {
+    $(this).parent().parent().removeClass('closed')
+      .addClass('open')
+  });
+  $(document).on("click", ".item.open .twisty", function () {
+    $(this).parent().parent().removeClass('open')
+      .addClass('closed')
+  });
 
   /*
   addItem({
