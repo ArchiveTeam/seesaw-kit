@@ -227,7 +227,7 @@ $(function() {
   registerEvent('item.update_name', function(msg) { // item_id, new_name
 //    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
-    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
+    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name.replaceAll('\u0000', ' '));
   });
 
   registerEvent('item.complete', function(msg) { // pipeline_id, item_id
@@ -487,7 +487,7 @@ $(function() {
     $(h3).append($("<span>", { "class": 'twisty' }),
                  $("<span>", {
                      "class": 'name',
-                     text: item.name
+                     text: item.name.replaceAll('\u0000', ' ')
                  }),
                  $("<span>", { "class": 'status-line' }),
                  $("<span>", { "class": 'log-line' }));
