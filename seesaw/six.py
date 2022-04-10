@@ -29,42 +29,13 @@ __author__ = "Benjamin Peterson <benjamin@python.org>"
 __version__ = "1.7.3"
 
 
-# Useful for very coarse version differentiation.
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
+string_types = str,
+integer_types = int,
+class_types = type,
+text_type = str
+binary_type = bytes
 
-if PY3:
-    string_types = str,
-    integer_types = int,
-    class_types = type,
-    text_type = str
-    binary_type = bytes
-
-    MAXSIZE = sys.maxsize
-else:
-    string_types = basestring,
-    integer_types = (int, long)
-    class_types = (type, types.ClassType)
-    text_type = unicode
-    binary_type = str
-
-    if sys.platform.startswith("java"):
-        # Jython always uses 32 bits.
-        MAXSIZE = int((1 << 31) - 1)
-    else:
-        # It's possible to have sizeof(long) != sizeof(Py_ssize_t).
-        class X(object):
-            def __len__(self):
-                return 1 << 31
-        try:
-            len(X())
-        except OverflowError:
-            # 32-bit
-            MAXSIZE = int((1 << 31) - 1)
-        else:
-            # 64-bit
-            MAXSIZE = int((1 << 63) - 1)
-        del X
+MAXSIZE = sys.maxsize
 
 
 def _add_doc(func, doc):
@@ -95,12 +66,9 @@ class MovedModule(_LazyDescr):
 
     def __init__(self, name, old, new=None):
         super(MovedModule, self).__init__(name)
-        if PY3:
-            if new is None:
-                new = name
-            self.mod = new
-        else:
-            self.mod = old
+        if new is None:
+            new = name
+        self.mod = new
 
     def _resolve(self):
         return _import_module(self.mod)
@@ -131,21 +99,15 @@ class MovedAttribute(_LazyDescr):
 
     def __init__(self, name, old_mod, new_mod, old_attr=None, new_attr=None):
         super(MovedAttribute, self).__init__(name)
-        if PY3:
-            if new_mod is None:
-                new_mod = name
-            self.mod = new_mod
-            if new_attr is None:
-                if old_attr is None:
-                    new_attr = name
-                else:
-                    new_attr = old_attr
-            self.attr = new_attr
-        else:
-            self.mod = old_mod
+        if new_mod is None:
+            new_mod = name
+        self.mod = new_mod
+        if new_attr is None:
             if old_attr is None:
-                old_attr = name
-            self.attr = old_attr
+                new_attr = name
+            else:
+                new_attr = old_attr
+        self.attr = new_attr
 
     def _resolve(self):
         module = _import_module(self.mod)
@@ -178,8 +140,8 @@ class _SixMetaPathImporter(object):
     def __get_module(self, fullname):
         try:
             return self.known_modules[fullname]
-        except KeyError:
-            raise ImportError("This loader does not know module " + fullname)
+        except KeyError as key_err:
+            raise ImportError("This loader does not know module " + fullname) from key_err
 
     def load_module(self, fullname):
         try:
@@ -465,22 +427,13 @@ def remove_move(name):
             raise AttributeError("no such move, %r" % (name,))
 
 
-if PY3:
-    _meth_func = "__func__"
-    _meth_self = "__self__"
+_meth_func = "__func__"
+_meth_self = "__self__"
 
-    _func_closure = "__closure__"
-    _func_code = "__code__"
-    _func_defaults = "__defaults__"
-    _func_globals = "__globals__"
-else:
-    _meth_func = "im_func"
-    _meth_self = "im_self"
-
-    _func_closure = "func_closure"
-    _func_code = "func_code"
-    _func_defaults = "func_defaults"
-    _func_globals = "func_globals"
+_func_closure = "__closure__"
+_func_code = "__code__"
+_func_defaults = "__defaults__"
+_func_globals = "__globals__"
 
 
 try:
@@ -498,26 +451,13 @@ except NameError:
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
-if PY3:
-    def get_unbound_function(unbound):
-        return unbound
+def get_unbound_function(unbound):
+    return unbound
 
-    create_bound_method = types.MethodType
+create_bound_method = types.MethodType
 
-    Iterator = object
-else:
-    def get_unbound_function(unbound):
-        return unbound.im_func
+Iterator = object
 
-    def create_bound_method(func, obj):
-        return types.MethodType(func, obj, obj.__class__)
-
-    class Iterator(object):
-
-        def next(self):
-            return type(self).__next__(self)
-
-    callable = callable
 _add_doc(get_unbound_function,
          """Get the function out of a possibly unbound function""")
 
@@ -530,30 +470,17 @@ get_function_defaults = operator.attrgetter(_func_defaults)
 get_function_globals = operator.attrgetter(_func_globals)
 
 
-if PY3:
-    def iterkeys(d, **kw):
-        return iter(d.keys(**kw))
+def iterkeys(d, **kw):
+    return iter(d.keys(**kw))
 
-    def itervalues(d, **kw):
-        return iter(d.values(**kw))
+def itervalues(d, **kw):
+    return iter(d.values(**kw))
 
-    def iteritems(d, **kw):
-        return iter(d.items(**kw))
+def iteritems(d, **kw):
+    return iter(d.items(**kw))
 
-    def iterlists(d, **kw):
-        return iter(d.lists(**kw))
-else:
-    def iterkeys(d, **kw):
-        return iter(d.iterkeys(**kw))
-
-    def itervalues(d, **kw):
-        return iter(d.itervalues(**kw))
-
-    def iteritems(d, **kw):
-        return iter(d.iteritems(**kw))
-
-    def iterlists(d, **kw):
-        return iter(d.iterlists(**kw))
+def iterlists(d, **kw):
+    return iter(d.lists(**kw))
 
 _add_doc(iterkeys, "Return an iterator over the keys of a dictionary.")
 _add_doc(itervalues, "Return an iterator over the values of a dictionary.")
@@ -563,71 +490,33 @@ _add_doc(iterlists,
          "Return an iterator over the (key, [values]) pairs of a dictionary.")
 
 
-if PY3:
-    def b(s):
-        return s.encode("latin-1")
-    def u(s):
-        return s
-    unichr = chr
-    if sys.version_info[1] <= 1:
-        def int2byte(i):
-            return bytes((i,))
-    else:
-        # This is about 2x faster than the implementation above on 3.2+
-        int2byte = operator.methodcaller("to_bytes", 1, "big")
-    byte2int = operator.itemgetter(0)
-    indexbytes = operator.getitem
-    iterbytes = iter
-    import io
-    StringIO = io.StringIO
-    BytesIO = io.BytesIO
+def b(s):
+    return s.encode("latin-1")
+def u(s):
+    return s
+unichr = chr
+if sys.version_info[1] <= 1:
+    def int2byte(i):
+        return bytes((i,))
 else:
-    def b(s):
-        return s
-    # Workaround for standalone backslash
-    def u(s):
-        return unicode(s.replace(r'\\', r'\\\\'), "unicode_escape")
-    unichr = unichr
-    int2byte = chr
-    def byte2int(bs):
-        return ord(bs[0])
-    def indexbytes(buf, i):
-        return ord(buf[i])
-    def iterbytes(buf):
-        return (ord(byte) for byte in buf)
-    import StringIO
-    StringIO = BytesIO = StringIO.StringIO
+    # This is about 2x faster than the implementation above on 3.2+
+    int2byte = operator.methodcaller("to_bytes", 1, "big")
+byte2int = operator.itemgetter(0)
+indexbytes = operator.getitem
+iterbytes = iter
+import io
+StringIO = io.StringIO
+BytesIO = io.BytesIO
 _add_doc(b, """Byte literal""")
 _add_doc(u, """Text literal""")
 
 
-if PY3:
-    exec_ = getattr(moves.builtins, "exec")
+exec_ = getattr(moves.builtins, "exec")
 
-
-    def reraise(tp, value, tb=None):
-        if value.__traceback__ is not tb:
-            raise value.with_traceback(tb)
-        raise value
-
-else:
-    def exec_(_code_, _globs_=None, _locs_=None):
-        """Execute code in a namespace."""
-        if _globs_ is None:
-            frame = sys._getframe(1)
-            _globs_ = frame.f_globals
-            if _locs_ is None:
-                _locs_ = frame.f_locals
-            del frame
-        elif _locs_ is None:
-            _locs_ = _globs_
-        exec("""exec _code_ in _globs_, _locs_""")
-
-
-    exec_("""def reraise(tp, value, tb=None):
-    raise tp, value, tb
-""")
-
+def reraise(tp, value, tb=None):
+    if value.__traceback__ is not tb:
+        raise value.with_traceback(tb)
+    raise value
 
 print_ = getattr(moves.builtins, "print", None)
 if print_ is None:

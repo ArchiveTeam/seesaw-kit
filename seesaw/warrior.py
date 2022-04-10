@@ -35,10 +35,7 @@ except ImportError:
     from ordereddict import OrderedDict
 
 
-if seesaw.six.PY2:
-    bigint = long  # @UndefinedVariable  pylint: disable=undefined-variable
-else:
-    bigint = int
+\bigint = int
 
 
 logger = logging.getLogger(__name__)
