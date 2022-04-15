@@ -15,8 +15,7 @@ import sys
 import time
 import logging
 
-from tornado import gen
-from tornado import ioloop
+from tornado import gen, ioloop
 from tornado.httpclient import AsyncHTTPClient
 
 import seesaw
@@ -26,17 +25,13 @@ from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen2
 from seesaw.log import InternalTempLogHandler
 from seesaw.runner import Runner
-import seesaw.six
-
 
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
 
-
-\bigint = int
-
+BigInt = int
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +46,7 @@ class ConfigManager(object):
         self.load()
 
     def add(self, config_value):
+        """Adds a config value."""
         self.config_values[config_value.name] = config_value
         if config_value.name in self.config_memory:
             remembered_value = self.config_memory[config_value.name]
@@ -59,14 +55,17 @@ class ConfigManager(object):
         self.save()
 
     def remove(self, name):
+        """Removes a config value."""
         if name in self.config_values:
             del self.config_values[name]
         self.save()
 
     def all_valid(self):
+        """Returns a list of valid config values."""
         return all([c.is_valid() for c in self])
 
     def set_value(self, name, value):
+        """Sets the given config value."""
         if name in self.config_values:
             if self.config_values[name].set_value(value):
                 self.config_memory[name] = value
@@ -75,21 +74,24 @@ class ConfigManager(object):
         return False
 
     def load(self):
+        """Loads config."""
         try:
-            with open(self.config_file) as f:
-                self.config_memory = json.load(f)
+            with open(self.config_file, encoding="utf8") as file:
+                self.config_memory = json.load(file)
         except Exception:
             logger.exception('Error loading config.')
             self.config_memory = {}
 
     def save(self):
-        with open(self.config_file, "w") as f:
-            json.dump(self.config_memory, f)
+        """Saves config to config file."""
+        with open(self.config_file, "w", encoding="utf8") as file:
+            json.dump(self.config_memory, file)
 
     def __iter__(self):
         return iter(self.config_values.values())
 
     def editable_values(self):
+        """Returns a list of editable config values."""
         return [v for v in self if v.editable]
 
 
@@ -110,6 +112,7 @@ class BandwidthMonitor(object):
         self.update()
 
     def current_stats(self):
+        """Returns the current bandwidth stats."""
         if self.prev_stats and self.bandwidth:
             return {
                 "received": self.prev_stats[0],
@@ -120,6 +123,7 @@ class BandwidthMonitor(object):
         return None
 
     def update(self):
+        """Updates the bandwidth stats."""
         cur_time = time.time()
         cur_stats = self._get_stats()
         if self.prev_stats is not None and cur_stats is not None:
@@ -134,14 +138,14 @@ class BandwidthMonitor(object):
         return self.bandwidth
 
     def _get_stats(self):
-        with open("/proc/net/dev") as f:
-            lines = f.readlines()
+        with open("/proc/net/dev", encoding="utf8") as file:
+            lines = file.readlines()
         for line in lines:
-            m = self.devre.match(line)
-            if m and m.group(1) == self.device:
-                fields = m.group(2).split()
-                received = bigint(fields[0])
-                sent = bigint(fields[8])
+            match = self.devre.match(line)
+            if match and match.group(1) == self.device:
+                fields = match.group(2).split()
+                received = BigInt(fields[0])
+                sent = BigInt(fields[8])
                 if self._prev_received > received:
                     self._overflow_received += 2 ** 32
                 self._prev_received = received
@@ -295,7 +299,8 @@ class Warrior(object):
         logging.getLogger().addHandler(self.internal_log_handler)
 
     def find_lat_lng(self):
-        # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", self.handle_lat_lng, user_agent="")
+        # response = self.http_client.fetch("http://www.maxmind.com/app/mylocation", 
+        # self.handle_lat_lng, user_agent="")
         pass
 
     def handle_lat_lng(self, response):
@@ -306,20 +311,21 @@ class Warrior(object):
             self.lat_lng = m.group(1)
 
     def bandwidth_stats(self):
+        """Returns bandwidth statistics."""
         self.bandwidth_monitor.update()
         return self.bandwidth_monitor.current_stats()
 
-    @gen.coroutine
-    def update_warrior_hq(self):
+    async def update_warrior_hq(self):
+        """Sends the latest data to the Warrior HQ."""
         logger.debug('Update warrior hq.')
 
         if realize(self.warrior_id) is None:
             headers = {"Content-Type": "application/json"}
-            user_agent = "ArchiveTeam Warrior/%s" % seesaw.__version__
+            user_agent = f"ArchiveTeam Warrior/{seesaw.__version__}"
             body = json.dumps(
                 {"warrior": {"version": seesaw.__version__}}
             )
-            response = yield self.http_client.fetch(
+            response = await self.http_client.fetch(
                 os.path.join(self.warrior_hq_url,
                              "api/register.json"),
                 method="POST",
@@ -330,15 +336,15 @@ class Warrior(object):
 
             if response.code == 200:
                 data = json.loads(response.body.decode('utf-8'))
-                logger.info("Received Warrior ID '%s'." % data["warrior_id"])
+                logger.info("Received Warrior ID '%s'.", data["warrior_id"])
                 self.config_manager.set_value("warrior_id", data["warrior_id"])
                 self.fire_status()
             else:
-                logger.error("HTTP error %s" % (response.code))
+                logger.error("HTTP error %s", response.code)
                 self.fire_status()
                 return
         else:
-            logger.debug("Warrior ID '%s'." % realize(self.warrior_id))
+            logger.debug("Warrior ID '%s'.", realize(self.warrior_id))
 
         headers = {"Content-Type": "application/json"}
         user_agent = "ArchiveTeam Warrior/%s %s" % (seesaw.__version__,
@@ -351,7 +357,7 @@ class Warrior(object):
                 "selected_project": realize(self.selected_project_config_value)
             }})
 
-        response = yield self.http_client.fetch(
+        response = await self.http_client.fetch(
             os.path.join(self.warrior_hq_url,
                          "api/update.json"),
             method="POST",
@@ -387,16 +393,16 @@ class Warrior(object):
 
             if self.selected_project and \
                     self.selected_project not in self.projects:
-                yield self.select_project(None)
+                await self.select_project(None)
             elif previous_project_choice in self.projects:
                 # select previous project
-                yield self.select_project(previous_project_choice)
+                await self.select_project(previous_project_choice)
             elif previous_project_choice == "auto":
                 # ArchiveTeam's choice
                 if "auto_project" in data:
-                    yield self.select_project(data["auto_project"])
+                    await self.select_project(data["auto_project"])
                 else:
-                    yield self.select_project(None)
+                    await self.select_project(None)
 
             self.contacting_hq_failed = False
             self.on_projects_loaded(self, self.projects)
@@ -416,8 +422,8 @@ class Warrior(object):
 
             self.on_projects_loaded(self, self.projects)
 
-    @gen.coroutine
-    def install_project(self, project_name):
+    async def install_project(self, project_name):
+        """Installs a new project."""
         logger.debug('Install project %s', project_name)
 
         self.installed_projects.discard(project_name)
@@ -456,7 +462,7 @@ class Warrior(object):
                     env=self.gitenv
                 )
             p.on_output += self.collect_install_output
-            p.on_end += yield gen.Callback("gitend")
+            p.on_end += await("gitend")
 
             try:
                 p.run()
@@ -465,7 +471,7 @@ class Warrior(object):
                 result = 9999
                 self.install_output.append(str(error))
             else:
-                result = yield gen.Wait("gitend")
+                result = await("gitend")
 
             if result != 0:
                 self.install_output.append("\ngit returned %d\n" % result)
@@ -551,17 +557,17 @@ class Warrior(object):
                 'known project or an install is already in progress',
                 project_name)
 
-    @gen.coroutine
-    def update_project(self):
+    async def update_project(self):
+        """Updates the given project."""
         logger.debug('Update project.')
 
         if self.selected_project and \
-                (yield self.check_project_has_update(self.selected_project)):
+                (await self.check_project_has_update(self.selected_project)):
             # restart project
             yield self.start_selected_project(reinstall=True)
 
-    @gen.coroutine
-    def check_project_has_update(self, project_name):
+    async def check_project_has_update(self, project_name):
+        """Checks if the given project has an available update."""
         logger.debug('Check project has update %s', project_name)
 
         if project_name in self.projects:
@@ -588,9 +594,9 @@ class Warrior(object):
                 env=self.gitenv
             )
             p.on_output += self.collect_install_output
-            p.on_end += yield gen.Callback("gitend")
+            p.on_end += await("gitend")
             p.run()
-            result = yield gen.Wait("gitend")
+            result = await("gitend")
 
             if result != 0:
                 logger.debug('Got return code %s', result)
@@ -609,7 +615,7 @@ class Warrior(object):
                 raise gen.Return(False)
 
     def collect_install_output(self, data):
-        if isinstance(data, seesaw.six.binary_type):
+        if isinstance(data, bytes):
             text = data.decode('ascii', 'replace')
         else:
             text = data
@@ -662,6 +668,7 @@ class Warrior(object):
         return project_versioned_path
 
     def load_pipeline(self, pipeline_path, context):
+        """Loads the given pipeline."""
         logger.debug('Load pipeline %s', pipeline_path)
 
         dirname, basename = os.path.split(pipeline_path)
@@ -692,8 +699,8 @@ class Warrior(object):
         pipeline.project = project
         return (project, pipeline, config_values)
 
-    @gen.coroutine
-    def start_selected_project(self, reinstall=False):
+    async def start_selected_project(self, reinstall=False):
+        """Starts working on the selected project."""
         logger.debug(
             'Start selected project %s (reinstall=%s)',
             self.selected_project, reinstall
@@ -704,8 +711,8 @@ class Warrior(object):
             # install or update project if necessary
             if project_name not in self.installed_projects or \
                     reinstall or \
-                    (yield self.check_project_has_update(project_name)):
-                result = yield self.install_project(project_name)
+                    (await self.check_project_has_update(project_name)):
+                result = await self.install_project(project_name)
                 logger.debug('Result of the install process: %s', result)
 
                 if not result:
@@ -738,6 +745,7 @@ class Warrior(object):
                 return
 
             # add the configuration values to the config manager
+            # pylint: disable=not-an-iterable
             for config_value in config_values:
                 self.config_manager.add(config_value)
             project.config_values = config_values

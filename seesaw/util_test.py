@@ -2,7 +2,6 @@ import unittest
 import re
 
 import seesaw
-import seesaw.six
 from seesaw.util import find_executable, unique_id_str
 
 

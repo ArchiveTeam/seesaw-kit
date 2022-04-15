@@ -1,2 +1,2 @@
-Tornado>=4.0,<4.99999.99999
+Tornado>=6.1.0
 sockjs-tornado

@@ -3,14 +3,12 @@ import contextlib
 import os
 import traceback
 
-import tornado.stack_context
-
 from seesaw.event import Event
 from seesaw.item import Item
 from seesaw.config import realize
 
 
-class Task(object):
+class Task:
     '''A step in the download process of an :class:`Item`.
     '''
     def __init__(self, name):
@@ -22,15 +20,18 @@ class Task(object):
         self.on_finish_item = Event()
 
     def start_item(self, item):
+        """Start working on item."""
         item.set_task_status(self, Item.TaskStatus.running)
         self.on_start_item(self, item)
 
     def fail_item(self, item):
+        """Fail item.."""
         item.set_task_status(self, Item.TaskStatus.failed)
         self.on_fail_item(self, item)
         self.on_finish_item(self, item)
 
     def complete_item(self, item):
+        """Mark work on item as complete."""
         item.set_task_status(self, Item.TaskStatus.completed)
         self.on_complete_item(self, item)
         self.on_finish_item(self, item)
@@ -52,20 +53,17 @@ class Task(object):
 
     # Helper to run "inner" tasks while still calling the correct tasks's item failure
     # handler on exceptions.
-    def _enqueue_inner_task_with_except(self, inner_task, item):
+    async def _enqueue_inner_task_with_except(self, inner_task, item):
         @contextlib.contextmanager
         def handle_item_exception(e_type, e_value, tb):
-            item.log_output("Failed %s for %s\n" % (inner_task, item.description()))
+            item.log_output(f"Failed {inner_task} for {item.description()}\n")
             item.log_output(
                 "".join(traceback.format_exception(e_type, e_value, tb))
             )
             item.log_error(self, e_value)
             inner_task.fail_item(item)
 
-        with tornado.stack_context.NullContext():
-            with tornado.stack_context.ExceptionStackContext(
-                    handle_item_exception):
-                inner_task.enqueue(item)
+            inner_task.enqueue(item)
 
 
 class SimpleTask(Task):
@@ -156,6 +154,7 @@ class ConditionalTask(Task):
         self.inner_task.on_fail_item += self._inner_task_fail_item
 
     def enqueue(self, item):
+        """Enqueue an item."""
         if self.condition_function(item):
             self._enqueue_inner_task_with_except(self.inner_task, item)
         else:

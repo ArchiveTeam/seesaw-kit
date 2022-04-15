@@ -44,13 +44,22 @@ setup(
     maintainer='ArchiveTeam',
     maintainer_email='warrior@archiveteam.org',
     description='ArchiveTeam seesaw kit',
-    long_description=open('README.md', 'r').read(),
+    long_description=open('README.md', 'r', encoding="utf8").read(),
     long_description_content_type='text/markdown',
     url='http://www.archiveteam.org/',
     packages=packages,
     package_dir=package_dir,
     package_data=package_data,
     include_package_data=True,
-    scripts=scripts,
+    entry_points = {
+        'console_scripts': [
+            'run-warrior = seesaw.script.run_warrior:main',
+            'run-warrior2 = seesaw.script.run_warrior:main',
+            'run-warrior3 = seesaw.script.run_warrior:main',
+            'run-pipeline = seesaw.script.run_pipeline:main',
+            'run-pipeline2 = seesaw.script.run_pipeline:main',
+            'run-pipeline3 = seesaw.script.run_pipeline:main'
+        ] # backcompat for other scripts
+    },
     install_requires=requires,
 )
