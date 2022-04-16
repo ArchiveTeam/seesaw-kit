@@ -3,6 +3,3 @@ recursive-include doc *.py *.rst Makefile *.bat
 recursive-include tests *.py
 recursive-include examples *.py
 recursive-include seesaw *.py
-include run-pipeline
-include run-warrior
-

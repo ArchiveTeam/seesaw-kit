@@ -37,15 +37,15 @@ class Task:
         self.on_finish_item(self, item)
 
     @contextlib.contextmanager
-    def task_cwd(self):
+    async def task_cwd(self):
         curdir = os.getcwd()
         try:
-            os.chdir(self.cwd)
-            yield
+            await os.chdir(self.cwd)
         finally:
             os.chdir(curdir)
 
     def fill_ui_task_list(self, task_list):
+        """Fills the task list UI."""
         task_list.append((self, self.name))
 
     def __str__(self):
@@ -79,6 +79,7 @@ class SimpleTask(Task):
         Task.__init__(self, name)
 
     def enqueue(self, item):
+        """Enqueue an item."""
         self.start_item(item)
         item.log_output("Starting %s for %s\n" % (self, item.description()))
         try:

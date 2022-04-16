@@ -7,7 +7,7 @@ from seesaw.util import find_executable, unique_id_str
 
 class UtilTest(unittest.TestCase):
     def test_find_executable(self):
-        exes = ['./run-pipeline', '../run-pipeline']
+        exes = ['run-pipeline']
 
         self.assertTrue(find_executable(
             'pipeline runner',
@@ -17,7 +17,7 @@ class UtilTest(unittest.TestCase):
         )
 
     def test_find_executable_regex_version(self):
-        exes = ['./run-pipeline', '../run-pipeline']
+        exes = ['run-pipeline']
 
         self.assertTrue(find_executable(
             'pipeline runner',
@@ -27,7 +27,7 @@ class UtilTest(unittest.TestCase):
         )
 
     def test_find_executable_list_version(self):
-        exes = ['./run-pipeline', '../run-pipeline']
+        exes = ['run-pipeline']
 
         self.assertTrue(find_executable(
             'pipeline runner',
@@ -37,7 +37,7 @@ class UtilTest(unittest.TestCase):
         )
 
     def test_find_executable_bad_version(self):
-        exes = ['./run-pipeline', '../run-pipeline']
+        exes = ['run-pipeline']
 
         self.assertFalse(find_executable(
             'pipeline runner',
