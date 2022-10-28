@@ -7,7 +7,7 @@
       <li>
         <h4>ArchiveTeam&#8217;s Choice</h4>
         <p>Your warrior will automatically work on the current ArchiveTeam project.</p>
-        <form method="post" action="/api/deselect-project" class="js-api-form">
+        <form method="post" action="api/deselect-project" class="js-api-form">
           <div class="select"><input type="hidden" name="project_name" value="{{ project_name }}" /><input type="submit" value="Stop this project" /></div>
         </form>
       </li>
@@ -23,7 +23,7 @@
         {% end %}
         <h4>{{ project_data["title"] }}</h4>
         <p>{{ project_data["description"] }}</p>
-        <form method="post" action="/api/deselect-project" class="js-api-form">
+        <form method="post" action="api/deselect-project" class="js-api-form">
           <div class="select"><input type="hidden" name="project_name" value="{{ project_name }}" /><input type="submit" value="Stop this project" /></div>
         </form>
       </li>
@@ -37,7 +37,7 @@
     <li>
       <h4>ArchiveTeam&#8217;s Choice</h4>
       <p>Your warrior will automatically work on the current ArchiveTeam project.</p>
-      <form method="post" action="/api/select-project" class="js-api-form">
+      <form method="post" action="api/select-project" class="js-api-form">
         <div class="select"><input type="hidden" name="project_name" value="auto" /><input type="submit" value="Work on this project" /></div>
       </form>
     </li>
@@ -50,7 +50,7 @@
         {% end %}
         <h4>{{ project_data["title"] }}</h4>
         <p>{{ project_data["description"] }}</p>
-        <form method="post" action="/api/select-project" class="js-api-form">
+        <form method="post" action="api/select-project" class="js-api-form">
           <div class="select"><input type="hidden" name="project_name" value="{{ project_name }}" /><input type="submit" value="Work on this project" /></div>
         </form>
       </li>
