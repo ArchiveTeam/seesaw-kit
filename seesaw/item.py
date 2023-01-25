@@ -6,11 +6,10 @@ import traceback
 import time
 import collections
 
+from collections import abc
 from seesaw.event import Event
-import seesaw.six
 
-
-class ItemData(collections.MutableMapping):
+class ItemData(abc.MutableMapping):
     '''Base item data property container.
 
     Args:
@@ -178,7 +177,7 @@ class Item(ItemData):
                 shutil.rmtree(dirname)
 
     def log_output(self, data, full_line=True):
-        if isinstance(data, seesaw.six.binary_type):
+        if isinstance(data, bytes):
             try:
                 data = data.decode('utf8', 'replace')
             except UnicodeError:

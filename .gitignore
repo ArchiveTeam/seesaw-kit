@@ -4,6 +4,7 @@
 seesaw.egg-info
 dist
 build
+.venv/
 
 # ecllipse
 .settings

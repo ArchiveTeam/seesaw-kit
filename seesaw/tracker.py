@@ -16,8 +16,6 @@ import seesaw
 from seesaw.config import realize
 from seesaw.task import Task, SimpleTask
 from seesaw.externalprocess import RsyncUpload, CurlUpload
-import seesaw.six
-
 
 class TrackerRequest(Task):
     '''Represents a request to a Tracker.'''
@@ -62,7 +60,7 @@ class TrackerRequest(Task):
     def handle_response(self, item, response):
         if response.code == 200:
             self.reset_retry_delay()
-            if isinstance(response.body, seesaw.six.binary_type):
+            if isinstance(response.body, bytes):
                 self.process_body(response.body.decode('utf-8'), item)
             else:
                 self.process_body(response.body, item)

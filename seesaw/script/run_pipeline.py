@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 from argparse import ArgumentParser
+import asyncio
 import itertools
 import os.path
 import re
@@ -11,7 +12,7 @@ import time
 from seesaw.runner import SimpleRunner
 from seesaw.web import start_runner_server
 import seesaw
-import tornado.ioloop
+from tornado.ioloop import PeriodicCallback, IOLoop
 import signal
 
 
@@ -22,13 +23,12 @@ graceful_stop_activate_time = None
 class GitCheckError(OSError):
     pass
 
-
 def load_pipeline(pipeline_path, context):
-    dirname, dummy = os.path.split(pipeline_path)
+    dirname, _unused = os.path.split(pipeline_path)
     if dirname == "":
         dirname = "."
 
-    with open(pipeline_path) as f:
+    with open(pipeline_path, encoding="utf-8") as f:
         pipeline_str = f.read()
 
     local_context = context
@@ -36,7 +36,7 @@ def load_pipeline(pipeline_path, context):
     curdir = os.getcwd()
     try:
         os.chdir(dirname)
-        exec(pipeline_str, local_context, global_context)
+        exec(pipeline_str, global_context, local_context)
     finally:
         os.chdir(curdir)
 
@@ -45,13 +45,11 @@ def load_pipeline(pipeline_path, context):
     pipeline.project = project
     return (project, pipeline)
 
-
 def check_downloader_or_exit(value, regex="^[-_a-zA-Z0-9]{3,30}$"):
     if not re.search(regex, value):
         print('Please use a nickname containing only letters A-Z, '
               'numbers, underscore, and hyphen-minus only.')
         sys.exit(1)
-
 
 def check_concurrency_or_exit(value):
     if value > 20:
@@ -73,11 +71,9 @@ def check_concurrency_or_exit(value):
         print("!" * 74)
         print()
 
-
 def get_output(command):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE)
     return proc.returncode, proc.communicate()[0]
-
 
 def check_git_repo_or_exit():
     try:
@@ -88,14 +84,12 @@ def check_git_repo_or_exit():
         print("Is this a git repo?")
         sys.exit(1)
 
-
 def update_repo():
     try:
         branch = get_git_branch()
         subprocess.check_call(["git", "pull", "origin", branch])
     except (GitCheckError, subprocess.CalledProcessError):
         print("@@@  The repo could not be updated. Ignoring error.")
-
 
 def get_git_hash():
     return_code, output = get_output(["git", "rev-parse", "HEAD"])
@@ -106,7 +100,6 @@ def get_git_hash():
         raise GitCheckError('Could not get git hash.')
 
     return git_hash
-
 
 def get_remote_git_hash():
     branch = get_git_branch()
@@ -121,7 +114,6 @@ def get_remote_git_hash():
 
     return git_hash
 
-
 def get_git_branch():
     return_code, output = get_output(['git', 'rev-parse',
                                       '--abbrev-ref', 'HEAD'])
@@ -133,11 +125,10 @@ def get_git_branch():
 
     return branch
 
-
 def attach_git_scheduler(runner):
     nonlocal_dict = {}
     nonlocal_dict['current_git_hash'] = get_git_hash()
-
+        
     def check_and_update():
         if runner.stop_flag:
             return
@@ -149,19 +140,85 @@ def attach_git_scheduler(runner):
         else:
             if remote_hash != nonlocal_dict['current_git_hash']:
                 print('Old hash {0}. New hash {1}'
-                      .format(nonlocal_dict['current_git_hash'], remote_hash))
+                    .format(nonlocal_dict['current_git_hash'], remote_hash))
 
                 runner.is_git_update_needed = True
 
                 nonlocal_dict['timer'].stop()
                 runner.stop_gracefully()
 
-    timer = tornado.ioloop.PeriodicCallback(check_and_update, 30 * 60 * 1000)
+    timer = PeriodicCallback(check_and_update, 30 * 60 * 1000)
 
     nonlocal_dict['timer'] = timer
 
     timer.start()
 
+def attach_ctrl_c_handler(stop_file):
+    def graceful_stop_callback(dummy1, dummy2):
+        global graceful_stop_activate_time
+
+        if not graceful_stop_activate_time:
+            open(stop_file, 'wb').close()
+            graceful_stop_activate_time = time.time()
+            print('Interrupt again (CTRL+C) to forcefully stop')
+        elif graceful_stop_activate_time and \
+                time.time() - graceful_stop_activate_time < 5:
+            sys.exit('Stopping immediately.')
+        else:
+            print('Interrupt again (CTRL+C) to forcefully stop')
+            graceful_stop_activate_time = time.time()
+
+    signal.signal(signal.SIGINT, graceful_stop_callback)
+
+def init_runner(args):
+    context = {"downloader": args.downloader}
+
+    for context_value in args.context_values:
+        name, text_value = context_value.split("=", 1)
+        if name not in context:
+            context[name] = text_value
+        else:
+            raise Exception(f"Context value name {name} already defined.")
+
+    (project, pipeline) = load_pipeline(args.pipeline, context)
+
+    print("*" * 74)
+    print("*%-072s*" % " ")
+    print("*%-072s*" % ("   ArchiveTeam Seesaw kit - %s" % seesaw.__version__))
+    print("*%-072s*" % " ")
+    print("*" * 74)
+    print()
+    print(f"Initializing pipeline for '{project.title}'")
+    print()
+    print(pipeline)
+    print()
+    print("-" * 74)
+    print()
+
+    runner = SimpleRunner(
+        pipeline,
+        stop_file=args.stop_file,
+        concurrent_items=args.concurrent_items,
+        max_items=args.max_items,
+        keep_data=args.keep_data)
+
+    if args.enable_web_server:
+        print(f"Starting the web interface on {args.address}:{args.port_number}...")
+        print()
+        print("-" * 74)
+        print()
+        start_runner_server(project, runner,
+                            bind_address=args.address,
+                            port_number=args.port_number,
+                            http_username=args.http_username,
+                            http_password=args.http_password)
+
+    print(f"Run 'touch {args.stop_file}' or interrupt (CTRL+C) to stop downloading.")
+    print()
+
+    attach_ctrl_c_handler(args.stop_file)
+
+    return runner
 
 def main():
     parser = ArgumentParser(description="Run the pipeline")
@@ -195,7 +252,7 @@ def main():
     parser.add_argument("--http-username", dest="http_username",
                         help="username for the web interface (default: admin)",
                         metavar="USERNAME", type=str
-                        )  # default is set in start_runner_server
+                        ) # default is set in start_runner_server
     parser.add_argument("--http-password", dest="http_password",
                         help="password for the web interface",
                         metavar="PASSWORD", type=str)
@@ -226,89 +283,18 @@ def main():
             runner.is_git_update_needed = False
             attach_git_scheduler(runner)
 
+        IOLoop.current(instance=True)
         runner.start()
 
         if args.auto_update and runner.is_git_update_needed:
-            tornado.ioloop.IOLoop.instance().close(all_fds=True)
-            del tornado.ioloop.IOLoop._instance
-            print("+++  End of trial {0}. Time to update.  +++"
-                  .format(trial_num))
+            IOLoop.current().close(all_fds=True)
+            del IOLoop.current
+            print(f"+++  End of trial {trial_num}. Time to update.  +++")
             update_repo()
             time.sleep(10)
         else:
             break
-
-
-def init_runner(args):
-    context = {"downloader": args.downloader}
-
-    for context_value in args.context_values:
-        name, text_value = context_value.split("=", 1)
-        if name not in context:
-            context[name] = text_value
-        else:
-            raise Exception("Context value name %s already defined." % name)
-
-    (project, pipeline) = load_pipeline(args.pipeline, context)
-
-    print("*" * 74)
-    print("*%-072s*" % " ")
-    print("*%-072s*" % ("   ArchiveTeam Seesaw kit - %s" % seesaw.__version__))
-    print("*%-072s*" % " ")
-    print("*" * 74)
-    print()
-    print("Initializing pipeline for '%s'" % (project.title))
-    print()
-    print(pipeline)
-    print()
-    print("-" * 74)
-    print()
-
-    runner = SimpleRunner(
-        pipeline,
-        stop_file=args.stop_file,
-        concurrent_items=args.concurrent_items,
-        max_items=args.max_items,
-        keep_data=args.keep_data)
-
-    if args.enable_web_server:
-        print("Starting the web interface on %s:%d..." %
-              (args.address, args.port_number))
-        print()
-        print("-" * 74)
-        print()
-        start_runner_server(project, runner,
-                            bind_address=args.address,
-                            port_number=args.port_number,
-                            http_username=args.http_username,
-                            http_password=args.http_password)
-
-    print("Run 'touch %s' or interrupt (CTRL+C) to stop downloading."
-          % args.stop_file)
-    print()
-
-    attach_ctrl_c_handler(args.stop_file)
-
-    return runner
-
-
-def attach_ctrl_c_handler(stop_file):
-    def graceful_stop_callback(dummy1, dummy2):
-        global graceful_stop_activate_time
-
-        if not graceful_stop_activate_time:
-            open(stop_file, 'wb').close()
-            graceful_stop_activate_time = time.time()
-            print('Interrupt again (CTRL+C) to forcefully stop')
-        elif graceful_stop_activate_time and \
-                time.time() - graceful_stop_activate_time < 5:
-            sys.exit('Stopping immediately.')
-        else:
-            print('Interrupt again (CTRL+C) to forcefully stop')
-            graceful_stop_activate_time = time.time()
-
-    signal.signal(signal.SIGINT, graceful_stop_callback)
-
+    return "exit"
 
 if __name__ == "__main__":
     main()
