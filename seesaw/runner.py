@@ -158,16 +158,16 @@ class SimpleRunner(Runner):
 
     def start(self):
         Runner.start(self)
-        ioloop.IOLoop.instance().start()
+        ioloop.IOLoop.current().start()
         self.pipeline.on_cleanup()
 
     def _stop_ioloop(self, dummy):
-        ioloop.IOLoop.instance().stop()
+        ioloop.IOLoop.current().stop()
 
     def forced_stop(self):
         print("Stopping immediately...")
         # TODO perhaps the subprocesses should be killed
-        ioloop.IOLoop.instance().stop()
+        ioloop.IOLoop.current().stop()
 
     def _handle_create_item(self, dummy, item):
         item.on_output += self._handle_item_output

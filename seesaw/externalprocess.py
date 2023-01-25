@@ -1,5 +1,6 @@
 '''Running subprocesses asynchronously.'''
 from __future__ import print_function
+import asyncio
 
 import fcntl
 import os
@@ -64,6 +65,7 @@ class AsyncPopen(object):
         self.master = None
         self.pipe = None
         self.stdin = None
+        self.wait_callback = None
 
         self.on_output = Event()
         self.on_end = Event()
@@ -75,7 +77,7 @@ class AsyncPopen(object):
         os.setpgrp()
 
     def run(self):
-        self.ioloop = IOLoop.instance()
+        self.ioloop = IOLoop.current()
         (master_fd, slave_fd) = pty.openpty()
 
         # make stdout, stderr non-blocking
@@ -141,14 +143,22 @@ class AsyncPopen2(object):
 
         self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
 
-        self.pipe.stdout.read_until_close(
-            callback=self._handle_subprocess_stdout,
-            streaming_callback=self._handle_subprocess_stdout)
-        self.pipe.stderr.read_until_close(
-            callback=self._handle_subprocess_stdout,
-            streaming_callback=self._handle_subprocess_stdout)
+        async def get_stdout():
+            output = await self.pipe.stdout.read_until_close()
+            return output
+
+        async def get_stderr():
+            output = await self.pipe.stderr.read_until_close()
+            return output
+
+        output = asyncio.run(get_stdout())
+        self._handle_subprocess_stdout(output)
+        output2 = asyncio.run(get_stderr())
+        self._handle_subprocess_stdout(output2)
+        print("handled output")
 
         self.pipe.set_exit_callback(self._end_callback)
+        print(f"set callback to {self._end_callback}")
         _all_procs.add(self.pipe)
 
     def _handle_subprocess_stdout(self, data):

@@ -6,9 +6,10 @@ import traceback
 import time
 import collections
 
+from collections import abc
 from seesaw.event import Event
 
-class ItemData(collections.MutableMapping):
+class ItemData(abc.MutableMapping):
     '''Base item data property container.
 
     Args:

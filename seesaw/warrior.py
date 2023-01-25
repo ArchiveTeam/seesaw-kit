@@ -675,7 +675,7 @@ class Warrior(object):
         if dirname == "":
             dirname = "."
 
-        with open(pipeline_path) as f:
+        with open(pipeline_path, encoding="utf-8") as f:
             pipeline_str = f.read()
 
         logger.debug('Pipeline has been read. Begin ConfigValue collection')
@@ -712,7 +712,7 @@ class Warrior(object):
             if project_name not in self.installed_projects or \
                     reinstall or \
                     (await self.check_project_has_update(project_name)):
-                result = await self.install_project(project_name)
+                result = self.install_project(project_name)
                 logger.debug('Result of the install process: %s', result)
 
                 if not result:
@@ -817,7 +817,7 @@ class Warrior(object):
 
     def max_age_reached(self):
         if self.real_shutdown:
-            # time for an sanity reboot
+            # time for a reboot
             logger.info("Running for more than 7 days. Time to schedule a reboot.")
             self.reboot_gracefully()
 

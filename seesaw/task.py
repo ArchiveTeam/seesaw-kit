@@ -37,10 +37,11 @@ class Task:
         self.on_finish_item(self, item)
 
     @contextlib.contextmanager
-    async def task_cwd(self):
+    def task_cwd(self):
         curdir = os.getcwd()
         try:
-            await os.chdir(self.cwd)
+            os.chdir(self.cwd)
+            yield
         finally:
             os.chdir(curdir)
 
@@ -53,8 +54,7 @@ class Task:
 
     # Helper to run "inner" tasks while still calling the correct tasks's item failure
     # handler on exceptions.
-    async def _enqueue_inner_task_with_except(self, inner_task, item):
-        @contextlib.contextmanager
+    def _enqueue_inner_task_with_except(self, inner_task, item):
         def handle_item_exception(e_type, e_value, tb):
             item.log_output(f"Failed {inner_task} for {item.description()}\n")
             item.log_output(
@@ -63,7 +63,10 @@ class Task:
             item.log_error(self, e_value)
             inner_task.fail_item(item)
 
-            inner_task.enqueue(item)
+            try:
+                inner_task.enqueue(item)
+            except Exception:
+                handle_item_exception()
 
 
 class SimpleTask(Task):
@@ -121,6 +124,7 @@ class LimitConcurrent(Task):
             self._working += 1
             self._enqueue_inner_task_with_except(self.inner_task, item)
         else:
+            print("adding {item} to queue...")
             self._queue.append(item)
 
     def _inner_task_complete_item(self, task, item):

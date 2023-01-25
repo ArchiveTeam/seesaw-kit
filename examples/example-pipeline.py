@@ -19,10 +19,10 @@ project = Project(
   project_html = """
     <img class="project-logo" alt="Project logo" src="http://archive.org/images/glogo.png" height="50px" />
     <h2>Example project <span class="links"><a href="http://example.com/">Example website</a> &middot; <a href="http://example.heroku.com/">Leaderboard</a></span></h2>
-    <p>This is an example project. Under a logo and title there's some room for extra information.</p>
+    <p>This is an example project. Under the logo and title there's some room for extra information.</p>
     <p class="projectBroadcastMessage">Important project specific message goes here.</p>
   """,
-  utc_deadline = datetime.datetime(2013,1,1, 12,0,0)
+  utc_deadline = datetime.datetime(2024,1,1, 12,0,0)
 )
 
 class CustomTask(SimpleTask):
