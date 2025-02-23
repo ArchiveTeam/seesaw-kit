@@ -1,10 +1,11 @@
 # encoding=utf8
 from __future__ import unicode_literals
 
+from io import StringIO
+
 from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
-from seesaw.six import StringIO
 from seesaw.test_base import BaseTestCase
 
 

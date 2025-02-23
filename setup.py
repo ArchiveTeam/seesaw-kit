@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import sys
-
 import seesaw
 
 try:
@@ -9,6 +7,18 @@ try:
     setup  # pylint: disable=pointless-statement
 except ImportError:
     from distutils.core import setup
+
+entry_points={
+    'console_scripts': [
+        'run-pipeline = seesaw.script.run_pipeline:main',
+        'run-warrior = seesaw.script.run_pipeline:main',
+        # backwards compatibility
+        'run-pipeline2 = seesaw.script.run_pipeline:main',
+        'run-pipeline3 = seesaw.script.run_pipeline:main',
+        'run-warrior2 = seesaw.script.run_pipeline:main',
+        'run-warrior3 = seesaw.script.run_pipeline:main',
+    ]
+}
 
 
 packages = [
@@ -30,26 +40,15 @@ package_data = {
     ]
 }
 
-if sys.version_info[0] == 3:
-    scripts = [
-        'run-pipeline3',
-        'run-warrior3',
-    ]
-else:
-    scripts = [
+scripts = [
         'run-pipeline',
         'run-warrior',
-        'run-pipeline2',
-        'run-warrior2',
-    ]
+]
 
 requires = [
     'Tornado>=4,<4.99999.99999',
     'sockjs-tornado',
 ]
-
-if sys.version_info < (2, 7):
-    requires.append('ordereddict')
 
 setup(
     name='seesaw',
