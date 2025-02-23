@@ -20,8 +20,9 @@ How to try it out
 To run the example pipeline:
 
     sudo pip install -r requirements.txt
-    ./run-pipeline --help
-    ./run-pipeline examples/example-pipeline.py someone
+    python setup.py install
+    run-pipeline --help
+    run-pipeline examples/example-pipeline.py someone
 
 Point your browser to `http://127.0.0.1:8001/`.
 

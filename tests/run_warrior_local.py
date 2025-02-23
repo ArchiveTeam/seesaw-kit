@@ -26,7 +26,7 @@ def main():
     )
 
     subprocess.check_call([
-        os.path.join(root_dir, './run-warrior'),
+        'run-warrior',
         '--projects-dir', temp_dir,
         '--data-dir', temp_dir,
         '--address', 'localhost',

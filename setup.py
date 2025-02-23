@@ -8,6 +8,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
+
 entry_points={
     'console_scripts': [
         'run-pipeline = seesaw.script.run_pipeline:main',
@@ -19,7 +20,6 @@ entry_points={
         'run-warrior3 = seesaw.script.run_pipeline:main',
     ]
 }
-
 
 packages = [
     'seesaw',
@@ -40,11 +40,6 @@ package_data = {
     ]
 }
 
-scripts = [
-        'run-pipeline',
-        'run-warrior',
-]
-
 requires = [
     'Tornado>=4,<4.99999.99999',
     'sockjs-tornado',
@@ -63,6 +58,6 @@ setup(
     package_dir=package_dir,
     package_data=package_data,
     include_package_data=True,
-    scripts=scripts,
+    entry_points=entry_points,
     install_requires=requires,
 )
