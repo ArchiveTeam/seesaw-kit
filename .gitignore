@@ -17,3 +17,6 @@ build
 
 *~
 *.orig
+
+# file used to stop the runner
+STOP
