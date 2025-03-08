@@ -277,6 +277,10 @@ table.time-left td span {
 .item.closed .twisty:before {
   content: "▶";
 }
+.item .name {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
 .item div.number {
   padding: 5px 7px 0 10px;
   position: absolute;
