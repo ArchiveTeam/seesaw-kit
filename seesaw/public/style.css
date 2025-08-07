@@ -582,3 +582,175 @@ table.time-left td span {
   font-family: monospace;
   margin: 1em;
 }
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #655001; /* #fed74f */
+    color: #fce5e5; /* #190A06; */
+  }
+
+  a {
+    color: #4782ff; /* #254B9C; */
+  }
+
+  #connection-error {
+    background: #A70B0B;
+    color: #fff;
+  }
+
+  #warrior-menu {
+    background: #190A06; /* #190A06; */
+  }
+  #warrior-logo {
+    background: #404040; /* #eee; */
+  }
+  #warrior-menu li a {
+    background: #7E6B27;
+    color: #000;
+  }
+  #warrior-menu li.active a {
+    background:  #655001; /* #FED74F; */
+  }
+  #warrior-menu li a:hover {
+    background: #4e4218; /* #BEA13B; */
+  }
+  #warrior-menu #warrior-status-form-force .button-link {
+    background-color: #A70B0B;
+    border-color: #A70B0B;
+  }
+  #warrior-menu table th,
+  #warrior-menu table td {
+    color: #fff;
+  }
+
+  #project-header {
+    background: #262626; /* #fff; */
+    color: #fff; /* --- */
+  }
+  table.time-left th {
+    color: #326827;
+  }
+  table.time-left td span {
+    background: #224d19; /* #459B34; */
+    color: #fff;
+  }
+
+
+  .item {
+    background: #1a1a1a; /* #fff; */
+    color: #fff;
+  }
+  .item h3 {
+    background: #190A06; /* #8A351E; */
+    color: #fff;
+  }
+  .item-failed h3 {
+    background: #A70B0B;
+  }
+  .item-failed h3 strong {
+    background: #A70B0B;
+  }
+  .item div.number {
+    color: #fff;
+  }
+  .item div.status {
+    color: #fff;
+  }
+  .item ol.tasks li,
+  #task-summary ol.tasks li {
+    background: #0a1109; /* #eff6ee; */
+    color: #94c58b; /* #94c58b; */
+  }
+  .item ol.tasks li.completed,
+  #task-summary ol.tasks li.completed {
+    background: #326827; /* #a1cc99; */
+    color: #a1cc99; /* #326827; */
+  }
+  .item ol.tasks li.running,
+  #task-summary ol.tasks li {
+    background: #224d19; /* #459B34; */
+    color: #fff;
+  }
+  .item ol.tasks li.failed {
+    background: #A70B0B;
+    color: #fff;
+  }
+  .item pre.log {
+    color: #fff;
+  }
+  .log-header {
+    color: #444444;
+  }
+
+  #projects-header {
+    background: #000; /* #fff; */
+    color: #fff; /* --- */
+  }
+  #projects li {
+    background: #000; /* #fff; */
+    color: #fff; /* --- */
+  }
+  #projects h3 {
+    color: #fff; /* --- */
+  }
+  #projects .installation-failed {
+    background: #170303; /* #fce5e5; */
+    color: #fce5e5;
+  }
+  #projects .installation-failed pre.log {
+    background: #fff; /* #190A06; */
+    color: #190A06; /* #fff; */
+  }
+
+  #settings-header, #help-header {
+    background: #000; /* #fff; */
+    color: #fff; /* --- */
+  }
+  #settings li {
+    background: #000; /* #fff; */
+    color: #fff; /* --- */
+  }
+  #settings li.error {
+    border-left: 5px solid #A70B0B;
+  }
+  #settings li.required {
+    border-left: 5px solid #224d19; /* #459B34; */
+  }
+  #settings input[type="text"] {
+    background: #262626; /* --- */
+    color: #fff; /* --- */
+  }
+  #settings li.error input[type="text"] {
+    background: #5b0b0b; /* #FCE5E5; */
+    color: #FCE5E5; /* --- */
+  }
+  #settings li.error p.error {
+    color: #A70B0B;
+  }
+
+  #help, #broadcastMessage {
+    background: #000; /* #fff; */
+    color: #fff; /* --- */
+  }
+  #broadcastMessage-indicator {
+    background-color: darkgoldenrod; /* darkgoldenrod; */
+    color: white;
+  }
+  .projectBroadcastMessage {
+    background-color: aliceblue;
+  }
+
+  .button-link {
+    background: #254B9C;
+    color: #FFF;
+    border: solid 1px #254B9C;
+  }
+  .button-link:hover {
+    background: #356094;
+    border: solid 1px #2A4E77;
+  }
+  .button-link:active {
+    background: #2E5481;
+    border: solid 1px #203E5F;
+  }
+}
