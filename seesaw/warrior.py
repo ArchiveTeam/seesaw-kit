@@ -8,6 +8,7 @@ from distutils.version import StrictVersion
 import json
 import os
 import os.path
+import random
 import re
 import shutil
 import subprocess
@@ -247,6 +248,8 @@ class Warrior(object):
         self.current_project = None
 
         self.selected_project = None
+        self.previous_auto_projects = None
+        self.previous_auto_project = None
 
         self.projects = {}
         self.installed_projects = set()
@@ -396,10 +399,20 @@ class Warrior(object):
                 yield self.select_project(previous_project_choice)
             elif previous_project_choice == "auto":
                 # ArchiveTeam's choice
-                if "auto_project" in data:
-                    yield self.select_project(data["auto_project"])
-                else:
-                    yield self.select_project(None)
+                selected = None
+                if "auto_projects_config" in data:
+                    selected = self.select_auto_project(
+                        data["auto_projects_config"]
+                    )
+                    if selected is not None:
+                        yield self.select_project(selected)
+                if selected is None:
+                    self.previous_auto_projects = None
+                    self.previous_auto_project = None
+                    if "auto_project" in data:
+                        yield self.select_project(data["auto_project"])
+                    else:
+                        yield self.select_project(None)
 
             self.contacting_hq_failed = False
             self.on_projects_loaded(self, self.projects)
@@ -418,6 +431,94 @@ class Warrior(object):
                     del self.projects[name]
 
             self.on_projects_loaded(self, self.projects)
+
+    def select_auto_project(self, auto_projects_config):
+        auto_projects_config = self.normalize_auto_projects_config(
+            auto_projects_config
+        )
+        if auto_projects_config is None:
+            return None
+        if auto_projects_config == self.previous_auto_projects \
+            and self.selected_project is not None \
+            and self.selected_project == self.previous_auto_project:
+            return self.selected_project
+        chosen_project = None
+        if self.previous_auto_projects is not None \
+            and self.selected_project is not None \
+            and self.selected_project == self.previous_auto_project:
+            previous_selected_weight = self.previous_auto_projects.get(
+                self.selected_project, 0
+            )
+            current_selected_weight = auto_projects_config.get(
+                self.selected_project, 0
+            )
+            # minimize switching between projects
+            if previous_selected_weight > 0 \
+                and current_selected_weight > 0:
+                if current_selected_weight >= previous_selected_weight:
+                    chosen_project = self.selected_project
+                elif random.random() < \
+                    current_selected_weight / previous_selected_weight:
+                    chosen_project = self.selected_project
+                else:
+                    increased_auto_projects = {}
+                    for project_name, weight in auto_projects_config.items():
+                        difference = weight - \
+                            self.previous_auto_projects.get(project_name, 0)
+                        if difference > 0:
+                            increased_auto_projects[project_name] = difference
+                    chosen_project = self.choose_auto_project(
+                        increased_auto_projects
+                    )
+        if chosen_project is None:
+            chosen_project = self.choose_auto_project(auto_projects_config)
+        if chosen_project not in self.projects:
+            logger.debug("Chosen auto project doesn't exist.")
+            chosen_project = None
+        self.previous_auto_projects = auto_projects_config
+        self.previous_auto_project = chosen_project
+        return chosen_project
+
+    def choose_auto_project(self, auto_projects_config):
+        # Select project not using random.choices to maintain Python<3
+        # compatibility.
+        total = sum(auto_projects_config.values())
+        u = random.random() * total
+        for project_name, weight in auto_projects_config.items():
+            u -= weight
+            if u <= 0:
+                return project_name
+        # Should not reach this, but not throwing error.
+        return None
+
+    def normalize_auto_projects_config(self, auto_projects_config):
+        # Basic check if config is correct
+        if not isinstance(auto_projects_config, (tuple, list)) \
+            or len(auto_projects_config) == 0 \
+            or not all((
+                isinstance(d, dict)
+                and 'project' in d
+                and isinstance(d['project'], seesaw.six.string_types)
+                and 'weight' in d
+                and isinstance(d['weight'], (int, float, bigint))
+                and not isinstance(d['weight'], bool)
+            ) for d in auto_projects_config):
+            return None
+        if any(d['weight'] < 0 for d in auto_projects_config):
+            return None
+        total = sum(d['weight'] for d in auto_projects_config)
+        if total <= 0:
+            return None
+        project_weights = {}
+        for d in auto_projects_config:
+            project_weights[d['project']] = \
+                project_weights.get(d['project'], 0) + d['weight']
+        normalized_auto_projects = {}
+        for project_name in sorted(project_weights):
+            normalized_auto_projects[project_name] = round(
+                project_weights[project_name] / float(total), 5
+            )
+        return normalized_auto_projects
 
     @gen.coroutine
     def install_project(self, project_name):
