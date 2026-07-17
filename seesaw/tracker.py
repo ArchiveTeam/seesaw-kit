@@ -28,7 +28,7 @@ class TrackerRequest(Task):
                  may_be_canceled=False):
         Task.__init__(self, name)
         self.http_client = AsyncHTTPClient()
-        self.tracker_url = tracker_url
+        self.tracker_url = tracker_url.rstrip("/")
         self.tracker_command = tracker_command
         self.retry_delay = self.DEFAULT_RETRY_DELAY
         self._set_may_be_canceled = may_be_canceled
@@ -108,34 +108,104 @@ class TrackerRequest(Task):
         self.retry_delay = self.DEFAULT_RETRY_DELAY
 
 
+class ReleaseItemsToTracker(TrackerRequest):
+    '''Release items back to the Tracker.'''
+    def __init__(self, tracker_url, downloader, version, items):
+        TrackerRequest.__init__(self, "ReleaseItemsToTracker", tracker_url,
+                                "release")
+        self.downloader = downloader
+        self.version = version
+        self.items = items
+
+    def data(self, item):
+        return {
+            "downloader": realize(self.downloader, item),
+            "version": realize(self.version, item),
+            "items": realize(self.items, item)
+        }
+
+    def process_body(self, body, item):
+        data = json.loads(body)
+        if isinstance(data, dict) and len(data) == 1 \
+            and type(data.get("items")) is list:
+            self.complete_item(item)
+        else:
+            item.log_output("Tracker responded with invalid release response.\n")
+            self.schedule_retry(item)
+
+
 class GetItemFromTracker(TrackerRequest):
     '''Get a single work unit information from the Tracker.'''
-    def __init__(self, tracker_url, downloader, version=None):
+    def __init__(self, tracker_url, downloader, version, item_filter=None):
         TrackerRequest.__init__(self, "GetItemFromTracker", tracker_url,
                                 "request", may_be_canceled=True)
         self.downloader = downloader
         self.version = version
+        self.item_filter = item_filter
 
     def data(self, item):
-        data = {
+        return {
             "downloader": realize(self.downloader, item),
-            "api_version": "2"
+            "version": realize(self.version, item)
         }
-        if self.version:
-            data["version"] = realize(self.version, item)
-        return data
 
     def process_body(self, body, item):
         data = json.loads(body)
         if "item_name" in data:
-            for (k, v) in data.items():
-                item[k] = v
-            item.log_output(
-                "Received item '%s' from tracker\n" % item["item_name"])
-            self.complete_item(item)
+            if self.item_filter:
+                items = [
+                    {"item": item_name, "queue": queue}
+                    for item_name, queue in zip(data["items"], data["queues"])
+                ]
+                filter_result = self.item_filter(items)
+                if len(filter_result) != len(items):
+                    raise ValueError("item_filter returned invalid data")
+                rejected_items = []
+                data["items"] = []
+                data["queues"] = []
+                for item_data, accepted in zip(items, filter_result):
+                    if accepted:
+                        data["items"].append(item_data["item"])
+                        data["queues"].append(item_data["queue"])
+                    else:
+                        rejected_items.append(item_data["item"])
+                data["item_name"] = "\0".join(data["items"])
+                data["queue"] = "\0".join(data["queues"])
+                if len(rejected_items) > 0:
+                    self._release_items(item, data, rejected_items)
+                    return None
+            self._accept_items(item, data)
         else:
             item.log_output("Tracker responded with empty response.\n")
             self.schedule_retry(item)
+
+    def _accept_items(self, item, data):
+        for (k, v) in data.items():
+            item[k] = v
+        item.log_output("Received item '%s' from tracker\n" % item["item_name"])
+        self.complete_item(item)
+
+    def _release_items(self, item, data, rejected_items):
+        project_url = re.sub(r"/multi=[0-9]+$", "", self.tracker_url)
+        item.log_output("Releasing items: %s.\n" % ", ".join(rejected_items))
+        release_task = ReleaseItemsToTracker(
+            project_url, self.downloader, self.version, rejected_items)
+        release_task.http_client = self.http_client
+        release_task.on_complete_item += functools.partial(
+            self._release_items_complete, data)
+        release_task.on_fail_item += self._release_items_failed
+        self._enqueue_inner_task_with_except(release_task, item)
+
+    def _release_items_complete(self, data, task, item):
+        if len(data["items"]) > 0:
+            self._accept_items(item, data)
+        else:
+            IOLoop.instance().add_timeout(
+                datetime.timedelta(seconds=0.1),
+                functools.partial(self.send_request, item))
+
+    def _release_items_failed(self, task, item):
+        self.fail_item(item)
 
 
 class SendDoneToTracker(TrackerRequest):
