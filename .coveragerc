@@ -8,9 +8,8 @@ omit =
 
 [report]
 # The tests live outside the seesaw package, so `source = seesaw` already
-# leaves them out; only six.py needs excluding from the measured code.
+# leaves them out.
 omit =
-    */six.py
     */*.generated.py
 
 # A floor, not a target. The suite currently measures 98%, so this leaves a

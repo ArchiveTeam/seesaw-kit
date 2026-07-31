@@ -1,5 +1,4 @@
 '''Running subprocesses asynchronously.'''
-from __future__ import print_function
 
 import fcntl
 import os

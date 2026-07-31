@@ -5,7 +5,6 @@ The handlers are exercised through a real tornado server over real HTTP.
 The only stand-in is the SockJS session object, which normally comes from a
 live WebSocket transport; the connection class itself is the real one.
 '''
-from __future__ import unicode_literals
 
 import base64
 import json

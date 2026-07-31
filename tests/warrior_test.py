@@ -5,7 +5,6 @@ The Warrior HQ is stood up as a real HTTP server and the projects it offers
 are real local git repositories, so installing, updating and loading a
 project all run for real rather than against stubs.
 '''
-from __future__ import unicode_literals
 
 import datetime
 import json

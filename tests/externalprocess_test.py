@@ -1,5 +1,4 @@
 # encoding=utf8
-from __future__ import unicode_literals
 
 import os
 import os.path
@@ -15,7 +14,7 @@ from seesaw.externalprocess import AsyncPopen, AsyncPopen2, CurlUpload, \
 from seesaw.item import ItemInterpolation, ItemValue
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
-from seesaw.six import StringIO
+from io import StringIO
 from seesaw.task import SetItemKey
 from tests.test_base import BaseTestCase
 

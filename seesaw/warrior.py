@@ -27,19 +27,8 @@ from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen2
 from seesaw.log import LOG_FORMAT, InternalTempLogHandler, LogFilter
 from seesaw.runner import Runner
-import seesaw.six
 
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-
-
-if seesaw.six.PY2:
-    bigint = long  # @UndefinedVariable  pylint: disable=undefined-variable
-else:
-    bigint = int
+from collections import OrderedDict
 
 
 logger = logging.getLogger(__name__)
@@ -147,8 +136,8 @@ class BandwidthMonitor(object):
             m = self.devre.match(line)
             if m and m.group(1) == self.device:
                 fields = m.group(2).split()
-                received = bigint(fields[0])
-                sent = bigint(fields[8])
+                received = int(fields[0])
+                sent = int(fields[8])
                 if self._prev_received > received:
                     self._overflow_received += 2 ** 32
                 self._prev_received = received
@@ -499,9 +488,9 @@ class Warrior(object):
             or not all((
                 isinstance(d, dict)
                 and 'project' in d
-                and isinstance(d['project'], seesaw.six.string_types)
+                and isinstance(d['project'], str)
                 and 'weight' in d
-                and isinstance(d['weight'], (int, float, bigint))
+                and isinstance(d['weight'], (int, float))
                 and not isinstance(d['weight'], bool)
             ) for d in auto_projects_config):
             return None
@@ -721,7 +710,7 @@ class Warrior(object):
                 raise gen.Return(False)
 
     def collect_install_output(self, data):
-        if isinstance(data, seesaw.six.binary_type):
+        if isinstance(data, bytes):
             text = data.decode('ascii', 'replace')
         else:
             text = data

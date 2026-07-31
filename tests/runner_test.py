@@ -7,7 +7,7 @@ import tempfile
 
 from seesaw.pipeline import Pipeline
 from seesaw.runner import Runner, SimpleRunner
-from seesaw.six import StringIO
+from io import StringIO
 from seesaw.task import PrintItem, SetItemKey, SimpleTask, Task
 from tests.test_base import BaseTestCase
 

@@ -1,6 +1,5 @@
 # encoding=utf8
 '''Tests for the warrior runner script.'''
-from __future__ import unicode_literals
 
 import json
 import logging
@@ -19,7 +18,7 @@ from tornado.web import Application, RequestHandler
 import seesaw
 from seesaw.log import LogFilter
 from seesaw.script.run_warrior import main, setup_logging
-from seesaw.six import StringIO
+from io import StringIO
 from tests.test_base import BaseTestCase
 from seesaw.web import SeesawConnection
 

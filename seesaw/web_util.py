@@ -5,12 +5,6 @@ import tornado
 import tornado.web
 
 
-try:
-    callable
-except NameError:
-    from seesaw.six import callable
-
-
 class BaseWebAdminHandler(tornado.web.RequestHandler):
     def prepare(self):
         if not self.application.settings['auth_enabled']:

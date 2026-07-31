@@ -5,7 +5,6 @@ These drive the tracker tasks against a real HTTP server standing in for the
 Universal Tracker, so the request building, response handling and retry
 scheduling are all exercised for real.
 '''
-from __future__ import unicode_literals
 
 import datetime
 import json

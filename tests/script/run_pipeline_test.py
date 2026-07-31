@@ -1,6 +1,5 @@
 # encoding=utf8
 '''Tests for the standalone pipeline runner script.'''
-from __future__ import unicode_literals
 
 import os
 import os.path
@@ -22,7 +21,7 @@ from seesaw.script.run_pipeline import GitCheckError, \
     get_git_hash, get_output, get_remote_git_hash, init_runner, \
     load_pipeline, main, update_repo
 from seesaw.task import PrintItem
-from seesaw.six import StringIO
+from io import StringIO
 from tests.test_base import BaseTestCase
 
 

@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-import sys
-
+#!/usr/bin/env python3
 import seesaw
 
 try:
@@ -30,26 +28,15 @@ package_data = {
     ]
 }
 
-if sys.version_info[0] == 3:
-    scripts = [
-        'run-pipeline3',
-        'run-warrior3',
-    ]
-else:
-    scripts = [
-        'run-pipeline',
-        'run-warrior',
-        'run-pipeline2',
-        'run-warrior2',
-    ]
+scripts = [
+    'run-pipeline3',
+    'run-warrior3',
+]
 
 requires = [
     'Tornado>=4,<4.99999.99999',
     'sockjs-tornado',
 ]
-
-if sys.version_info < (2, 7):
-    requires.append('ordereddict')
 
 setup(
     name='seesaw',
@@ -66,4 +53,10 @@ setup(
     include_package_data=True,
     scripts=scripts,
     install_requires=requires,
+    python_requires='>=3.9',
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3 :: Only',
+    ],
 )
