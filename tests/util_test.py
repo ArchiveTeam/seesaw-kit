@@ -11,9 +11,15 @@ import seesaw.util
 from seesaw.util import find_executable, unique_id_str
 
 
-class UtilTest(unittest.TestCase):
+# run-pipeline3 is a console entry point, so it only exists once the
+# package is installed. Skip rather than fail when it is not on PATH.
+PIPELINE_EXE = shutil.which('run-pipeline3')
+
+
+@unittest.skipUnless(PIPELINE_EXE, 'run-pipeline3 is not installed')
+class FindExecutableTest(unittest.TestCase):
     def test_find_executable(self):
-        exes = ['./run-pipeline3', '../run-pipeline3']
+        exes = [PIPELINE_EXE]
 
         self.assertTrue(find_executable(
             'pipeline runner',
@@ -23,7 +29,7 @@ class UtilTest(unittest.TestCase):
         )
 
     def test_find_executable_regex_version(self):
-        exes = ['./run-pipeline3', '../run-pipeline3']
+        exes = [PIPELINE_EXE]
 
         self.assertTrue(find_executable(
             'pipeline runner',
@@ -33,7 +39,7 @@ class UtilTest(unittest.TestCase):
         )
 
     def test_find_executable_list_version(self):
-        exes = ['./run-pipeline3', '../run-pipeline3']
+        exes = [PIPELINE_EXE]
 
         self.assertTrue(find_executable(
             'pipeline runner',
@@ -43,7 +49,7 @@ class UtilTest(unittest.TestCase):
         )
 
     def test_find_executable_bad_version(self):
-        exes = ['./run-pipeline3', '../run-pipeline3']
+        exes = [PIPELINE_EXE]
 
         self.assertFalse(find_executable(
             'pipeline runner',
@@ -52,6 +58,8 @@ class UtilTest(unittest.TestCase):
             version_arg='--version')
         )
 
+
+class UtilTest(unittest.TestCase):
     def test_unique_id_str(self):
         # check for no crash
         self.assertTrue(unique_id_str())

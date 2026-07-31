@@ -28,9 +28,14 @@ package_data = {
     ]
 }
 
-scripts = [
-    'run-pipeline3',
-    'run-warrior3',
+console_scripts = [
+    'run-pipeline = seesaw.script.run_pipeline:main',
+    'run-warrior = seesaw.script.run_warrior:main',
+    # The 3-suffixed names date from the Python 2/3 split. They are kept
+    # because the *-grab repos, the warrior images and a lot of published
+    # instructions invoke them by name.
+    'run-pipeline3 = seesaw.script.run_pipeline:main',
+    'run-warrior3 = seesaw.script.run_warrior:main',
 ]
 
 requires = [
@@ -51,7 +56,7 @@ setup(
     package_dir=package_dir,
     package_data=package_data,
     include_package_data=True,
-    scripts=scripts,
+    entry_points={'console_scripts': console_scripts},
     install_requires=requires,
     python_requires='>=3.9',
     classifiers=[

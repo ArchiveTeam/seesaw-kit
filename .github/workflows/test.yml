@@ -36,13 +36,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest coverage
+          # Editable so the run-pipeline3 and run-warrior3 console scripts
+          # land on PATH. The end-to-end tests invoke them by name and skip
+          # themselves when they are missing, so without this they would
+          # quietly stop running.
+          pip install -e .
 
       - name: Run tests
-        # Several tests shell out to ./run-pipeline3, whose shebang is
-        # `#!/usr/bin/env python3`. setup-python puts the selected interpreter
-        # first on PATH, so that resolves to the same environment the
-        # dependencies were installed into.
-        #
         # What is measured and what is left out lives in .coveragerc.
         run: coverage run -m pytest tests -v
 
