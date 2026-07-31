@@ -243,16 +243,23 @@ table.time-left td span {
 }
 .item h3 {
   margin: 0 0 5px 0;
-  padding: 5px 5px 7px 10px;
+  padding: 70px 5px 7px 10px;
   background: #190A06; /* #8A351E; */
   color: #fff;
   border-radius: 4px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .item-failed h3 {
   background: #A70B0B;
 }
 .item-failed h3 strong {
   background: #A70B0B;
+}
+.item h3 span.name {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
 }
 .item.open .status-line {
   display: none;
