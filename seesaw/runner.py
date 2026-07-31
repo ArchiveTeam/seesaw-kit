@@ -1,5 +1,6 @@
 '''Pipeline execution.'''
 import datetime
+import errno
 import functools
 import os
 import os.path
@@ -184,5 +185,5 @@ class SimpleRunner(Runner):
             except IOError as e:
                 # Ignore EINTR errors (which are spurious errors caused by signals) and retry the operation.
                 # Allow other errors to propagate up the call stack as normal.
-                if e.errno != os.errno.EINTR:
+                if e.errno != errno.EINTR:
                     raise
