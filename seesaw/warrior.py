@@ -558,16 +558,20 @@ class Warrior(object):
                     env=self.gitenv
                 )
             p.on_output += self.collect_install_output
-            p.on_end += yield gen.Callback("gitend")
+            gitend_callback = yield gen.Callback("gitend")
+            p.on_end += gitend_callback
 
             try:
                 p.run()
             except OSError as error:
                 logger.exception("Install command error")
-                result = 9999
                 self.install_output.append(str(error))
-            else:
-                result = yield gen.Wait("gitend")
+                # The process never started, so on_end will never fire.
+                # The callback has to be released here or this coroutine
+                # waits on it forever.
+                gitend_callback(9999)
+
+            result = yield gen.Wait("gitend")
 
             if result != 0:
                 self.install_output.append("\ngit returned %d\n" % result)
@@ -601,15 +605,18 @@ class Warrior(object):
                     cwd=project_path
                 )
                 p.on_output += self.collect_install_output
-                p.on_end += yield gen.Callback("installend")
+                installend_callback = yield gen.Callback("installend")
+                p.on_end += installend_callback
+
                 try:
                     p.run()
                 except OSError as error:
                     logger.exception("Custom project install file error")
-                    result = 9999
                     self.install_output.append(str(error))
-                else:
-                    result = yield gen.Wait("installend")
+                    # See the comment on the git callback above.
+                    installend_callback(9999)
+
+                result = yield gen.Wait("installend")
 
                 if result != 0:
                     self.install_output.append(
