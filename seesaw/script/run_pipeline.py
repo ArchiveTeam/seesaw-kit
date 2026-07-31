@@ -11,6 +11,7 @@ import time
 from seesaw.runner import SimpleRunner
 from seesaw.web import start_runner_server
 import seesaw
+from seesaw import bandwidth
 import tornado.ioloop
 import signal
 
@@ -199,6 +200,17 @@ def main():
     parser.add_argument("--http-password", dest="http_password",
                         help="password for the web interface",
                         metavar="PASSWORD", type=str)
+    parser.add_argument("--download-bwlimit", dest="download_bwlimit",
+                        help="per-transfer download speed cap (KiB/s) applied "
+                             "to each download process; 0 = unlimited. (The "
+                             "warrior applies an aggregate cap shared across "
+                             "concurrent items.)",
+                        metavar="KIB", type=int, default=0)
+    parser.add_argument("--upload-bwlimit", dest="upload_bwlimit",
+                        help="per-transfer upload speed cap (KiB/s) applied to "
+                             "each upload process; 0 = unlimited. (The warrior "
+                             "applies an aggregate cap shared across transfers.)",
+                        metavar="KIB", type=int, default=0)
     parser.add_argument("--context-value", dest="context_values",
                         help="additional pipeline global variables "
                              "(name=text)",
@@ -212,6 +224,18 @@ def main():
 
     check_downloader_or_exit(args.downloader)
     check_concurrency_or_exit(args.concurrent_items)
+    # The standalone runner cannot know a pipeline's actual rsync/wget
+    # concurrency (it is set by each pipeline's own LimitConcurrent wrappers),
+    # so it cannot compute a true aggregate ceiling. Apply the limits
+    # per-transfer (divisor 1) instead, which is honest and never silently
+    # exceeds a per-process cap. The warrior, which owns the concurrency
+    # config, applies these as aggregate caps.
+    bandwidth.set_limits(
+        download=args.download_bwlimit,
+        upload=args.upload_bwlimit,
+        download_divisor=1,
+        upload_divisor=1,
+    )
 
     if args.auto_update:
         check_git_repo_or_exit()
