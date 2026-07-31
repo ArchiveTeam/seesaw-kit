@@ -16,6 +16,14 @@ from tornado import ioloop
 
 class Runner(object):
     '''Executes and manages the lifetime of :class:`Pipeline` instances.'''
+
+    FAILED_ITEM_DELAY = 10
+    '''Seconds to wait before recycling a failed item.
+
+    The pause keeps a persistently failing pipeline from spinning. Tests
+    lower it so they do not have to sit through the cooldown.
+    '''
+
     def __init__(self, stop_file=None, concurrent_items=1, max_items=None,
                  keep_data=False):
         self.pipeline = None
@@ -118,9 +126,9 @@ class Runner(object):
 
     def _item_finished(self, pipeline, item):
         if item.failed:
-            item.log_output("Waiting 10 seconds...")
+            item.log_output("Waiting %d seconds..." % self.FAILED_ITEM_DELAY)
             ioloop.IOLoop.instance().add_timeout(
-                datetime.timedelta(seconds=10),
+                datetime.timedelta(seconds=self.FAILED_ITEM_DELAY),
                 functools.partial(
                     self._item_finished_without_delay, pipeline, item)
             )

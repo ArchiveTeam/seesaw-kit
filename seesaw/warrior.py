@@ -101,6 +101,9 @@ class BandwidthMonitor(object):
     '''Extracts the bandwidth usage from the system stats.'''
     devre = re.compile(r"^\s*([a-z0-9]+):(.+)$")
 
+    stats_file = "/proc/net/dev"
+    '''Where the interface counters are read from.'''
+
     def __init__(self, device):
         self.device = device
         self.prev_time = None
@@ -138,7 +141,7 @@ class BandwidthMonitor(object):
         return self.bandwidth
 
     def _get_stats(self):
-        with open("/proc/net/dev") as f:
+        with open(self.stats_file) as f:
             lines = f.readlines()
         for line in lines:
             m = self.devre.match(line)

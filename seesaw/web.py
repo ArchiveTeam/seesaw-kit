@@ -336,6 +336,9 @@ def start_runner_server(project, runner, bind_address="localhost", port_number=8
 
     Unlike :func:`start_warrior_server`, this UI does not contain an
     configuration or project management panel.
+
+    Returns:
+        tornado.httpserver.HTTPServer: The listening server.
     '''
 #     if bind_address == "0.0.0.0":
 #         bind_address = ""
@@ -373,12 +376,16 @@ def start_runner_server(project, runner, bind_address="localhost", port_number=8
         skip_auth=[]
     )
 
-    application.listen(port_number, bind_address)
+    return application.listen(port_number, bind_address)
 
 
 def start_warrior_server(warrior, bind_address="localhost", port_number=8001,
                          http_username=None, http_password=None):
-    '''Starts the warrior web interface.'''
+    '''Starts the warrior web interface.
+
+    Returns:
+        tornado.httpserver.HTTPServer: The listening server.
+    '''
     SeesawConnection.warrior = warrior
 
     warrior.on_projects_loaded += SeesawConnection.handle_projects_loaded
@@ -427,4 +434,4 @@ def start_warrior_server(warrior, bind_address="localhost", port_number=8001,
         skip_auth=[]
     )
 
-    application.listen(port_number, bind_address)
+    return application.listen(port_number, bind_address)

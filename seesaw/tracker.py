@@ -23,6 +23,13 @@ class TrackerRequest(Task):
     '''Represents a request to a Tracker.'''
 
     DEFAULT_RETRY_DELAY = 60
+    '''Seconds to wait before the first retry.'''
+
+    RETRY_DELAY_INCREMENT = 10
+    '''Seconds added to the delay after each failed attempt.'''
+
+    MAX_RETRY_DELAY = 300
+    '''Ceiling for the backoff.'''
 
     def __init__(self, name, tracker_url, tracker_command,
                  may_be_canceled=False):
@@ -100,8 +107,10 @@ class TrackerRequest(Task):
     def process_body(self, body, item):
         raise NotImplementedError()
 
-    def increment_retry_delay(self, max_delay=300):
-        self.retry_delay += 10
+    def increment_retry_delay(self, max_delay=None):
+        if max_delay is None:
+            max_delay = self.MAX_RETRY_DELAY
+        self.retry_delay += self.RETRY_DELAY_INCREMENT
         self.retry_delay = min(max_delay, self.retry_delay)
 
     def reset_retry_delay(self):

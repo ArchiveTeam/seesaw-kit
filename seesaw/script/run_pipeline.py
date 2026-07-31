@@ -139,6 +139,11 @@ def get_git_branch():
 
 
 def attach_git_scheduler(runner):
+    '''Periodically stop the runner when the repo has a newer commit.
+
+    Returns:
+        tornado.ioloop.PeriodicCallback: The started timer.
+    '''
     nonlocal_dict = {}
     nonlocal_dict['current_git_hash'] = get_git_hash()
 
@@ -165,6 +170,8 @@ def attach_git_scheduler(runner):
     nonlocal_dict['timer'] = timer
 
     timer.start()
+
+    return timer
 
 
 def main():
