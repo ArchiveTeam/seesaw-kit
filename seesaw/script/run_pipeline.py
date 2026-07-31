@@ -163,6 +163,17 @@ def attach_git_scheduler(runner):
     timer.start()
 
 
+def get_available_port(start_port=8001, end_port=8010):
+    import socket
+    for port in range(start_port, end_port):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("localhost", port))
+                return port
+        except OSError:
+            continue
+    return 8001
+
 def main():
     parser = ArgumentParser(description="Run the pipeline")
     parser.add_argument("pipeline", metavar="PIPELINE", type=str,
@@ -189,9 +200,9 @@ def main():
                              "(default: localhost)",
                         metavar="HOST", type=str, default="localhost")
     parser.add_argument("--port", dest="port_number",
-                        help="the port number for the web interface "
-                             "(default: 8001)",
-                        metavar="PORT", type=int, default=8001)
+                        help="the port number for the web interface. "
+                             "Defaults to 8001. Will attempt to get the next available port if 8001 is in use.",
+                        metavar="PORT", type=int, default=get_available_port())
     parser.add_argument("--http-username", dest="http_username",
                         help="username for the web interface (default: admin)",
                         metavar="USERNAME", type=str
