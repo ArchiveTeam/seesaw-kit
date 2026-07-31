@@ -3,10 +3,10 @@ Seesaw toolkit
 
 An asynchronous toolkit for distributed web processing. Written in Python and named after its behavior, it supports concurrent downloads, uploads, etc.
 
-This toolkit is well-known for [Archive Team projects](http://archiveteam.org). It also powers the [Archive Team warrior](http://archiveteam.org/index.php?title=Warrior).
+This toolkit is well-known for [Archive Team projects](https://wiki.archiveteam.org/). It also powers the [Archive Team warrior](https://wiki.archiveteam.org/index.php/ArchiveTeam_Warrior).
 
-[![Build Status](https://secure.travis-ci.org/ArchiveTeam/seesaw-kit.png)](http://travis-ci.org/ArchiveTeam/seesaw-kit)
-[![Coverage Status](https://coveralls.io/repos/ArchiveTeam/seesaw-kit/badge.svg)](https://coveralls.io/r/ArchiveTeam/seesaw-kit)
+[![Build Status](https://github.com/ArchiveTeam/seesaw-kit/actions/workflows/test.yml/badge.svg)](https://github.com/ArchiveTeam/seesaw-kit/actions/workflows/test.yml)
+<!-- [![Coverage Status](https://coveralls.io/repos/ArchiveTeam/seesaw-kit/badge.svg)](https://coveralls.io/r/ArchiveTeam/seesaw-kit) -->
 
 Installation
 ------------
