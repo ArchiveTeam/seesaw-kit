@@ -1,7 +1,8 @@
 import logging
 import tornado.ioloop
 import unittest
-import sys
+
+from seesaw.runner import Runner
 
 
 class BaseTestCase(unittest.TestCase):
@@ -22,10 +23,17 @@ class BaseTestCase(unittest.TestCase):
         tornado.ioloop.PeriodicCallback._run = \
             periodic_callback_run_monkey_patch
 
+        # A failed item normally sits out a 10 second cooldown before the
+        # runner recycles it. Tests assert on what happens after the
+        # cooldown, not on its length, so skip the wait.
+        self._original_failed_item_delay = Runner.FAILED_ITEM_DELAY
+        Runner.FAILED_ITEM_DELAY = 0
+
     def assertIOLoopOK(self):
         value = self.io_loop_error
         self.io_loop_error = None
         self.assertFalse(value)
 
     def tearDown(self):
+        Runner.FAILED_ITEM_DELAY = self._original_failed_item_delay
         assert not self.io_loop_error
