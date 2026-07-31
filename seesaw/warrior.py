@@ -25,7 +25,7 @@ from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 from seesaw.config import realize
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen2
-from seesaw.log import InternalTempLogHandler
+from seesaw.log import LOG_FORMAT, InternalTempLogHandler, LogFilter
 from seesaw.runner import Runner
 import seesaw.six
 
@@ -294,10 +294,8 @@ class Warrior(object):
         self.contacting_hq_failed = False
 
         self.internal_log_handler = InternalTempLogHandler()
-        self.internal_log_handler.setFormatter(
-            logging.Formatter(seesaw.script.run_warrior.LOG_FORMAT))
-        self.internal_log_handler.addFilter(
-            seesaw.script.run_warrior.LogFilter())
+        self.internal_log_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+        self.internal_log_handler.addFilter(LogFilter())
         logging.getLogger().addHandler(self.internal_log_handler)
 
     def find_lat_lng(self):
