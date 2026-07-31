@@ -10,7 +10,7 @@ This toolkit is well-known for [Archive Team projects](http://archiveteam.org). 
 Installation
 ------------
 
-Requires Python 2 or 3.
+Requires Python 3.9.
 
 Needs the Tornado library for event-driven I/O. The complete list of Python modules needed are listed in requirements.txt.
 
@@ -20,13 +20,16 @@ How to try it out
 
 To run the example pipeline:
 
-    sudo pip install -r requirements.txt
-    ./run-pipeline --help
-    ./run-pipeline examples/example-pipeline.py someone
+    pip install .
+    run-pipeline --help
+    run-pipeline examples/example-pipeline.py someone
 
 Point your browser to `http://127.0.0.1:8001/`.
 
-You can also use `run-pipeline2` or `run-pipeline3` to be explicit for the Python version.
+`run-pipeline3` and `run-warrior3` are installed as aliases of
+`run-pipeline` and `run-warrior`. The suffixed names date from the days of
+supporting both Python 2 and 3; they are kept because existing projects and
+instructions refer to them.
 
 
 Overview
