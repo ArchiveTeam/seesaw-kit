@@ -1,4 +1,5 @@
 import base64
+import binascii
 import re
 
 import tornado
@@ -20,14 +21,20 @@ class BaseWebAdminHandler(tornado.web.RequestHandler):
             if pattern.match(self.request.uri):
                 return
 
+        username = ''
+        password = ''
+
         auth_header = self.request.headers.get('Authorization')
         if auth_header and auth_header.startswith('Basic '):
-            auth_decoded = base64.b64decode(auth_header[6:].encode('ascii')).decode('ascii')
-            username, password = auth_decoded.split(':', 2)
-            # request.basicauth_user, request.basicauth_pass = username, password
-        else:
-            username = ''
-            password = ''
+            try:
+                auth_decoded = base64.b64decode(
+                    auth_header[6:].encode('ascii')).decode('utf-8')
+                # RFC 7617: only the first colon separates the two fields.
+                username, password = auth_decoded.split(':', 1)
+            except (ValueError, UnicodeError, binascii.Error):
+                # Unusable credentials are a failed login, not a 500.
+                username = ''
+                password = ''
 
         if self.application.settings['check_auth'](self.request, username, password):
             return
