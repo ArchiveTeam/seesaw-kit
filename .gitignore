@@ -4,6 +4,7 @@
 seesaw.egg-info
 dist
 build
+.venv/
 
 # ecllipse
 .settings
@@ -16,3 +17,6 @@ build
 
 *~
 *.orig
+
+# file used to stop the runner
+STOP
