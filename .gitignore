@@ -1,9 +1,16 @@
 *.pyc
+__pycache__/
 .*.swp
 *.swp
 seesaw.egg-info
 dist
 build
+
+# testing
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # ecllipse
 .settings

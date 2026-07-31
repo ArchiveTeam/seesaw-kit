@@ -1,0 +1,20 @@
+[run]
+source = seesaw
+branch = True
+omit =
+    # Tornado compiles each template into a module named after the template
+    # file. These exist only in memory, so coverage cannot find their source.
+    */*.generated.py
+
+[report]
+# The tests live outside the seesaw package, so `source = seesaw` already
+# leaves them out; only six.py needs excluding from the measured code.
+omit =
+    */six.py
+    */*.generated.py
+
+# A floor, not a target. The suite currently measures 98%, so this leaves a
+# few points of slack for the run-to-run variation in the subprocess and
+# IOLoop tests. Raise it as coverage climbs, and do not lower it to make a
+# red build go green.
+fail_under = 95
