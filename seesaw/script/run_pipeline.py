@@ -76,7 +76,11 @@ def check_concurrency_or_exit(value):
 
 def get_output(command):
     proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-    return proc.returncode, proc.communicate()[0]
+    # returncode is only set once the process has been waited on, so read
+    # it after communicate(). Reading it first always gave None, which made
+    # the exit code checks in the callers below do nothing.
+    output = proc.communicate()[0]
+    return proc.returncode, output
 
 
 def check_git_repo_or_exit():
