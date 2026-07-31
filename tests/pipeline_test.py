@@ -2,7 +2,7 @@ from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
 from seesaw.task import PrintItem, SimpleTask
-from seesaw.test_base import BaseTestCase
+from tests.test_base import BaseTestCase
 
 
 class ExternalProcessTest(BaseTestCase):

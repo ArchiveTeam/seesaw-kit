@@ -5,7 +5,7 @@ from seesaw.externalprocess import ExternalProcess
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
 from seesaw.six import StringIO
-from seesaw.test_base import BaseTestCase
+from tests.test_base import BaseTestCase
 
 
 class ExternalProcessUser(ExternalProcess):
