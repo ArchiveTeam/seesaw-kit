@@ -107,8 +107,20 @@ jobs:
           docker run --name prepared --user root --entrypoint sh \
             -v "$PWD:/work" "$WARRIOR_IMAGE" -c '
               set -e
+              # The warrior image ships its own seesaw, at the same version
+              # as this checkout, so the version string proves nothing about
+              # which one is installed. Compare the files instead: if the
+              # image copy survived, every result below would be about
+              # seesaw as released, not seesaw as changed by this PR.
               python3 -m pip install --no-cache-dir /work/seesaw-kit
-              python3 -c "import seesaw; print(\"seesaw\", seesaw.__version__)"
+              python3 -c "
+import filecmp, sys, seesaw
+if not filecmp.cmp(\"/work/seesaw-kit/seesaw/__init__.py\",
+                   seesaw.__file__, shallow=False):
+    sys.exit(\"Installed seesaw is not the one from this checkout: \"
+             + seesaw.__file__)
+print(\"seesaw\", seesaw.__version__, \"installed from the checkout\")
+"
               # Imported unconditionally by most pipelines; no grab repo
               # ships a requirements.txt, so these are installed here
               # rather than found.
