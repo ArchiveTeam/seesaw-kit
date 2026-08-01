@@ -1,0 +1,128 @@
+name: Grab pipeline compatibility
+
+# Checks each curated *-grab project against this seesaw checkout, inside
+# the warrior's own image. Two tiers: the pipeline.py must load, and it
+# must then drive a real item as far as the wget argument list.
+#
+# The checks run in a container started with --network none, so "nothing
+# external is contacted" is enforced by the kernel. That is not a detail:
+# several pipelines shell out to wget, and patching sockets inside the
+# harness cannot stop a subprocess. Cloning and warrior-install.sh do need
+# the network, so they happen first, in a separate container that is then
+# committed and re-run with networking removed.
+#
+# Projects are split across a few shards rather than one job each: the
+# per-job image pull and pip install cost more than the checks do.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Test a single owner/repo instead of the curated list'
+        required: false
+        type: string
+
+env:
+  # Setup (image, pip install) costs about as much as checking all the
+  # projects does, so wall-clock and total compute balance out at roughly
+  # SHARDS = (total checking time) / (setup time per shard). Raising this
+  # buys progressively less wall-clock for linearly more compute.
+  SHARDS: 4
+
+  # The warrior image itself, not grab-base: it carries Python 3.9 (the
+  # pipelines still import distutils, removed in 3.12) and all four
+  # wget-at builds in /home/warrior/data, laid out where the pipelines
+  # look for them. The builds are not interchangeable -- only the NSS one
+  # has --impersonate -- so substituting one for another gives false
+  # failures.
+  WARRIOR_IMAGE: atdr.meo.ws/archiveteam/warrior-dockerfile
+
+jobs:
+  plan-shards:
+    name: Plan shards
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: plan
+        env:
+          SINGLE_PROJECT: ${{ inputs.project }}
+        run: |
+          # Underscore-prefixed keys (_comment) are metadata, not projects.
+          # Projects are dealt out into $SHARDS groups; a shard that would
+          # be empty is dropped.
+          if [ -n "$SINGLE_PROJECT" ]; then
+            matrix="$(jq -n -c --arg repo "$SINGLE_PROJECT" \
+              '[{name: $repo, projects: ([{repo: $repo, ref: ""}] | tojson)}]')"
+          else
+            matrix="$(jq -c --argjson shards "$SHARDS" '
+              def short: sub("^[^/]+/"; "") | sub("-grab$"; "");
+              [ to_entries[]
+                | select(.key | startswith("_") | not)
+                | {repo: .key, ref: (.value.ref // "")} ] as $projects
+              | ($projects | length) as $count
+              | (($count + $shards - 1) / $shards | floor) as $size
+              | [ range(0; $shards)
+                  | $projects[(. * $size):((. + 1) * $size)] as $group
+                  | select($group | length > 0)
+                  | { name: (if ($group | length) == 1
+                             then ($group[0].repo | short)
+                             else "\($group[0].repo | short) - \($group[-1].repo | short)"
+                             end),
+                      projects: ($group | tojson) } ]
+            ' tests/grab-fixtures.json)"
+          fi
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "$matrix" | jq .
+
+  pipelines:
+    needs: plan-shards
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.plan-shards.outputs.matrix) }}
+    name: ${{ matrix.shard.name }}
+    steps:
+      - name: Check out seesaw
+        uses: actions/checkout@v7
+        with:
+          path: seesaw-kit
+
+      - name: Write project list
+        run: echo '${{ matrix.shard.projects }}' > projects.json
+
+      - name: Show environment
+        run: |
+          docker pull -q "$WARRIOR_IMAGE"
+          docker run --rm --entrypoint sh "$WARRIOR_IMAGE" -c \
+            'python3 --version; /home/warrior/data/wget-at --version | head -n 1'
+
+      - name: Fetch projects and install dependencies (network)
+        run: |
+          docker run --name prepared --user root --entrypoint sh \
+            -v "$PWD:/work" "$WARRIOR_IMAGE" -c '
+              set -e
+              python3 -m pip install --no-cache-dir /work/seesaw-kit
+              python3 -c "import seesaw; print(\"seesaw\", seesaw.__version__)"
+              # Imported unconditionally by most pipelines; no grab repo
+              # ships a requirements.txt, so these are installed here
+              # rather than found.
+              python3 -m pip install --no-cache-dir \
+                requests zstandard dnspython
+              bash /work/seesaw-kit/tests/run-grab-checks.sh \
+                prepare /work/projects.json
+            '
+          docker commit prepared grab-ci-prepared
+
+      - name: Check ${{ matrix.shard.name }} (no network)
+        run: |
+          docker run --rm --network none --user root --entrypoint sh \
+            -v "$PWD:/work" grab-ci-prepared -c '
+              bash /work/seesaw-kit/tests/run-grab-checks.sh \
+                check /work/projects.json
+            '
