@@ -131,14 +131,15 @@ $(function() {
 
     var itemLog = $('#item-' + msg.item_id + ' pre.log')[0];
     if (itemLog) {
+      var msgData = msg.data.replaceAll("\u0000", " ");
       if (itemLog.data) {
-        itemLog.data += processCarriageReturns(msg.data);
+        itemLog.data += processCarriageReturns(msgData);
         itemLog.data = itemLog.data.split('\n').slice(-500).join('\n')
         itemLog.firstChild.nodeValue = itemLog.data;
       } else {
-        itemLog.data = processCarriageReturns(msg.data);
+        itemLog.data = processCarriageReturns(msgData);
         $(itemLog).empty();
-        itemLog.appendChild(document.createTextNode(msg.data));
+        itemLog.appendChild(document.createTextNode(msgData));
       }
       itemLog.scrollTop = itemLog.scrollHeight + 1000;
     }
@@ -177,7 +178,7 @@ $(function() {
   registerEvent('item.update_name', function(msg) { // item_id, new_name
 //    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
-    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
+    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name.replaceAll("\u0000", " "));
   });
 
   registerEvent('item.complete', function(msg) { // pipeline_id, item_id
