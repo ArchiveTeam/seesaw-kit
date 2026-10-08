@@ -1,5 +1,5 @@
 $(function() {
-  var conn = new SockJS(window.location.protocol + '//' + window.location.host);
+  var conn = new SockJS(window.location.protocol + '//' + window.location.host + window.location.pathname);
   var multiProject = false;
   var instanceID = null;
   var eventCallbacks = {};
@@ -273,18 +273,18 @@ $(function() {
   });
 
   function reloadProjectsTab() {
-    $('#projects').load('/api/all-projects', null, function() {
+    $('#projects').load('api/all-projects', null, function() {
       $("#projects input[type='submit']").each(makeButtonLink);
       $("#projects li").each(addProjectCountdown);
     });
   }
 
   function reloadSettingsTab() {
-    $('#settings-list').load('/api/settings');
+    $('#settings-list').load('api/settings');
   }
 
   function reloadHelpTab() {
-    $('#help').load('/api/help');
+    $('#help').load('api/help');
     $('#broadcastMessage-indicator').hide();
     
     if (localStorage) {
@@ -293,17 +293,17 @@ $(function() {
   }
 
   var warriorStatus = {
-    'UNINITIALIZED': ['The warrior could not contact HQ. Please reboot.', 'Shut down', '/api/stop'],
-    'NO_PROJECT': ['The warrior is idle. Select a project.', 'Shut down', '/api/stop'],
-    'INVALID_SETTINGS': ['You must configure the warrior.', 'Shut down', '/api/stop'],
-    'STOPPING_PROJECT': ['The warrior is stopping the current project.', 'Shut down', '/api/stop'],
-    'RESTARTING_PROJECT': ['The warrior is restarting the current project.', 'Shut down', '/api/stop'],
-    'RUNNING_PROJECT': ['The warrior is working on a project.', 'Shut down', '/api/stop'],
-    'SWITCHING_PROJECT': ['The warrior will switch to a different project.', 'Shut down', '/api/stop'],
-    'STARTING_PROJECT': ['The warrior is beginning work on a project.', 'Shut down', '/api/stop'],
-    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', '/api/keep_running',
-                      'Stop immediately', '/api/stop_now'],
-    'REBOOTING': ['The warrior is stopping and restarting.', 'Keep running', '/api/keep_running']
+    'UNINITIALIZED': ['The warrior could not contact HQ. Please reboot.', 'Shut down', 'api/stop'],
+    'NO_PROJECT': ['The warrior is idle. Select a project.', 'Shut down', 'api/stop'],
+    'INVALID_SETTINGS': ['You must configure the warrior.', 'Shut down', 'api/stop'],
+    'STOPPING_PROJECT': ['The warrior is stopping the current project.', 'Shut down', 'api/stop'],
+    'RESTARTING_PROJECT': ['The warrior is restarting the current project.', 'Shut down', 'api/stop'],
+    'RUNNING_PROJECT': ['The warrior is working on a project.', 'Shut down', 'api/stop'],
+    'SWITCHING_PROJECT': ['The warrior will switch to a different project.', 'Shut down', 'api/stop'],
+    'STARTING_PROJECT': ['The warrior is beginning work on a project.', 'Shut down', 'api/stop'],
+    'SHUTTING_DOWN': ['The warrior is stopping and shutting down.', 'Keep running', 'api/keep_running',
+                      'Stop immediately', 'api/stop_now'],
+    'REBOOTING': ['The warrior is stopping and restarting.', 'Keep running', 'api/keep_running']
   };
 
   function showWarriorStatus(status) {
@@ -323,9 +323,9 @@ $(function() {
   }
 
   var runnerStatus = {
-    'running':  ['The runner is running.', 'Stop', '/api/stop'],
-    'stopping': ['The runner is stopping.', 'Keep running', '/api/keep_running',
-                 'Stop immediately', '/api/stop_now']
+    'running':  ['The runner is running.', 'Stop', 'api/stop'],
+    'stopping': ['The runner is stopping.', 'Keep running', 'api/keep_running',
+                 'Stop immediately', 'api/stop_now']
   };
 
   function showRunnerStatus(status) {

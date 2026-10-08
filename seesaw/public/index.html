@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
@@ -47,14 +47,14 @@
         </tr>
         <tr>
           <td>
-            <form id="warrior-status-form" method="post" action="/api/stop" class="js-api-form">
+            <form id="warrior-status-form" method="post" action="api/stop" class="js-api-form">
               <input type="submit" value="Stop" />
             </form>
           </td>
         </tr>
         <tr>
           <td>
-            <form id="warrior-status-form-force" method="post" action="/api/stop_now" class="js-api-form" style="display: none">
+            <form id="warrior-status-form-force" method="post" action="api/stop_now" class="js-api-form" style="display: none">
               <input type="submit" value="Stop immediately" />
             </form>
           </td>
@@ -102,7 +102,7 @@
       <p>Customize your warrior</p>
     </div>
     <div id="settings">
-      <form method="post" action="/api/settings" id="settings-form">
+      <form method="post" action="api/settings" id="settings-form">
         <p class="advanced-settings-field"><label for="f-advanced-settings"><input type="checkbox" name="advanced_settings" value="1" id="f-advanced-settings">Show advanced settings</label></p>
         <ul id="settings-list"></ul>
         <ul>
