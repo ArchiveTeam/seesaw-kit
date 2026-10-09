@@ -18,6 +18,7 @@ import tornado.process
 from seesaw.event import Event
 from seesaw.task import Task
 from seesaw.config import realize
+from seesaw import bandwidth
 import time
 
 
@@ -192,10 +193,17 @@ class ExternalProcess(Task):
     def stdin_data(self, item):
         return b""
 
+    def realize_args(self, item):
+        '''Realize the argument list for this run. Subclasses override this to
+        inject global options (e.g. bandwidth limits) on top of the
+        pipeline-supplied args. Default behaviour is identical to realizing
+        ``self.args`` directly.'''
+        return realize(self.args, item)
+
     def process(self, item):
         with self.task_cwd():
             p = AsyncPopen2(
-                args=realize(self.args, item),
+                args=self.realize_args(item),
                 env=realize(self.env, item),
                 stdin=subprocess.PIPE,
                 close_fds=True
@@ -287,6 +295,14 @@ class WgetDownload(ExternalProcess):
         else:
             return b""
 
+    def realize_args(self, item):
+        args = ExternalProcess.realize_args(self, item)
+        limit_rate = bandwidth.wget_limit_rate(item)
+        if limit_rate is not None and not any(
+                str(a).startswith("--limit-rate") for a in args):
+            args = list(args) + ["--limit-rate=%s" % limit_rate]
+        return args
+
 
 class RsyncUpload(ExternalProcess):
     '''Upload with Rsync process runner.'''
@@ -312,6 +328,31 @@ class RsyncUpload(ExternalProcess):
                                  max_tries=max_tries)
         self.files = files
         self.target_source_path = target_source_path
+
+    def realize_args(self, item):
+        args = list(ExternalProcess.realize_args(self, item))
+        bwlimit = bandwidth.rsync_bwlimit(item)
+        if bwlimit is not None:
+            # Strip any caller-supplied --bwlimit (both the "--bwlimit N" and
+            # "--bwlimit=N" forms), then apply the operator's global cap as a
+            # single authoritative value just after argv[0]. This keeps the
+            # cap deterministic regardless of how the rsync args were built
+            # (RsyncUpload's own default "--bwlimit 0", extra_args, etc.).
+            cleaned = []
+            skip_next = False
+            for arg in args:
+                if skip_next:
+                    skip_next = False
+                    continue
+                text = str(arg)
+                if text == "--bwlimit":
+                    skip_next = True
+                    continue
+                if text.startswith("--bwlimit="):
+                    continue
+                cleaned.append(arg)
+            args = cleaned[:1] + ["--bwlimit", bwlimit] + cleaned[1:]
+        return args
 
     def stdin_data(self, item):
         return "".join(
@@ -346,3 +387,11 @@ class CurlUpload(ExternalProcess):
         ExternalProcess.__init__(self, "CurlUpload",
                                  args=args,
                                  max_tries=max_tries)
+
+    def realize_args(self, item):
+        args = list(ExternalProcess.realize_args(self, item))
+        limit_rate = bandwidth.curl_limit_rate(item)
+        if limit_rate is not None and not any(
+                str(a).startswith("--limit-rate") for a in args):
+            args += ["--limit-rate", limit_rate]
+        return args

@@ -2,6 +2,8 @@
 from __future__ import unicode_literals
 
 from seesaw.externalprocess import ExternalProcess
+from seesaw.externalprocess import WgetDownload, RsyncUpload, CurlUpload
+from seesaw import bandwidth
 from seesaw.pipeline import Pipeline
 from seesaw.runner import SimpleRunner
 from seesaw.six import StringIO
@@ -122,3 +124,112 @@ class ExternalProcessTest(BaseTestCase):
 
         self.assertFalse(pipeline.has_failed)
         self.assertIOLoopOK()
+
+
+class RealizeArgsDefaultTest(BaseTestCase):
+    def tearDown(self):
+        bandwidth.reset()
+        BaseTestCase.tearDown(self)
+
+    def test_default_realize_args_unchanged(self):
+        bandwidth.reset()
+        proc = ExternalProcess("Echo", ["echo", "hi"])
+        self.assertEqual(["echo", "hi"], proc.realize_args(None))
+
+
+class WgetLimitRateTest(BaseTestCase):
+    def tearDown(self):
+        bandwidth.reset()
+        BaseTestCase.tearDown(self)
+
+    def test_no_limit_by_default(self):
+        bandwidth.reset()
+        task = WgetDownload(["wget", "http://example.com/"])
+        args = task.realize_args(None)
+        self.assertFalse(any(str(a).startswith("--limit-rate") for a in args))
+
+    def test_limit_injected(self):
+        bandwidth.set_limits(download=1000, download_divisor=2)
+        task = WgetDownload(["wget", "http://example.com/"])
+        args = task.realize_args(None)
+        self.assertIn("--limit-rate=500k", args)
+
+    def test_pipeline_supplied_limit_not_doubled(self):
+        bandwidth.set_limits(download=1000, download_divisor=2)
+        task = WgetDownload(["wget", "--limit-rate=10k", "http://example.com/"])
+        args = task.realize_args(None)
+        self.assertEqual(
+            1, len([a for a in args if str(a).startswith("--limit-rate")]))
+        self.assertIn("--limit-rate=10k", args)
+
+
+class RsyncBwlimitTest(BaseTestCase):
+    def tearDown(self):
+        bandwidth.reset()
+        BaseTestCase.tearDown(self)
+
+    def test_default_bwlimit_preserved(self):
+        bandwidth.reset()
+        task = RsyncUpload("user@host::module/", ["afile"])
+        args = task.realize_args(None)
+        idx = args.index("--bwlimit")
+        self.assertEqual("0", args[idx + 1])
+
+    def test_bwlimit_overridden(self):
+        bandwidth.set_limits(upload=1000, upload_divisor=4)
+        task = RsyncUpload("user@host::module/", ["afile"])
+        args = task.realize_args(None)
+        idx = args.index("--bwlimit")
+        self.assertEqual("250", args[idx + 1])
+
+    def test_bwlimit_injected_when_absent(self):
+        bandwidth.set_limits(upload=1000, upload_divisor=4)
+        task = RsyncUpload("user@host::module/", ["afile"])
+        # Simulate an rsync arg list with no --bwlimit slot (e.g. a custom
+        # pipeline command): the global cap must still be applied.
+        task.args = ["rsync", "-rltv", "src/", "user@host::module/"]
+        args = task.realize_args(None)
+        idx = args.index("--bwlimit")
+        self.assertEqual("250", args[idx + 1])
+        self.assertEqual(1, args.count("--bwlimit"))
+
+    def test_bwlimit_equals_form_normalized(self):
+        bandwidth.set_limits(upload=1000, upload_divisor=4)
+        task = RsyncUpload("user@host::module/", ["afile"])
+        # A caller-supplied "--bwlimit=N" (equals form) must be normalized to a
+        # single authoritative cap, not left as a duplicate.
+        task.args = ["rsync", "--bwlimit=50", "src/", "user@host::module/"]
+        args = task.realize_args(None)
+        self.assertEqual(1, args.count("--bwlimit"))
+        self.assertFalse(any(str(a).startswith("--bwlimit=") for a in args))
+        self.assertEqual("250", args[args.index("--bwlimit") + 1])
+
+
+class CurlLimitRateTest(BaseTestCase):
+    def tearDown(self):
+        bandwidth.reset()
+        BaseTestCase.tearDown(self)
+
+    def test_no_limit_by_default(self):
+        bandwidth.reset()
+        task = CurlUpload("http://host/", "afile")
+        args = task.realize_args(None)
+        self.assertNotIn("--limit-rate", args)
+
+    def test_pipeline_supplied_limit_not_doubled(self):
+        bandwidth.set_limits(upload=1000, upload_divisor=2)
+        task = CurlUpload("http://host/", "afile")
+        # An existing --limit-rate (equals form) must not be doubled.
+        task.args = ["curl", "--limit-rate=10k", "--upload-file", "afile",
+                     "http://host/"]
+        args = task.realize_args(None)
+        self.assertEqual(
+            1, len([a for a in args if str(a).startswith("--limit-rate")]))
+        self.assertIn("--limit-rate=10k", args)
+
+    def test_limit_injected(self):
+        bandwidth.set_limits(upload=1000, upload_divisor=2)
+        task = CurlUpload("http://host/", "afile")
+        args = task.realize_args(None)
+        self.assertIn("--limit-rate", args)
+        self.assertEqual("500k", args[args.index("--limit-rate") + 1])

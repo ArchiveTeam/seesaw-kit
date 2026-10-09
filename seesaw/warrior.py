@@ -23,6 +23,7 @@ from tornado.httpclient import AsyncHTTPClient
 import seesaw
 from seesaw.config import NumberConfigValue, StringConfigValue, ConfigValue
 from seesaw.config import realize
+from seesaw import bandwidth
 from seesaw.event import Event
 from seesaw.externalprocess import AsyncPopen2
 from seesaw.log import InternalTempLogHandler
@@ -213,6 +214,22 @@ class Warrior(object):
             max=6,
             default=2
         )
+        self.download_bwlimit = NumberConfigValue(
+            name="download_bwlimit",
+            title="Download bandwidth limit (KiB/s)",
+            description="Total download speed cap shared across all concurrent "
+                        "items, in KiB/s. 0 = unlimited.",
+            min=0,
+            default=0
+        )
+        self.upload_bwlimit = NumberConfigValue(
+            name="upload_bwlimit",
+            title="Upload bandwidth limit (KiB/s)",
+            description="Total upload speed cap shared across all concurrent "
+                        "rsync/curl transfers, in KiB/s. 0 = unlimited.",
+            min=0,
+            default=0
+        )
         self.http_username = StringConfigValue(
             name="http_username",
             title="HTTP username",
@@ -234,6 +251,29 @@ class Warrior(object):
         self.config_manager.add(self.selected_project_config_value)
         self.config_manager.add(self.downloader)
         self.config_manager.add(self.concurrent_items)
+        self.config_manager.add(self.download_bwlimit)
+        self.config_manager.add(self.upload_bwlimit)
+
+        def _upload_divisor():
+            # Uploads run with up to ``shared:rsync_threads`` concurrent rsync
+            # processes; that config value is registered by the project
+            # pipeline once it loads. Until then, divide by 1 (conservative:
+            # uploads only begin after a project -- and thus rsync_threads --
+            # is loaded).
+            cv = self.config_manager.config_values.get("shared:rsync_threads")
+            if cv is not None:
+                try:
+                    return int(realize(cv, None))
+                except (TypeError, ValueError):
+                    pass
+            return 1
+
+        bandwidth.set_limits(
+            download=self.download_bwlimit,
+            upload=self.upload_bwlimit,
+            download_divisor=self.concurrent_items,
+            upload_divisor=_upload_divisor,
+        )
         self.config_manager.add(self.http_username)
         self.config_manager.add(self.http_password)
 
