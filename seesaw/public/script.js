@@ -552,14 +552,14 @@ $(function() {
     a.className = 'button-link';
     a.href = '#';
     a.appendChild(document.createTextNode(input.value));
-    $(a).click(submitApiForm);
+    $(a).on('click', submitApiForm);
     $(input).replaceWith(a);
   }
 
   $("form.js-api-form input[type='submit']").each(makeButtonLink);
 
   function submitSettingsForm() {
-    $('form#settings-form').submit();
+    $('form#settings-form').trigger('submit');
     return false;
   }
 
@@ -568,7 +568,7 @@ $(function() {
     a.className = 'button-link';
     a.href = '#';
     a.appendChild(document.createTextNode(input.value));
-    $(a).click(submitSettingsForm);
+    $(a).on('click', submitSettingsForm);
     $(input).replaceWith(a);
   });
 
@@ -576,14 +576,14 @@ $(function() {
     $('#settings-saving')[0].style.display = 'none';
   }
 
-  $('form#settings-form').submit(function(e) {
+  $('form#settings-form').on('submit', function(e) {
     var form = $(e.target);
     $('#settings-saving')[0].style.display = 'inline-block';
     $('#settings-list').load(form.attr('action'), form.serializeArray(), hideSettingsSaving);
     return false;
   });
 
-  $('#f-advanced-settings').click(function(e) {
+  $('#f-advanced-settings').on('click', function(e) {
     $('#settings').toggleClass('show-advanced', e.target.checked);
   });
 
@@ -647,7 +647,7 @@ $(function() {
       reloadHelpTab();
   }
 
-  $('#tabs').click(function(e) {
+  $('#tabs').on('click', function(e) {
     var view = $(e.target).closest('li').find('a').attr('data-view');
     if (view) {
       showTab(view);
@@ -657,16 +657,9 @@ $(function() {
 
   showTab('view-current-project');
 
-  $(".item.closed .twisty").delegate('click',
-                                 function () {
-                                   $(this).parent().parent().removeClass('closed')
-                                                            .addClass('open');
-                                 });
-  $(".item.open .twisty").delegate('click',
-                               function () {
-                                 $(this).parent().parent().removeClass('open')
-                                                          .addClass('closed');
-                               });
+  $(document).on('click', '.item .twisty', function () {
+    $(this).parent().parent().toggleClass('closed open');
+  });
 
   /*
   addItem({
