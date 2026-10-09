@@ -1,0 +1,31 @@
+name: CI Testing
+
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["2.7", "3.7", "3.8", "3.9", "3.10", "3.11"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install -q --upgrade pip
+          if [ "${{ matrix.python-version }}" != "2.7" ]; then pip install -q ruff; fi
+          pip install -q coverage nose
+          pip install -q -r requirements.txt
+      - name: Lint with ruff
+        continue-on-error: true
+        run: |
+          if [ "${{ matrix.python-version }}" != "2.7" ]; then ruff --format=github --target-version=py39 .; fi
+      - name: Run tests
+        run: |
+          PYTHONIOENCODING=ascii python -m "nose" --with-coverage --cover-package=seesaw --cover-branches
