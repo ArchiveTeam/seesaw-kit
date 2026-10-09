@@ -130,11 +130,14 @@ class AsyncPopen2(object):
         self.kwargs = kwargs
 
         self.on_output = Event()
+        self.on_stdout = Event()
         self.on_end = Event()
 
         self.pipe = None
 
     def run(self):
+        self.return_code = None
+        self.open_streams = 2
         self.kwargs["stdout"] = tornado.process.Subprocess.STREAM
         self.kwargs["stderr"] = tornado.process.Subprocess.STREAM
         self.kwargs["preexec_fn"] = AsyncPopen.ignore_sigint
@@ -142,21 +145,31 @@ class AsyncPopen2(object):
         self.pipe = tornado.process.Subprocess(*self.args, **self.kwargs)
 
         self.pipe.stdout.read_until_close(
-            callback=self._handle_subprocess_stdout,
+            callback=functools.partial(self._close_stream, self._handle_subprocess_stdout),
             streaming_callback=self._handle_subprocess_stdout)
         self.pipe.stderr.read_until_close(
-            callback=self._handle_subprocess_stdout,
-            streaming_callback=self._handle_subprocess_stdout)
+            callback=functools.partial(self._close_stream, self.on_output),
+            streaming_callback=self.on_output)
 
         self.pipe.set_exit_callback(self._end_callback)
         _all_procs.add(self.pipe)
 
     def _handle_subprocess_stdout(self, data):
+        self.on_stdout(data)
         self.on_output(data)
 
+    def _close_stream(self, callback, data):
+        callback(data)
+        self.open_streams -= 1
+        if len(self.on_stdout) > 0:
+            self._end_callback(self.return_code)
+
     def _end_callback(self, return_code):
-        self.on_end(return_code)
-        _all_procs.remove(self.pipe)
+        self.return_code = return_code
+        if return_code is not None \
+            and (len(self.on_stdout) == 0 or self.open_streams == 0):
+            self.on_end(return_code)
+            _all_procs.remove(self.pipe)
 
     @property
     def stdin(self):
