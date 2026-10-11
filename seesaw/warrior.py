@@ -169,6 +169,9 @@ class Warrior(object):
 
         self.projects_dir = projects_dir
         self.data_dir = data_dir
+        self.temp_docker_path = os.path.join(projects_dir, ".docker-temp")
+        if os.path.exists(self.temp_docker_path):
+            shutil.rmtree(self.temp_docker_path)
         self.warrior_hq_url = warrior_hq_url
         self.real_shutdown = real_shutdown
         self.keep_data = keep_data
@@ -243,6 +246,7 @@ class Warrior(object):
         self.runner = Runner(concurrent_items=self.concurrent_items,
                              keep_data=self.keep_data)
         self.runner.on_finish += self.handle_runner_finish
+        self.cleanup_project_versions()
 
         self.current_project_name = None
         self.current_project = None
@@ -252,6 +256,7 @@ class Warrior(object):
         self.previous_auto_project = None
 
         self.projects = {}
+        self.image_references = {}
         self.installed_projects = set()
         self.failed_projects = set()
 
@@ -383,6 +388,8 @@ class Warrior(object):
             self.projects = OrderedDict(
                 [(project["name"], project) for project in projects_list])
             for project_data in self.projects.values():
+                project_data["use_docker"] = len(project_data.get("repository", "")) == 0 \
+                    and len(project_data.get("docker", "")) > 0
                 if "deadline" in project_data:
                     project_data["deadline_int"] = time.mktime(
                         time.strptime(project_data["deadline"],
@@ -521,6 +528,26 @@ class Warrior(object):
         return normalized_auto_projects
 
     @gen.coroutine
+    def get_image_reference(self, repository):
+        p = AsyncPopen2(
+            args=["crane", "digest", "--full-ref", repository]
+        )
+        output = []
+        p.on_stdout += output.append
+        result = yield self.run_install_command(p)
+        if result != 0:
+            raise OSError("crane digest returned %d" % result)
+        raise gen.Return(b"".join(output).decode('utf-8').strip())
+
+    @gen.coroutine
+    def run_install_command(self, p):
+        p.on_output += self.collect_install_output
+        p.on_end += yield gen.Callback("end")
+        p.run()
+        result = yield gen.Wait("end")
+        raise gen.Return(result)
+
+    @gen.coroutine
     def install_project(self, project_name):
         logger.debug('Install project %s', project_name)
 
@@ -532,47 +559,79 @@ class Warrior(object):
 
             project = self.projects[project_name]
             project_path = os.path.join(self.projects_dir, project_name)
+            image = project["use_docker"]
+            source = "image" if image else "git"
 
             self.on_project_installing(self, project)
 
-            if project_name in self.failed_projects:
+            if project_name in self.failed_projects \
+                or (
+                    not image
+                    and os.path.exists(project_path)
+                    and (
+                        project_name in self.image_references
+                        or not os.path.exists(os.path.join(project_path, ".git"))
+                    )
+                ):
                 if os.path.exists(project_path):
                     shutil.rmtree(project_path)
                 self.failed_projects.discard(project_name)
 
-            if os.path.exists(project_path):
-                subprocess.Popen(
-                    args=["git", "config", "remote.origin.url",
-                          project["repository"]],
-                    cwd=project_path
-                ).communicate()
-
-                logger.debug('git pull from %s', project["repository"])
-                p = AsyncPopen2(
-                    args=["git", "pull"],
-                    cwd=project_path,
-                    env=self.gitenv
-                )
-            else:
-                logger.debug('git clone')
-                p = AsyncPopen2(
-                    args=["git", "clone", project["repository"], project_path],
-                    env=self.gitenv
-                )
-            p.on_output += self.collect_install_output
-            p.on_end += yield gen.Callback("gitend")
+            if image:
+                os.makedirs(self.temp_docker_path)
+                image_file = os.path.join(self.temp_docker_path, "image.tar")
 
             try:
-                p.run()
+                if image:
+                    reference = yield self.get_image_reference(project["docker"])
+                    p = AsyncPopen2(
+                        args=["crane", "export", reference, image_file]
+                    )
+                elif os.path.exists(project_path):
+                    subprocess.Popen(
+                        args=["git", "config", "remote.origin.url",
+                              project["repository"]],
+                        cwd=project_path
+                    ).communicate()
+
+                    logger.debug('git pull from %s', project["repository"])
+                    p = AsyncPopen2(
+                        args=["git", "pull"],
+                        cwd=project_path,
+                        env=self.gitenv
+                    )
+                else:
+                    logger.debug('git clone')
+                    p = AsyncPopen2(
+                        args=["git", "clone", project["repository"], project_path],
+                        env=self.gitenv
+                    )
+                result = yield self.run_install_command(p)
+
+                if image and result == 0:
+                    p = AsyncPopen2(
+                        args=["tar", "-xf", image_file, "-C", self.temp_docker_path, "grab"]
+                    )
+                    result = yield self.run_install_command(p)
+                    image_project_path = os.path.join(self.temp_docker_path, "grab")
+                    if result == 0 \
+                        and not os.path.isfile(os.path.join(image_project_path, "pipeline.py")):
+                        raise OSError("Image has no /grab/pipeline.py")
+
+                if image and result == 0:
+                    if os.path.exists(project_path):
+                        shutil.rmtree(project_path)
+                    os.rename(image_project_path, project_path)
             except OSError as error:
                 logger.exception("Install command error")
                 result = 9999
                 self.install_output.append(str(error))
-            else:
-                result = yield gen.Wait("gitend")
+            finally:
+                if image:
+                    shutil.rmtree(self.temp_docker_path)
 
             if result != 0:
-                self.install_output.append("\ngit returned %d\n" % result)
+                self.install_output.append("\n%s returned %d\n" % (source, result))
                 logger.error(
                     "Project failed to install: %s",
                     "".join(self.install_output)
@@ -585,11 +644,15 @@ class Warrior(object):
                 raise gen.Return(False)
             else:
                 logger.debug(
-                    "git operation: %s", "".join(self.install_output)
+                    "%s operation: %s", source, "".join(self.install_output)
                 )
 
             project_install_file = os.path.join(project_path,
                                                 "warrior-install.sh")
+
+            if image and os.path.exists(project_install_file) \
+                and os.path.getsize(project_install_file) == 0:
+                os.remove(project_install_file)
 
             if os.path.exists(project_install_file):
                 if not is_executable(project_install_file):
@@ -602,16 +665,12 @@ class Warrior(object):
                     args=[project_install_file],
                     cwd=project_path
                 )
-                p.on_output += self.collect_install_output
-                p.on_end += yield gen.Callback("installend")
                 try:
-                    p.run()
+                    result = yield self.run_install_command(p)
                 except OSError as error:
                     logger.exception("Custom project install file error")
                     result = 9999
                     self.install_output.append(str(error))
-                else:
-                    result = yield gen.Wait("installend")
 
                 if result != 0:
                     self.install_output.append(
@@ -641,6 +700,10 @@ class Warrior(object):
                 shutil.rmtree(project_data_dir)
             os.symlink(data_dir, project_data_dir)
 
+            if image:
+                self.image_references[project_name] = reference
+            elif project_name in self.image_references:
+                del self.image_references[project_name]
             self.installed_projects.add(project_name)
             logger.debug('Install complete %s', "".join(self.install_output))
             self.on_project_installed(self, project,
@@ -674,42 +737,53 @@ class Warrior(object):
 
             self.install_output = []
 
-            if not os.path.exists(project_path):
-                logger.debug("Project doesn't exist.")
+            if project_name not in self.installed_projects \
+                or not os.path.exists(project_path):
+                logger.debug("Project not installed.")
                 raise gen.Return(True)
 
-            subprocess.Popen(
-                args=["git", "config", "remote.origin.url",
-                      project["repository"]],
-                cwd=project_path
-            ).communicate()
+            try:
+                if project["use_docker"]:
+                    if project_name not in self.image_references:
+                        raise gen.Return(True)
+                    reference = yield self.get_image_reference(project["docker"])
+                    raise gen.Return(self.image_references.get(project_name) != reference)
 
-            logger.debug('git fetch')
+                if project_name in self.image_references:
+                    raise gen.Return(True)
 
-            p = AsyncPopen2(
-                args=["git", "fetch"],
-                cwd=project_path,
-                env=self.gitenv
-            )
-            p.on_output += self.collect_install_output
-            p.on_end += yield gen.Callback("gitend")
-            p.run()
-            result = yield gen.Wait("gitend")
+                subprocess.Popen(
+                    args=["git", "config", "remote.origin.url",
+                          project["repository"]],
+                    cwd=project_path
+                ).communicate()
 
-            if result != 0:
-                logger.debug('Got return code %s', result)
-                raise gen.Return(True)
+                logger.debug('git fetch')
 
-            output = subprocess.Popen(
-                args=["git", "rev-list", "HEAD..origin/HEAD"],
-                cwd=project_path,
-                stdout=subprocess.PIPE
-            ).communicate()[0]
-            if output.strip():
-                logger.debug('True')
-                raise gen.Return(True)
-            else:
-                logger.debug('False')
+                p = AsyncPopen2(
+                    args=["git", "fetch"],
+                    cwd=project_path,
+                    env=self.gitenv
+                )
+                result = yield self.run_install_command(p)
+
+                if result != 0:
+                    raise OSError("git fetch returned %d" % result)
+
+                output = subprocess.Popen(
+                    args=["git", "rev-list", "HEAD..origin/HEAD"],
+                    cwd=project_path,
+                    stdout=subprocess.PIPE
+                ).communicate()[0]
+                if output.strip():
+                    logger.debug('True')
+                    raise gen.Return(True)
+                else:
+                    logger.debug('False')
+                    raise gen.Return(False)
+            except OSError as error:
+                logger.warning("Could not check update for project %s: %s",
+                               project_name, error)
                 raise gen.Return(False)
 
     def collect_install_output(self, data):
@@ -740,14 +814,33 @@ class Warrior(object):
             self.on_project_selected(self, project_name)
             yield self.start_selected_project()
 
+    def cleanup_project_versions(self):
+        if self.keep_data:
+            return
+        projects_path = os.path.realpath(os.path.join(self.data_dir, "projects"))
+        if os.path.exists(projects_path):
+            project_paths = set()
+            for item in self.runner.active_items:
+                project_paths.add(item.pipeline.cwd)
+            if self.runner.pipeline:
+                project_paths.add(self.runner.pipeline.cwd)
+            for name in os.listdir(projects_path):
+                path = os.path.join(projects_path, name)
+                if path not in project_paths and os.path.isdir(path):
+                    shutil.rmtree(path)
+
     def clone_project(self, project_name, project_path):
         logger.debug('Clone project %s %s', project_name, project_path)
 
-        version_string = subprocess.Popen(
-            args=["git", "log", "-1", "--pretty=%h"],
-            cwd=project_path,
-            stdout=subprocess.PIPE
-        ).communicate()[0].strip().decode('ascii')
+        image = self.projects[project_name]["use_docker"]
+        if image:
+            version_string = self.image_references[project_name].split("@")[-1].replace(":", "-")
+        else:
+            version_string = subprocess.Popen(
+                args=["git", "log", "-1", "--pretty=%h"],
+                cwd=project_path,
+                stdout=subprocess.PIPE
+            ).communicate()[0].strip().decode('ascii')
 
         logger.debug('Cloning version %s', version_string)
 
@@ -758,10 +851,23 @@ class Warrior(object):
             if not os.path.exists(os.path.join(self.data_dir, "projects")):
                 os.makedirs(os.path.join(self.data_dir, "projects"))
 
-            subprocess.Popen(
-                args=["git", "clone", project_path, project_versioned_path],
-                env=self.gitenv
-            ).communicate()
+            if image:
+                try:
+                    shutil.copytree(
+                        project_path,
+                        project_versioned_path,
+                        symlinks=True
+                    )
+                    os.remove(os.path.join(project_versioned_path, "data"))
+                except Exception:
+                    if os.path.exists(project_versioned_path):
+                        shutil.rmtree(project_versioned_path)
+                    raise
+            else:
+                subprocess.Popen(
+                    args=["git", "clone", project_path, project_versioned_path],
+                    env=self.gitenv
+                ).communicate()
 
         return project_versioned_path
 
@@ -805,6 +911,8 @@ class Warrior(object):
         project_name = self.selected_project
 
         if project_name in self.projects:
+            image = self.projects[project_name]["use_docker"]
+
             # install or update project if necessary
             if project_name not in self.installed_projects or \
                     reinstall or \
@@ -813,6 +921,15 @@ class Warrior(object):
                 logger.debug('Result of the install process: %s', result)
 
                 if not result:
+                    if image:
+                        same_source = project_name in self.image_references
+                    else:
+                        same_source = project_name not in self.image_references
+                    if project_name == self.current_project_name \
+                        and self.runner.pipeline is not None \
+                        and same_source:
+                        logger.warning("Keeping current version for project %s", project_name)
+                        return
                     self._fail_starting_project(project_name)
                     return
 
@@ -867,6 +984,8 @@ class Warrior(object):
             self.runner.set_current_pipeline(None)
             self.fire_status()
 
+        self.cleanup_project_versions()
+
     def _fail_starting_project(self, project_name):
         logger.warning(
             "Project %s did not install correctly and "
@@ -875,6 +994,7 @@ class Warrior(object):
         )
         self.runner.set_current_pipeline(None)
         self.fire_status()
+        self.cleanup_project_versions()
 
     def handle_runner_finish(self, runner):
         logger.info("Runner has finished.")
