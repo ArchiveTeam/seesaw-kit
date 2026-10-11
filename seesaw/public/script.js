@@ -5,8 +5,60 @@ $(function() {
   var eventCallbacks = {};
   var currentBroadcastMessageHash = null;
 
-  function processCarriageReturns(txt) {
-    return txt.replace(/[^\n]*\r(?!\n|$)/g, "");
+  var ItemLog = function(newData) {
+    this.head = [];
+    this.tail = [];
+    this.max_head = 100;
+    this.max_tail = 400;
+    if (newData) {
+      this.append(newData);
+    }
+  };
+  ItemLog.prototype.append = function(newData) {
+    // continue with the last line
+    var lastLine = this.tail.pop();
+    if (!lastLine) {
+      lastLine = '';
+    }
+    // append the new data
+    lastLine = lastLine + newData;
+    // collapse any carriage returns
+    lastLine = lastLine.replaceAll(/[^\n]*\r(?!\n|$)/g, '');
+    // replace null characters with spaces
+    lastLine = lastLine.replaceAll('\u0000', ' ');
+    // append the new lines
+    Array.prototype.push.apply(this.tail, lastLine.split('\n'));
+    // trim to final 500 lines
+    if (this.head.length > 0) {
+      // trimmed before
+      if (this.tail.length > this.max_tail) {
+        this.tail = this.tail.slice(-this.max_tail);
+      }
+    } else if (this.tail.length > (this.max_tail + this.max_head)) {
+      // first trim
+      this.head = this.tail.slice(0, this.max_head);
+      if (!this.head[-1] != '') {
+        this.head.push('');
+      }
+      this.head.push('... truncated long output ...', '');
+      this.tail = this.tail.slice(-this.max_tail);
+    }
+  }
+  ItemLog.prototype.toString = function() {
+    if (this.head.length > 0) {
+      return this.head.join('\n') + '\n' + this.tail.join('\n');
+    } else {
+      return this.tail.join('\n');
+    }
+  }
+  ItemLog.prototype.lastLine = function() {
+    var line = '';
+    var i = this.tail.length - 1;
+    while (line != '' && i >= 0) {
+      line = this.tail[i].trim();
+      i--;
+    }
+    return line;
   }
 
   conn.onopen = function() {
@@ -130,19 +182,17 @@ $(function() {
 //    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
     var itemLog = $('#item-' + msg.item_id + ' pre.log')[0];
-    if (itemLog) {
-      if (itemLog.data) {
-        itemLog.data += processCarriageReturns(msg.data);
-        itemLog.data = itemLog.data.split('\n').slice(-500).join('\n')
-        itemLog.firstChild.nodeValue = itemLog.data;
+    if (itemLog && itemLog.logData) {
+      itemLog.logData.append(msg.data);
+      if (itemLog.firstChild) {
+        itemLog.firstChild.nodeValue = itemLog.logData.toString();
       } else {
-        itemLog.data = processCarriageReturns(msg.data);
         $(itemLog).empty();
-        itemLog.appendChild(document.createTextNode(msg.data));
+        itemLog.appendChild(document.createTextNode(itemLog.logData.toString()));
       }
       itemLog.scrollTop = itemLog.scrollHeight + 1000;
+      updateBriefLog(msg.item_id, itemLog.logData);
     }
-    updateBriefLog(msg.item_id, msg.data);
   });
 
   registerEvent('item.task_status', function(msg) { // item_id, task_id, new_status, old_status
@@ -177,7 +227,7 @@ $(function() {
   registerEvent('item.update_name', function(msg) { // item_id, new_name
 //    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
-    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
+    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name.replaceAll('\u0000', ' '));
   });
 
   registerEvent('item.complete', function(msg) { // pipeline_id, item_id
@@ -437,7 +487,7 @@ $(function() {
     $(h3).append($("<span>", { "class": 'twisty' }),
                  $("<span>", {
                      "class": 'name',
-                     text: item.name
+                     text: item.name.replaceAll('\u0000', ' ')
                  }),
                  $("<span>", { "class": 'status-line' }),
                  $("<span>", { "class": 'log-line' }));
@@ -485,8 +535,8 @@ $(function() {
     
     pre = document.createElement('pre');
     pre.className = 'log';
-    pre.data = processCarriageReturns(item.output);
-    pre.appendChild(document.createTextNode(pre.data));
+    pre.logData = new ItemLog(item.output);
+    pre.appendChild(document.createTextNode(pre.logData.toString()));
     itemDiv.appendChild(pre);
     
     var logHeaderElement = $("<div>", { "class": "log-header" });
@@ -506,25 +556,15 @@ $(function() {
     itemsDiv.insertBefore(itemDiv, itemsDiv.firstChild);
 
     updateBriefTasks(item.id, currentTask, item.tasks.length);
-    updateBriefLog(item.id, pre.data);
+    updateBriefLog(item.id, pre.logData);
   }
 
   function updateBriefTasks(item_id, n, m) {
     $('#item-'+ item_id +' span.status-line').text(': Step '+ n +' of '+ m +' ');
   }
 
-  function updateBriefLog(item_id, data) {
-    var lines = data.split("\n");
-    if (lines) {
-      var line = "";
-      var len = lines.length;
-      for (var i = len - 1; i >= 0; i--) {
-        line = lines[i];
-        if (line)
-          break;
-      }
-      $('#item-'+ item_id + ' .log-line').text(line.trimLeft());
-    }
+  function updateBriefLog(item_id, logData) {
+    $('#item-'+ item_id + ' .log-line').text(logData.lastLine());
   }
 
   function scheduleAppear(item_id) {
