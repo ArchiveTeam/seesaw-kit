@@ -274,8 +274,9 @@ table.time-left td span {
   display: inline-block;
   width: 1em;
   padding-right: 3px;
-  background: #190A06;
+  background: inherit;
   border-radius: 3px;
+  cursor: pointer;
 }
 .item.open .twisty:before {
   content: "▼";
