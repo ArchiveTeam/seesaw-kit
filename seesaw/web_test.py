@@ -43,11 +43,12 @@ class BroadcastTest(unittest.TestCase):
         self.assertEqual('session-a', sent_a['message']['session_id'])
         self.assertEqual('session-b', sent_b['message']['session_id'])
 
-    def test_message_id_is_prefixed_with_instance_id_and_increases(self):
+    def test_message_id_is_prefixed_per_process_and_increases(self):
         SeesawConnection.broadcast('warrior.status', {'status': 'A'})
         SeesawConnection.broadcast('warrior.status', {'status': 'B'})
 
-        prefix = SeesawConnection.instance_id + '-'
+        prefix = SeesawConnection.message_id_prefix + '-'
+        self.assertEqual(32, len(SeesawConnection.message_id_prefix))
         ids = [m['message']['message_id'] for m in self.a.sent]
         self.assertTrue(all(i.startswith(prefix) for i in ids), ids)
         counters = [int(i[len(prefix):]) for i in ids]
@@ -70,7 +71,7 @@ class BroadcastTest(unittest.TestCase):
         SeesawConnection.broadcast('timestamp', {'timestamp': 1.0})
         SeesawConnection.broadcast('timestamp', {'timestamp': 2.0})
 
-        prefix = SeesawConnection.instance_id + '-'
+        prefix = SeesawConnection.message_id_prefix + '-'
         first = int(self.a.sent[0]['message']['message_id'][len(prefix):])
         second = int(self.b.sent[1]['message']['message_id'][len(prefix):])
         self.assertEqual(first + 1, second)

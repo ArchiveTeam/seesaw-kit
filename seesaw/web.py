@@ -8,6 +8,7 @@ import os.path
 import random
 import re
 import time
+import uuid
 
 from sockjs.tornado import SockJSConnection, SockJSRouter
 from tornado import web, ioloop
@@ -184,6 +185,9 @@ class ApiHandler(BaseWebAdminHandler):
 class SeesawConnection(SockJSConnection):
     '''A WebSocket server that communicates the state of the warrior.'''
     instance_id = ("%d-%f" % (os.getpid(), random.random()))
+    # Prefix for message ids: 128 random bits drawn once per process, so ids
+    # from two runs of the same warrior never collide.
+    message_id_prefix = uuid.uuid4().hex
     message_counter = itertools.count(1)
 
     clients = set()
@@ -317,15 +321,15 @@ class SeesawConnection(SockJSConnection):
     def broadcast(cls, event, message):
         '''Send an event to every connected client.
 
-        Each broadcast message carries a ``message_id`` that is unique for
-        the life of this process (``instance_id`` followed by a counter) and
-        identical for every client, so a consumer holding several sessions
+        Each broadcast message carries a ``message_id``, a random per-process
+        prefix followed by a counter, so it is unique across warrior restarts
+        and identical for every client: a consumer holding several sessions
         to one warrior can recognize the same message arriving more than
-        once. ``session_id`` is per client, as before.
+        once, and a gap in the counter for one prefix is a missed message.
         '''
         if message:
             message["message_id"] = "%s-%d" % (
-                cls.instance_id, next(cls.message_counter))
+                cls.message_id_prefix, next(cls.message_counter))
         for client in cls.clients:
             if message:
                 message["session_id"] = client.session.session_id
