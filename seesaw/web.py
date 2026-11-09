@@ -1,6 +1,7 @@
 '''The warrior web interface.'''
 import collections
 import hashlib
+import itertools
 import json
 import os
 import os.path
@@ -183,6 +184,7 @@ class ApiHandler(BaseWebAdminHandler):
 class SeesawConnection(SockJSConnection):
     '''A WebSocket server that communicates the state of the warrior.'''
     instance_id = ("%d-%f" % (os.getpid(), random.random()))
+    message_counter = itertools.count(1)
 
     clients = set()
     item_monitors = dict()
@@ -313,6 +315,17 @@ class SeesawConnection(SockJSConnection):
 
     @classmethod
     def broadcast(cls, event, message):
+        '''Send an event to every connected client.
+
+        Each broadcast message carries a ``message_id`` that is unique for
+        the life of this process (``instance_id`` followed by a counter) and
+        identical for every client, so a consumer holding several sessions
+        to one warrior can recognize the same message arriving more than
+        once. ``session_id`` is per client, as before.
+        '''
+        if message:
+            message["message_id"] = "%s-%d" % (
+                cls.instance_id, next(cls.message_counter))
         for client in cls.clients:
             if message:
                 message["session_id"] = client.session.session_id
