@@ -177,7 +177,7 @@ $(function() {
   registerEvent('item.update_name', function(msg) { // item_id, new_name
 //    if (msg.session_id && msg.session_id != conn.socket.sessionid) return;
 
-    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name);
+    $('#item-' + msg.item_id + ' h3 .name').text(msg.new_name.replace("\0", " "));
   });
 
   registerEvent('item.complete', function(msg) { // pipeline_id, item_id
