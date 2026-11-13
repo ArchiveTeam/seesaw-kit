@@ -11,6 +11,7 @@ import os.path
 import random
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -253,7 +254,9 @@ class Warrior(object):
 
         self.selected_project = None
         self.previous_auto_projects = None
-        self.previous_auto_project = None
+        self.auto_project_chain = []
+        self.project_retry_at = {}
+        self.starting_project = False
 
         self.projects = {}
         self.image_references = {}
@@ -395,31 +398,7 @@ class Warrior(object):
                         time.strptime(project_data["deadline"],
                                       "%Y-%m-%dT%H:%M:%SZ"))
 
-            previous_project_choice = realize(
-                self.selected_project_config_value)
-
-            if self.selected_project and \
-                    self.selected_project not in self.projects:
-                yield self.select_project(None)
-            elif previous_project_choice in self.projects:
-                # select previous project
-                yield self.select_project(previous_project_choice)
-            elif previous_project_choice == "auto":
-                # ArchiveTeam's choice
-                selected = None
-                if "auto_projects_config" in data:
-                    selected = self.select_auto_project(
-                        data["auto_projects_config"]
-                    )
-                    if selected is not None:
-                        yield self.select_project(selected)
-                if selected is None:
-                    self.previous_auto_projects = None
-                    self.previous_auto_project = None
-                    if "auto_project" in data:
-                        yield self.select_project(data["auto_project"])
-                    else:
-                        yield self.select_project(None)
+            yield self.select_hq_project(data)
 
             self.contacting_hq_failed = False
             self.on_projects_loaded(self, self.projects)
@@ -434,59 +413,111 @@ class Warrior(object):
             # We don't set projects to {} because it causes the
             # "Stop Current" project button to disappear
             for name in tuple(self.projects):
-                if name != self.selected_project:
+                if name != self.selected_project \
+                        and name not in self.auto_project_chain:
                     del self.projects[name]
 
             self.on_projects_loaded(self, self.projects)
 
+    @gen.coroutine
+    def select_hq_project(self, data):
+        previous_project_choice = realize(
+            self.selected_project_config_value)
+
+        if self.selected_project is not None \
+                and self.selected_project not in self.projects \
+                and previous_project_choice != 'auto':
+            yield self.select_project(None)
+        elif previous_project_choice in self.projects:
+            # select previous project
+            yield self.select_project(previous_project_choice)
+        elif previous_project_choice == 'auto':
+            # ArchiveTeam's choice
+            selected = self.select_auto_project(
+                data.get('auto_projects_config')
+            )
+            if selected is not None:
+                yield self.update_project(start=True)
+            else:
+                yield self.select_project(data.get('auto_project'))
+
+    def auto_projects_changed(self, auto_projects_config):
+        if self.previous_auto_projects is None \
+                or len(auto_projects_config) != len(self.previous_auto_projects):
+            return True
+        for priority, weights in auto_projects_config.items():
+            previous_weights = self.previous_auto_projects[priority]
+            if set(weights) != set(previous_weights) \
+                    or any(
+                        abs(weight - previous_weights[name]) > 0.001 * max(weight, previous_weights[name])
+                        for name, weight in weights.items()
+                    ):
+                return True
+        return False
+
     def select_auto_project(self, auto_projects_config):
-        auto_projects_config = self.normalize_auto_projects_config(
+        priorities = self.normalize_auto_projects_config(
             auto_projects_config
         )
-        if auto_projects_config is None:
+        if priorities is None:
             return None
-        if auto_projects_config == self.previous_auto_projects \
-            and self.selected_project is not None \
-            and self.selected_project == self.previous_auto_project:
-            return self.selected_project
-        chosen_project = None
-        if self.previous_auto_projects is not None \
-            and self.selected_project is not None \
-            and self.selected_project == self.previous_auto_project:
-            previous_selected_weight = self.previous_auto_projects.get(
-                self.selected_project, 0
+        if not self.auto_projects_changed(priorities):
+            return self.auto_project_chain[0] if len(self.auto_project_chain) > 0 else None
+        chain = []
+        for project_name in self.auto_project_chain:
+            auto_projects_config = self.get_auto_project_weights(priorities, chain)
+            if len(auto_projects_config) == 0:
+                break
+            previous_auto_projects = self.get_auto_project_weights(self.previous_auto_projects, chain)
+            chosen_project = self.choose_auto_project(
+                auto_projects_config, previous_auto_projects, project_name
             )
+            if chosen_project is None:
+                break
+            chain.append(chosen_project)
+            if chosen_project != project_name:
+                break
+        if len(self.auto_project_chain) == 0:
+            chosen_project = self.choose_auto_project(priorities[max(priorities)])
+            if chosen_project is not None:
+                chain.append(chosen_project)
+        self.previous_auto_projects = priorities
+        self.auto_project_chain = chain
+        return chain[0] if len(chain) > 0 else None
+
+    def get_auto_project_weights(self, auto_projects_config, chain):
+        for priority in sorted(auto_projects_config, reverse=True):
+            weights = {
+                name: weight
+                for name, weight in auto_projects_config[priority].items()
+                if name not in chain
+            }
+            if len(weights) > 0:
+                total = sum(weights.values())
+                return {
+                    name: weight / total
+                    for name, weight in weights.items()
+                }
+        return {}
+
+    def choose_auto_project(self, auto_projects_config,
+                            previous_auto_projects=None,
+                            previous_auto_project=None):
+        if previous_auto_project is not None:
+            previous_selected_weight = previous_auto_projects[previous_auto_project]
             current_selected_weight = auto_projects_config.get(
-                self.selected_project, 0
+                previous_auto_project, 0
             )
             # minimize switching between projects
-            if previous_selected_weight > 0 \
-                and current_selected_weight > 0:
-                if current_selected_weight >= previous_selected_weight:
-                    chosen_project = self.selected_project
-                elif random.random() < \
-                    current_selected_weight / previous_selected_weight:
-                    chosen_project = self.selected_project
-                else:
-                    increased_auto_projects = {}
-                    for project_name, weight in auto_projects_config.items():
-                        difference = weight - \
-                            self.previous_auto_projects.get(project_name, 0)
-                        if difference > 0:
-                            increased_auto_projects[project_name] = difference
-                    chosen_project = self.choose_auto_project(
-                        increased_auto_projects
-                    )
-        if chosen_project is None:
-            chosen_project = self.choose_auto_project(auto_projects_config)
-        if chosen_project not in self.projects:
-            logger.debug("Chosen auto project doesn't exist.")
-            chosen_project = None
-        self.previous_auto_projects = auto_projects_config
-        self.previous_auto_project = chosen_project
-        return chosen_project
-
-    def choose_auto_project(self, auto_projects_config):
+            if current_selected_weight >= previous_selected_weight \
+                    or random.random() < current_selected_weight / previous_selected_weight:
+                return previous_auto_project
+            increased_auto_projects = {}
+            for project_name, weight in auto_projects_config.items():
+                difference = weight - previous_auto_projects.get(project_name, 0)
+                if difference > 0:
+                    increased_auto_projects[project_name] = difference
+            auto_projects_config = increased_auto_projects
         # Select project not using random.choices to maintain Python<3
         # compatibility.
         total = sum(auto_projects_config.values())
@@ -502,30 +533,54 @@ class Warrior(object):
         # Basic check if config is correct
         if not isinstance(auto_projects_config, (tuple, list)) \
             or len(auto_projects_config) == 0 \
-            or not all((
-                isinstance(d, dict)
-                and 'project' in d
-                and isinstance(d['project'], seesaw.six.string_types)
-                and 'weight' in d
-                and isinstance(d['weight'], (int, float, bigint))
-                and not isinstance(d['weight'], bool)
-            ) for d in auto_projects_config):
+            or not all(isinstance(d, dict) for d in auto_projects_config):
             return None
-        if any(d['weight'] < 0 for d in auto_projects_config):
+        priorities = [d['priority'] for d in auto_projects_config if 'priority' in d]
+        if not all(
+            isinstance(priority, (int, bigint))
+            and not isinstance(priority, bool)
+            for priority in priorities
+        ):
             return None
-        total = sum(d['weight'] for d in auto_projects_config)
-        if total <= 0:
-            return None
+        default_priority = min(priorities) - 1 if len(priorities) > 0 else 0
+        auto_projects_config = [d.copy() for d in auto_projects_config]
+        for d in auto_projects_config:
+            if 'weight' not in d:
+                d['weight'] = 0
+            if 'priority' not in d:
+                d['priority'] = default_priority
+            if 'project' not in d \
+                    or not isinstance(d['project'], seesaw.six.string_types) \
+                    or not isinstance(d['weight'], (int, float, bigint)) \
+                    or isinstance(d['weight'], bool) \
+                    or d['weight'] < 0:
+                return None
         project_weights = {}
         for d in auto_projects_config:
-            project_weights[d['project']] = \
-                project_weights.get(d['project'], 0) + d['weight']
-        normalized_auto_projects = {}
-        for project_name in sorted(project_weights):
-            normalized_auto_projects[project_name] = round(
-                project_weights[project_name] / float(total), 5
-            )
-        return normalized_auto_projects
+            priority = d['priority']
+            if priority not in project_weights:
+                project_weights[priority] = {}
+            weights = project_weights[priority]
+            weights[d['project']] = weights.get(d['project'], 0) + d['weight']
+        normalized_auto_projects = []
+        seen = set()
+        for priority in sorted(project_weights, reverse=True):
+            weights = {
+                name: weight
+                for name, weight in project_weights[priority].items()
+                if weight > 0 and name not in seen
+            }
+            if len(weights) == 0:
+                continue
+            seen.update(weights)
+            total = float(sum(weights.values()))
+            normalized_auto_projects.append({
+                name: weights[name] / total
+                for name in sorted(weights)
+            })
+        if len(normalized_auto_projects) == 0:
+            return None
+        return dict(enumerate(reversed(normalized_auto_projects)))
 
     @gen.coroutine
     def get_image_reference(self, repository):
@@ -705,6 +760,7 @@ class Warrior(object):
             elif project_name in self.image_references:
                 del self.image_references[project_name]
             self.installed_projects.add(project_name)
+            self.project_retry_at.pop(project_name, None)
             logger.debug('Install complete %s', "".join(self.install_output))
             self.on_project_installed(self, project,
                                       "".join(self.install_output))
@@ -719,13 +775,105 @@ class Warrior(object):
                 project_name)
 
     @gen.coroutine
-    def update_project(self):
+    def update_project(self, start=False):
         logger.debug('Update project.')
+        if self.starting_project:
+            raise gen.Return(None)
+        auto = realize(self.selected_project_config_value) == 'auto' \
+            and self.previous_auto_projects is not None
+        if auto and not start:
+            raise gen.Return(None)
+        self.starting_project = True
+        chain = self.auto_project_chain
+        projects = self.projects
+        try:
+            if auto:
+                yield self.update_auto_project(chain, projects)
+            elif start:
+                yield self.start_selected_project()
+            elif self.selected_project is not None:
+                update = yield self.check_project_has_update(self.selected_project)
+                if update:
+                    yield self.start_selected_project(reinstall=True)
+        finally:
+            self.starting_project = False
+            if chain is not self.auto_project_chain \
+                    or projects != self.projects:
+                yield self.update_project(start=True)
 
-        if self.selected_project and \
-                (yield self.check_project_has_update(self.selected_project)):
-            # restart project
-            yield self.start_selected_project(reinstall=True)
+    @gen.coroutine
+    def update_auto_project(self, chain, projects):
+        def selection_is_current():
+            return chain is self.auto_project_chain \
+                and projects == self.projects \
+                and not self.shut_down_flag \
+                and not self.reboot_flag
+
+        index = 0
+        while selection_is_current():
+            if index == len(chain):
+                remaining = self.get_auto_project_weights(self.previous_auto_projects, chain)
+                if len(remaining) == 0:
+                    break
+                chain.append(self.choose_auto_project(remaining))
+            project_name = chain[index]
+            index += 1
+            if project_name not in self.projects:
+                continue
+            result = None
+            try:
+                update = yield self.check_project_has_update(project_name)
+                if not selection_is_current():
+                    break
+                retry_at = self.project_retry_at.get(project_name)
+                if not update \
+                        and retry_at is not None \
+                        and time.time() < retry_at:
+                    continue
+                installed = True
+                if update:
+                    installed = yield self.install_project(project_name)
+                    if not selection_is_current():
+                        break
+                if installed:
+                    result = yield self.check_project(project_name)
+            except Exception:
+                logger.exception('Could not prepare project %s', project_name)
+            if not selection_is_current():
+                break
+            if result is None:
+                if project_name == self.current_project_name \
+                        and self.runner.pipeline is not None:
+                    raise gen.Return(None)
+                continue
+            if result['runnable']:
+                self.project_retry_at.pop(project_name, None)
+                try:
+                    started = yield self.start_selected_project(prepared_project=project_name)
+                    if started:
+                        raise gen.Return(None)
+                except OSError:
+                    logger.exception('Could not start project %s', project_name)
+                result = {
+                    'reason': 'Error loading pipeline',
+                    'retry_after': 0
+                }
+            logger.warning('Project %s is not runnable: %s', project_name,
+                           result['reason'])
+            self.project_retry_at[project_name] = time.time() + result['retry_after']
+            if project_name == self.current_project_name:
+                self.selected_project = None
+                self.on_project_selected(self, None)
+                self.runner.set_current_pipeline(None)
+                self.fire_status()
+        if selection_is_current():
+            self.selected_project = None
+            self.on_project_selected(self, None)
+            self.runner.set_current_pipeline(None)
+            if not self.runner.is_active():
+                self.handle_runner_finish(self.runner)
+            self.fire_status()
+            self.cleanup_project_versions()
 
     @gen.coroutine
     def check_project_has_update(self, project_name):
@@ -786,6 +934,47 @@ class Warrior(object):
                                project_name, error)
                 raise gen.Return(False)
 
+    @gen.coroutine
+    def check_project(self, project_name, timeout=60):
+        p = AsyncPopen2(
+            args=[
+                sys.executable,
+                '-m',
+                'seesaw.script.check_project',
+                os.path.abspath(os.path.join(self.projects_dir, project_name, 'pipeline.py')),
+                realize(self.downloader)
+            ],
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+        output = []
+        p.on_stdout += output.append
+        self.install_output = []
+        deadline = ioloop.IOLoop.instance().time() + timeout
+        pending = self.run_install_command(p)
+        try:
+            try:
+                result = yield gen.with_timeout(deadline, pending)
+            except gen.TimeoutError:
+                os.killpg(p.pipe.pid, signal.SIGKILL)
+                yield pending
+                raise ValueError('Project check timed out')
+            if result != 0:
+                raise ValueError('Project check returned %d' % result)
+            result = b''.join(output).rsplit(b'\nwarrior_check_result: ', 1)[1]
+            result = json.loads(result.splitlines()[0].decode('utf-8'))
+            result = {
+                'runnable': result['runnable'],
+                'reason': result.get('reason', ''),
+                'retry_after': result.get('retry_after', 0)
+            }
+        except Exception as error:
+            result = {
+                'runnable': False,
+                'reason': str(error),
+                'retry_after': 0
+            }
+        raise gen.Return(result)
+
     def collect_install_output(self, data):
         if isinstance(data, seesaw.six.binary_type):
             text = data.decode('ascii', 'replace')
@@ -804,6 +993,9 @@ class Warrior(object):
             yield self.update_warrior_hq()
             return
 
+        self.previous_auto_projects = None
+        self.auto_project_chain = []
+
         if project_name not in self.projects:
             logger.debug("Project doesn't exist.")
             project_name = None
@@ -812,7 +1004,10 @@ class Warrior(object):
             # restart
             self.selected_project = project_name
             self.on_project_selected(self, project_name)
-            yield self.start_selected_project()
+            if project_name is None:
+                yield self.start_selected_project()
+            else:
+                yield self.update_project(start=True)
 
     def cleanup_project_versions(self):
         if self.keep_data:
@@ -903,20 +1098,24 @@ class Warrior(object):
         return (project, pipeline, config_values)
 
     @gen.coroutine
-    def start_selected_project(self, reinstall=False):
+    def start_selected_project(self, reinstall=False, prepared_project=None):
+        project_name = self.selected_project
+        if prepared_project is not None:
+            project_name = prepared_project
         logger.debug(
             'Start selected project %s (reinstall=%s)',
-            self.selected_project, reinstall
+            project_name, reinstall
         )
-        project_name = self.selected_project
 
         if project_name in self.projects:
             image = self.projects[project_name]["use_docker"]
 
             # install or update project if necessary
-            if project_name not in self.installed_projects or \
-                    reinstall or \
-                    (yield self.check_project_has_update(project_name)):
+            update = prepared_project is None \
+                and (project_name not in self.installed_projects or reinstall)
+            if prepared_project is None and not update:
+                update = yield self.check_project_has_update(project_name)
+            if update:
                 result = yield self.install_project(project_name)
                 logger.debug('Result of the install process: %s', result)
 
@@ -933,11 +1132,6 @@ class Warrior(object):
                     self._fail_starting_project(project_name)
                     return
 
-            # remove the configuration variables from the previous project
-            if self.current_project:
-                for config_value in self.current_project.config_values:
-                    self.config_manager.remove(config_value.name)
-
             # the path with the project code
             # (this is the most recent code from the repository)
             project_path = os.path.join(self.projects_dir, project_name)
@@ -946,6 +1140,13 @@ class Warrior(object):
             # where the pipeline is actually run
             project_versioned_path = self.clone_project(project_name,
                                                         project_path)
+            if prepared_project is not None \
+                    and self.runner.pipeline is not None \
+                    and self.runner.pipeline.cwd == project_versioned_path:
+                if self.selected_project != project_name:
+                    self.selected_project = project_name
+                    self.on_project_selected(self, project_name)
+                raise gen.Return(True)
 
             # load the pipeline from the versioned directory
             pipeline_path = os.path.join(project_versioned_path, "pipeline.py")
@@ -955,13 +1156,25 @@ class Warrior(object):
                     pipeline_path, {"downloader": self.downloader})
             except Exception:
                 logger.exception('Error loading pipeline')
-                self._fail_starting_project(project_name)
+                if prepared_project is None:
+                    self._fail_starting_project(project_name)
+                else:
+                    self.cleanup_project_versions()
                 return
+
+            # remove the configuration variables from the previous project
+            if self.current_project:
+                for config_value in self.current_project.config_values:
+                    self.config_manager.remove(config_value.name)
 
             # add the configuration values to the config manager
             for config_value in config_values:
                 self.config_manager.add(config_value)
             project.config_values = config_values
+
+            if self.selected_project != project_name:
+                self.selected_project = project_name
+                self.on_project_selected(self, project_name)
 
             # start the pipeline
             if not self.shut_down_flag and not self.reboot_flag:
@@ -985,6 +1198,7 @@ class Warrior(object):
             self.fire_status()
 
         self.cleanup_project_versions()
+        raise gen.Return(True)
 
     def _fail_starting_project(self, project_name):
         logger.warning(
@@ -1081,7 +1295,7 @@ class Warrior(object):
         self.shut_down_flag = False
         self.reboot_flag = False
         ioloop.IOLoop.instance().add_future(
-            self.start_selected_project(), lambda fut: fut.result()
+            self.update_project(start=True), lambda fut: fut.result()
         )
         self.fire_status()
 
