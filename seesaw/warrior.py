@@ -327,7 +327,7 @@ class Warrior(object):
     def update_warrior_hq(self):
         logger.debug('Update warrior hq.')
 
-        if realize(self.warrior_id) is None:
+        if not realize(self.warrior_id):
             headers = {"Content-Type": "application/json"}
             user_agent = "ArchiveTeam Warrior/%s" % seesaw.__version__
             body = json.dumps(
@@ -1319,7 +1319,7 @@ class Warrior(object):
             return Warrior.Status.SHUTTING_DOWN
         elif self.reboot_flag:
             return Warrior.Status.REBOOTING
-        elif realize(self.warrior_id) is None:
+        elif not realize(self.warrior_id):
             return Warrior.Status.UNINITIALIZED
         elif not self.config_manager.all_valid():
             return Warrior.Status.INVALID_SETTINGS
