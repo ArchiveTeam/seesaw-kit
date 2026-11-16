@@ -661,6 +661,12 @@ table.time-left td span {
   .item-failed h3 strong {
     background: #A70B0B;
   }
+  .item-completed h3 {
+    background: #326827;
+  }
+  .item-completed h3 strong {
+    background: #326827;
+  }
   .item div.number {
     color: #fff;
   }
