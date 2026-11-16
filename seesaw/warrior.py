@@ -584,15 +584,20 @@ class Warrior(object):
 
     @gen.coroutine
     def get_image_reference(self, repository):
-        p = AsyncPopen2(
-            args=["crane", "digest", "--full-ref", repository]
-        )
-        output = []
-        p.on_stdout += output.append
-        result = yield self.run_install_command(p)
-        if result != 0:
-            raise OSError("crane digest returned %d" % result)
-        raise gen.Return(b"".join(output).decode('utf-8').strip())
+        repositories = [repository]
+        if '@' not in repository \
+                and not repository.endswith(':warrior'):
+            repositories.insert(0, re.sub(r':[^/]*$', '', repository) + ':warrior')
+        for repository in repositories:
+            p = AsyncPopen2(
+                args=["crane", "digest", "--full-ref", repository]
+            )
+            output = []
+            p.on_stdout += output.append
+            result = yield self.run_install_command(p)
+            if result == 0:
+                raise gen.Return(b''.join(output).decode('utf-8').strip())
+        raise OSError('crane digest returned %d' % result)
 
     @gen.coroutine
     def run_install_command(self, p):
