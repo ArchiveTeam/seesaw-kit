@@ -18,13 +18,37 @@ PUBLIC_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 TEMPLATES_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
+HOLIDAY_STYLES = [
+    # this is where easter would go IF IT WASN'T STUPIDLY COMPLEX TO CALCULATE EACH
+    # YEAR'S DATE FOR A SIMPLE THEME UGGHHH (todo for a crazy person that isn't me)
+    # ((10, 24), (10, 31), "halloween"),
+    # ((11, 19), (11, 26), "thanksgiving"),
+    ((12, 18), (12, 26), "christmas"),
+    # ((12, 31), (1, 1), "newyear"),
+]
 
 
 class IndexHandler(BaseWebAdminHandler):
     '''Shows the index.html.'''
     def get(self):
-        self.render(os.path.join(PUBLIC_PATH, "index.html"),
-                    timestamp=time.time())
+        today = time.localtime()
+        theme = self.holiday_stylesheet((today.tm_mon, today.tm_mday))
+        self.render(
+            os.path.join(PUBLIC_PATH, "index.html"),
+            timestamp=time.time(),
+            theme=theme
+        )
+
+    def holiday_stylesheet(month_day):
+        """Gets the stylesheet for an applicable holiday."""
+        for start, end, stylesheet in HOLIDAY_STYLES:
+            if start <= end:
+                if start <= month_day <= end:
+                    return stylesheet
+            else:
+                if month_day >= start or month_day <= end:
+                    return stylesheet
+        return None
 
 
 class ItemMonitor(object):

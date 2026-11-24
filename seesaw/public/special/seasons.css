@@ -1,0 +1,13 @@
+/* allows for an image to be layered on top of the warrior logo */
+#warrior-logo h1:after {
+  content: "";
+  background-size: 121px 123px;
+  background-repeat: no-repeat;
+  display: inline-block;
+  width: 121px; 
+  height: 123px;
+  position: absolute;
+  top: 5px;
+  left: 12px;
+  padding: 5px 30px 0 0;
+}
