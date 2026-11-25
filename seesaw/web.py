@@ -21,7 +21,7 @@ TEMPLATES_PATH = os.path.abspath(
 HOLIDAY_STYLES = [
     # this is where easter would go IF IT WASN'T STUPIDLY COMPLEX TO CALCULATE EACH
     # YEAR'S DATE FOR A SIMPLE THEME UGGHHH (todo for a crazy person that isn't me)
-    # ((10, 24), (10, 31), "halloween"),
+    ((10, 24), (10, 31), "halloween"),
     # ((11, 19), (11, 26), "thanksgiving"),
     ((12, 18), (12, 26), "christmas"),
     # ((12, 31), (1, 1), "newyear"),

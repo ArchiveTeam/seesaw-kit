@@ -1,0 +1,34 @@
+/* colors */
+body,
+#warrior-menu li.active a {
+  background: #ff9a00;
+}
+#warrior-logo {
+  background: #c900ff;
+}
+#warrior-menu li a {
+  background: #B86600;
+}
+#warrior-menu li a:hover {
+  background: #E08000;
+}
+
+@media (prefers-color-scheme: dark) {
+  body,
+  #warrior-menu li.active a {
+    background: #8A4800;
+  }
+  #warrior-menu li a:hover {
+    background: #663600;
+  }
+  #warrior-logo {
+    background: #6f008c;
+  }
+}
+
+
+/* logo */
+#warrior-logo h1:after {
+  /* https://openclipart.org/detail/89293/jack-o-lantern */
+  background-image: url('/special/halloween-jack.png');
+}
