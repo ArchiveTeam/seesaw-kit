@@ -30,7 +30,7 @@ body,
 /* logo */
 #warrior-logo h1:after {
   /* from https://commons.wikimedia.org/wiki/File:Santa_hat.svg (public domain) */
-  background-image: url('/special/warrior-logo-xmas.png');
+  background-image: url('/special/christmas-hat.png');
 }
 
 
