@@ -24,7 +24,7 @@ HOLIDAY_STYLES = [
     ((10, 24), (10, 31), "halloween"),
     # ((11, 19), (11, 26), "thanksgiving"),
     ((12, 18), (12, 26), "christmas"),
-    # ((12, 31), (1, 1), "newyear"),
+    ((12, 31), (1, 1), "newyear"),
 ]
 
 
