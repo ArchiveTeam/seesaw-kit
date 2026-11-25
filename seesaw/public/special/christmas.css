@@ -52,7 +52,6 @@ body::after {
   background-repeat: repeat;
   background-position: 0 0;
   animation: snow 10s linear infinite;
-  content: "";
 }
 
 body::after {
