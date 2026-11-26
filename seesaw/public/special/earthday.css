@@ -1,0 +1,12 @@
+/* logo */
+/*
+  this is a simple change because easter can happen on earth day
+  and dealing with multiple holidays should be seamless. but just
+  to make sure this one still feels special it's animated.
+  webp to the rescue! (740 KB, which is *insane* when the
+  original gif was over 24 MB)
+*/
+#warrior-logo h1:after {
+  /* https://commons.wikimedia.org/wiki/File:Rotating_earth_animated_transparent.gif */
+  background-image: url('/special/earthday.webp');
+}

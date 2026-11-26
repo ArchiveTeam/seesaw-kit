@@ -1,0 +1,34 @@
+/* colors */
+body,
+#warrior-menu li.active a {
+  background: #d767d1;
+}
+#warrior-menu li a {
+  background: #B800B0;
+}
+#warrior-menu li a:hover {
+  background: #E000D6;
+}
+#warrior-logo {
+  background: #f7d7ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  body,
+  #warrior-menu li.active a {
+    background: #8A0084;
+  }
+  #warrior-menu li a:hover {
+    background: #660061;
+  }
+  #warrior-logo {
+    background: #9a869f;
+  }
+}
+
+
+/* logo */
+#warrior-logo h1:after {
+  /* https://openclipart.org/detail/355510/red-heart-doodle-with-18-colors */
+  background-image: url('/special/valentines.png');
+}
