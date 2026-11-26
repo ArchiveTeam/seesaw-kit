@@ -18,56 +18,13 @@ PUBLIC_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "public"))
 TEMPLATES_PATH = os.path.abspath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates"))
-HOLIDAY_STYLES = [
-    ((2, 14), (2, 14), "valentines"),
-    # ((3, 14), (3, 14), "piday"),
-    ((4, 1), (4, 1), "fools"),
-    ((4, 22), (4, 22), "earthday"),
-    # ((5, 1), (5, 1), "mayday"),
-    ((10, 24), (10, 31), "halloween"),
-    ((12, 18), (12, 26), "christmas"),
-    # ((12, 26), (1, 1), "kwanzaa"),
-    ((12, 31), (1, 1), "newyear"),
-    # holidays that need to be calculated to get the right date:
-    # chinese new year
-    # easter
-    # diwali
-    # thanksgiving
-    # hanukkah (can happen on thanksgiving & xmas)
-]
-
-
-class HolidayManager():
-    '''Deals with holiday dates.'''
-    @staticmethod
-    def holiday_stylesheet(month_day):
-        """Gets the stylesheet for an applicable holiday."""
-        for start, end, stylesheet in HOLIDAY_STYLES:
-            if start <= end:
-                if start <= month_day <= end:
-                    return stylesheet
-            else:
-                if month_day >= start or month_day <= end:
-                    return stylesheet
-        return None
-
-    @staticmethod
-    def get_theme():
-        '''Gets the theme for a specified date'''
-        today = time.localtime()
-        return HolidayManager.holiday_stylesheet(
-            (today.tm_mon, today.tm_mday)
-        )
 
 
 class IndexHandler(BaseWebAdminHandler):
     '''Shows the index.html.'''
     def get(self):
-        self.render(
-            os.path.join(PUBLIC_PATH, "index.html"),
-            timestamp=time.time(),
-            theme=HolidayManager.get_theme()
-        )
+        self.render(os.path.join(PUBLIC_PATH, "index.html"),
+                    timestamp=time.time())
 
 
 class ItemMonitor(object):
