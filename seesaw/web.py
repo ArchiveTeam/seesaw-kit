@@ -23,7 +23,7 @@ HOLIDAY_STYLES = [
     # YEAR'S DATE FOR A SIMPLE THEME UGGHHH (todo for a crazy person that isn't me)
     ((2, 14), (2, 14), "valentines"),
     ((4, 1), (4, 1), "fools"),
-    # ((4, 22), (4, 22), "earthday"),  # for later
+    ((4, 22), (4, 22), "earthday"),
     # ((5, 1), (5, 1), "mayday"),  # for later
     ((10, 24), (10, 31), "halloween"),
     ((12, 18), (12, 26), "christmas"),
