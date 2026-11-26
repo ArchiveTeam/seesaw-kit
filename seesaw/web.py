@@ -37,17 +37,9 @@ HOLIDAY_STYLES = [
 ]
 
 
-class IndexHandler(BaseWebAdminHandler):
-    '''Shows the index.html.'''
-    def get(self):
-        today = time.localtime()
-        theme = self.holiday_stylesheet((today.tm_mon, today.tm_mday))
-        self.render(
-            os.path.join(PUBLIC_PATH, "index.html"),
-            timestamp=time.time(),
-            theme=theme
-        )
-
+class HolidayManager():
+    '''Deals with holiday dates.'''
+    @staticmethod
     def holiday_stylesheet(month_day):
         """Gets the stylesheet for an applicable holiday."""
         for start, end, stylesheet in HOLIDAY_STYLES:
@@ -58,6 +50,24 @@ class IndexHandler(BaseWebAdminHandler):
                 if month_day >= start or month_day <= end:
                     return stylesheet
         return None
+
+    @staticmethod
+    def get_theme():
+        '''Gets the theme for a specified date'''
+        today = time.localtime()
+        return HolidayManager.holiday_stylesheet(
+            (today.tm_mon, today.tm_mday)
+        )
+
+
+class IndexHandler(BaseWebAdminHandler):
+    '''Shows the index.html.'''
+    def get(self):
+        self.render(
+            os.path.join(PUBLIC_PATH, "index.html"),
+            timestamp=time.time(),
+            theme=HolidayManager.get_theme()
+        )
 
 
 class ItemMonitor(object):
