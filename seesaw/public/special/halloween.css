@@ -30,5 +30,5 @@ body,
 /* logo */
 #warrior-logo h1:after {
   /* https://openclipart.org/detail/89293/jack-o-lantern */
-  background-image: url('/special/halloween-jack.png');
+  background-image: var(--bg, url("/special/halloween/jack.png"));
 }
